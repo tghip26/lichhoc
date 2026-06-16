@@ -129,23 +129,34 @@ export default function Dashboard() {
     }
 
     setUploading(true);
-    setProgress(30); // Giả lập tiến trình nhanh
+    setProgress(30);
     toast.loading("Đang đẩy dữ liệu lên máy chủ...", { id: "upload" });
 
+    let downloadURL = "";
+
+    // GIAI ĐOẠN 1: Tải ảnh lên Storage
     try {
-      // Vì file đã được nén cực nhẹ, ta dùng uploadBytes (đẩy 1 lần) thay vì Resumable (đẩy từng phần dễ bị kẹt 0%)
       const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
       const storageRef = ref(storage, `schedules/${fileName}`);
       
       const snapshot = await uploadBytes(storageRef, file, { contentType: file.type || "image/jpeg" });
       setProgress(70);
 
-      const downloadURL = await getDownloadURL(snapshot.ref);
+      downloadURL = await getDownloadURL(snapshot.ref);
       setProgress(90);
+    } catch (error) {
+      console.error("Lỗi Storage:", error);
+      toast.error(`Lỗi tải ảnh: ${error.message}`, { id: "upload", duration: 8000 });
+      setProgress(0);
+      setUploading(false);
+      return;
+    }
       
+    // GIAI ĐOẠN 2: Lưu vào Database
+    try {
       await addDoc(collection(db, "schedules"), {
         userId: user.uid,
-        userEmail: user.email,
+        userEmail: user.email || "No Email",
         name: formData.name,
         className: formData.className,
         studentId: formData.studentId,
@@ -166,8 +177,8 @@ export default function Dashboard() {
       document.getElementById('file-input').value = "";
 
     } catch (error) {
-      console.error("Lỗi upload hoặc lưu dữ liệu:", error);
-      toast.error("Lỗi kết nối mạng hoặc máy chủ!", { id: "upload" });
+      console.error("Lỗi Database:", error);
+      toast.error(`Lỗi Database: ${error.message}`, { id: "upload", duration: 8000 });
       setProgress(0);
     } finally {
       setUploading(false);
