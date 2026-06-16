@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 const AuthContext = createContext();
@@ -33,7 +33,16 @@ export function AuthProvider({ children }) {
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
+      throw error;
     }
+  };
+
+  const registerWithEmail = async (email, password) => {
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
+
+  const loginWithEmail = async (email, password) => {
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
   const logout = async () => {
@@ -45,7 +54,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
