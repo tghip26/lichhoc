@@ -65,51 +65,76 @@ export default function Dashboard() {
   };
 
   const handleFileChange = (e) => {
-    if (e.target.files[0]) {
+    if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      // Tạo ảnh xem trước
+      
+      // 1. Tạo ảnh xem trước (Preview)
       const reader = new FileReader();
       reader.onloadend = () => {
         setFilePreview(reader.result);
       };
       reader.readAsDataURL(selectedFile);
+
+      // 2. Nén ảnh SIÊU TỐC ngay lúc chọn file (dùng Canvas)
+      const img = new Image();
+      img.src = URL.createObjectURL(selectedFile);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1280;
+        const MAX_HEIGHT = 1280;
+        let width = img.width;
+        let height = img.height;
+
+        // Tính toán tỷ lệ thu nhỏ
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Xuất ra file định dạng JPEG, chất lượng 70% để siêu nhẹ
+        canvas.toBlob((blob) => {
+          if (blob) {
+            // Lưu lại blob đã nén siêu nhẹ
+            const compressedFile = new File([blob], selectedFile.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            setFile(compressedFile);
+            console.log(`Đã nén tức thì: ${(compressedFile.size / 1024).toFixed(2)} KB`);
+          } else {
+            setFile(selectedFile); // Fallback nếu lỗi
+          }
+        }, "image/jpeg", 0.7);
+      };
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
-      toast.error("Vui lòng chọn ảnh lịch học!");
+      toast.error("Vui lòng đợi ảnh tải xong hoặc chọn ảnh khác!");
       return;
     }
 
     setUploading(true);
-    toast.loading("Đang xử lý ảnh...", { id: "upload" });
+    toast.loading("Đang đẩy dữ liệu lên máy chủ...", { id: "upload" });
 
-    let fileToUpload = file;
-
-    try {
-      // 1. Nén ảnh bằng browser-image-compression (Tắt WebWorker để tránh lỗi tương thích)
-      const options = {
-        maxSizeMB: 1, 
-        maxWidthOrHeight: 1920,
-        useWebWorker: false // Tắt Worker để khắc phục lỗi trên một số trình duyệt
-      };
-      
-      fileToUpload = await imageCompression(file, options);
-      console.log(`Ảnh sau khi nén: ${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB`);
-    } catch (error) {
-      console.warn("Lỗi nén ảnh, sử dụng ảnh gốc:", error);
-      // Fallback: Nếu nén lỗi, cứ dùng file gốc để đảm bảo user vẫn upload được
-      fileToUpload = file; 
-    }
-
-    // 2. Upload ảnh
-    toast.loading("Đang tải lên hệ thống...", { id: "upload" });
-    const fileName = `${Date.now()}_${fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '')}`; // Loại bỏ ký tự đặc biệt trong tên file
+    // Lúc này file đã được nén siêu nhẹ từ trước (ở bước handleFileChange)
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
     const storageRef = ref(storage, `schedules/${fileName}`);
-    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
       "state_changed",
@@ -119,7 +144,7 @@ export default function Dashboard() {
       },
       (error) => {
         console.error("Lỗi upload ảnh:", error);
-        toast.error("Có lỗi xảy ra khi upload ảnh!", { id: "upload" });
+        toast.error("Có lỗi mạng, vui lòng thử lại!", { id: "upload" });
         setUploading(false);
       },
       async () => {
@@ -138,7 +163,7 @@ export default function Dashboard() {
             createdAt: serverTimestamp()
           });
 
-          toast.success("Nộp lịch học thành công!", { id: "upload" });
+          toast.success("Thành công! Lịch học đã được nộp.", { id: "upload" });
           setFormData({ name: "", className: "", studentId: "", school: "" });
           setFile(null);
           setFilePreview(null);
@@ -146,7 +171,7 @@ export default function Dashboard() {
           document.getElementById('file-input').value = "";
         } catch (error) {
           console.error("Lỗi lưu dữ liệu:", error);
-          toast.error("Lỗi khi lưu dữ liệu!", { id: "upload" });
+          toast.error("Lỗi máy chủ khi lưu!", { id: "upload" });
         }
         setUploading(false);
       }
