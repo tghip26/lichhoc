@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
@@ -129,53 +129,49 @@ export default function Dashboard() {
     }
 
     setUploading(true);
+    setProgress(30); // Giả lập tiến trình nhanh
     toast.loading("Đang đẩy dữ liệu lên máy chủ...", { id: "upload" });
 
-    // Lúc này file đã được nén siêu nhẹ từ trước (ở bước handleFileChange)
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
-    const storageRef = ref(storage, `schedules/${fileName}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+      // Vì file đã được nén cực nhẹ, ta dùng uploadBytes (đẩy 1 lần) thay vì Resumable (đẩy từng phần dễ bị kẹt 0%)
+      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
+      const storageRef = ref(storage, `schedules/${fileName}`);
+      
+      const snapshot = await uploadBytes(storageRef, file, { contentType: file.type || "image/jpeg" });
+      setProgress(70);
 
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(p);
-      },
-      (error) => {
-        console.error("Lỗi upload ảnh:", error);
-        toast.error("Có lỗi mạng, vui lòng thử lại!", { id: "upload" });
-        setUploading(false);
-      },
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        
-        try {
-          await addDoc(collection(db, "schedules"), {
-            userId: user.uid,
-            userEmail: user.email,
-            name: formData.name,
-            className: formData.className,
-            studentId: formData.studentId,
-            school: formData.school,
-            imageUrl: downloadURL,
-            status: "pending",
-            createdAt: serverTimestamp()
-          });
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      setProgress(90);
+      
+      await addDoc(collection(db, "schedules"), {
+        userId: user.uid,
+        userEmail: user.email,
+        name: formData.name,
+        className: formData.className,
+        studentId: formData.studentId,
+        school: formData.school,
+        imageUrl: downloadURL,
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
 
-          toast.success("Thành công! Lịch học đã được nộp.", { id: "upload" });
-          setFormData({ name: "", className: "", studentId: "", school: "" });
-          setFile(null);
-          setFilePreview(null);
-          setProgress(0);
-          document.getElementById('file-input').value = "";
-        } catch (error) {
-          console.error("Lỗi lưu dữ liệu:", error);
-          toast.error("Lỗi máy chủ khi lưu!", { id: "upload" });
-        }
-        setUploading(false);
-      }
-    );
+      setProgress(100);
+      toast.success("Thành công! Lịch học đã được nộp.", { id: "upload" });
+      
+      // Reset form
+      setFormData({ name: "", className: "", studentId: "", school: "" });
+      setFile(null);
+      setFilePreview(null);
+      setTimeout(() => setProgress(0), 1000);
+      document.getElementById('file-input').value = "";
+
+    } catch (error) {
+      console.error("Lỗi upload hoặc lưu dữ liệu:", error);
+      toast.error("Lỗi kết nối mạng hoặc máy chủ!", { id: "upload" });
+      setProgress(0);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = async (id) => {
