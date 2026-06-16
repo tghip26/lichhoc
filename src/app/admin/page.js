@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
 
   useEffect(() => {
     const q = query(collection(db, "schedules"), orderBy("createdAt", "desc"));
@@ -35,6 +36,17 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
       toast.error("Không thể cập nhật trạng thái");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm("Chắc chắn xóa lịch này vĩnh viễn?")) {
+      try {
+        await deleteDoc(doc(db, "schedules", id));
+        toast.success("Đã xóa thành công");
+      } catch (error) {
+        toast.error("Không thể xóa");
+      }
     }
   };
 
@@ -63,7 +75,7 @@ export default function AdminDashboard() {
       })
     ].join("\n");
 
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); // \uFEFF for Excel UTF-8 BOM
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -73,7 +85,6 @@ export default function AdminDashboard() {
     document.body.removeChild(link);
   };
 
-  // Filter data
   const filteredSchedules = schedules.filter(s => {
     const matchesSearch = 
       (s.name && s.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -87,122 +98,194 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <div className="glass-panel" style={{ marginTop: "2rem" }}>
+      <div style={{ marginTop: "2rem" }}>
         
         {/* Statistics Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-          <div style={{ background: "rgba(255, 255, 255, 0.5)", padding: "1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.8)", textAlign: "center" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)" }}>Tổng số lịch học</h3>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: "700", color: "var(--primary)" }}>{schedules.length}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
+          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid var(--primary)" }}>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Tổng số lịch học</h3>
+            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{schedules.length}</p>
           </div>
-          <div style={{ background: "rgba(255, 255, 255, 0.5)", padding: "1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.8)", textAlign: "center" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)" }}>Chờ duyệt</h3>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: "700", color: "#D97706" }}>
+          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #D97706" }}>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Chờ duyệt</h3>
+            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#D97706" }}>
               {schedules.filter(s => (s.status || "pending") === "pending").length}
             </p>
           </div>
-          <div style={{ background: "rgba(255, 255, 255, 0.5)", padding: "1.5rem", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.8)", textAlign: "center" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)" }}>Đã duyệt</h3>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: "700", color: "var(--success)" }}>
+          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid var(--success)" }}>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Đã duyệt</h3>
+            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "var(--success)" }}>
               {schedules.filter(s => s.status === "approved").length}
             </p>
           </div>
         </div>
 
         {/* Toolbar */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "300px" }}>
-            <input 
-              type="text" 
-              placeholder="Tìm tên, mã SV, lớp..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input"
-              style={{ flex: 1, maxWidth: "300px" }}
-            />
-            <select 
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="form-input"
-              style={{ width: "auto" }}
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="rejected">Từ chối</option>
-            </select>
+        <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "300px" }}>
+              <input 
+                type="text" 
+                placeholder="Tìm tên, mã SV, lớp..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ flex: 1, maxWidth: "350px", background: "white" }}
+              />
+              <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="form-input"
+                style={{ width: "auto", background: "white", cursor: "pointer" }}
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="pending">Chờ duyệt</option>
+                <option value="approved">Đã duyệt</option>
+                <option value="rejected">Từ chối</option>
+              </select>
+            </div>
+            
+            <div style={{ display: "flex", gap: "1rem" }}>
+              {/* Toggle View Mode */}
+              <div style={{ display: "flex", background: "white", padding: "0.2rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <button 
+                  onClick={() => setViewMode("grid")}
+                  style={{ background: viewMode === "grid" ? "var(--primary-light)" : "transparent", color: viewMode === "grid" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                >
+                  Lưới
+                </button>
+                <button 
+                  onClick={() => setViewMode("list")}
+                  style={{ background: viewMode === "list" ? "var(--primary-light)" : "transparent", color: viewMode === "list" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                >
+                  Danh sách
+                </button>
+              </div>
+
+              <button onClick={handleExportCSV} className="btn" style={{ background: "white", color: "var(--success)", border: "1px solid var(--success)", padding: "0.6rem 1.2rem", boxShadow: "none" }}>
+                <svg style={{ width: "20px", height: "20px", marginRight: "8px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Xuất Excel
+              </button>
+            </div>
           </div>
-          <button onClick={handleExportCSV} className="btn" style={{ background: "var(--success)", color: "white", padding: "0.6rem 1.2rem", boxShadow: "0 4px 6px rgba(16, 185, 129, 0.2)" }}>
-            Xuất file CSV
-          </button>
         </div>
 
-        {/* Table */}
+        {/* Content Area */}
         {loading ? (
           <div className="loader"></div>
+        ) : filteredSchedules.length === 0 ? (
+          <div className="glass-panel" style={{ textAlign: "center", padding: "4rem", color: "var(--text-secondary)" }}>
+            <svg style={{ width: "64px", height: "64px", margin: "0 auto 1rem auto", opacity: 0.5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h3 style={{ fontSize: "1.2rem", fontWeight: "600" }}>Không tìm thấy dữ liệu</h3>
+            <p>Vui lòng thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+          </div>
+        ) : viewMode === "grid" ? (
+          /* GRID VIEW */
+          <div className="grid-container">
+            {filteredSchedules.map((item) => (
+              <div key={item.id} className="grid-card">
+                <div className="grid-card-header">
+                  <div>
+                    <h3 className="grid-card-title">{item.name}</h3>
+                    <p className="grid-card-subtitle">{item.studentId} • {item.className}</p>
+                  </div>
+                  <select 
+                    value={item.status || "pending"} 
+                    onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                    style={{
+                      padding: "4px 10px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
+                      background: item.status === "approved" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                      color: item.status === "approved" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                    }}
+                  >
+                    <option value="pending" style={{color: "black"}}>Chờ duyệt</option>
+                    <option value="approved" style={{color: "black"}}>Đã duyệt</option>
+                    <option value="rejected" style={{color: "black"}}>Từ chối</option>
+                  </select>
+                </div>
+                
+                <img 
+                  src={item.imageUrl} 
+                  alt="Lịch" 
+                  className="grid-card-image"
+                  onClick={() => setLightboxImage(item.imageUrl)}
+                />
+                
+                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                  <strong>Trường:</strong> {item.school}<br/>
+                  <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                </div>
+
+                <div className="grid-card-footer">
+                  <Link href={`/admin/edit/${item.id}`} style={{ color: "var(--primary)", fontSize: "0.9rem", fontWeight: "600", textDecoration: "none", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                    <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    Sửa
+                  </Link>
+                  <button onClick={() => handleDelete(item.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                    <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="table-container">
-            <table>
+          /* LIST VIEW */
+          <div className="table-container glass-panel" style={{ padding: "0" }}>
+            <table style={{ width: "100%" }}>
               <thead>
                 <tr>
-                  <th>Sinh viên</th>
+                  <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Sinh viên</th>
                   <th>Trường / Lớp</th>
                   <th>Ảnh lịch</th>
-                  <th>Ngày nộp</th>
                   <th>Trạng thái</th>
-                  <th>Hành động</th>
+                  <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSchedules.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)" }}>Không tìm thấy dữ liệu.</td>
+                {filteredSchedules.map((item) => (
+                  <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "1rem 1.5rem" }}>
+                      <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{item.school}</div>
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Lớp: {item.className}</div>
+                    </td>
+                    <td>
+                      <img 
+                        src={item.imageUrl} 
+                        alt="Lịch" 
+                        style={{ width: "80px", height: "50px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #E5E7EB", transition: "transform 0.2s" }} 
+                        onClick={() => setLightboxImage(item.imageUrl)}
+                        onMouseOver={e => e.currentTarget.style.transform = "scale(1.1)"}
+                        onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}
+                      />
+                    </td>
+                    <td>
+                      <select 
+                        value={item.status || "pending"} 
+                        onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
+                        style={{
+                          padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
+                          background: item.status === "approved" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: item.status === "approved" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706"
+                        }}
+                      >
+                        <option value="pending" style={{color: "black"}}>Chờ duyệt</option>
+                        <option value="approved" style={{color: "black"}}>Đã duyệt</option>
+                        <option value="rejected" style={{color: "black"}}>Từ chối</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: "1rem 1.5rem" }}>
+                      <div style={{ display: "flex", gap: "1rem" }}>
+                        <Link href={`/admin/edit/${item.id}`} style={{ color: "var(--primary)", fontWeight: "600", textDecoration: "none" }}>Sửa</Link>
+                        <button onClick={() => handleDelete(item.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: "600" }}>Xóa</button>
+                      </div>
+                    </td>
                   </tr>
-                ) : (
-                  filteredSchedules.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{item.name}</div>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{item.studentId}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{item.school}</div>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Lớp: {item.className}</div>
-                      </td>
-                      <td>
-                        <img 
-                          src={item.imageUrl} 
-                          alt="Lịch" 
-                          style={{ width: "60px", height: "40px", objectFit: "cover", borderRadius: "4px", cursor: "pointer", border: "1px solid #E5E7EB" }} 
-                          onClick={() => setLightboxImage(item.imageUrl)}
-                        />
-                      </td>
-                      <td style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                        {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
-                      </td>
-                      <td>
-                        <select 
-                          value={item.status || "pending"} 
-                          onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
-                          style={{
-                            padding: "4px 8px", borderRadius: "12px", fontSize: "0.85rem", fontWeight: "600", border: "none", outline: "none", cursor: "pointer",
-                            background: item.status === "approved" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                            color: item.status === "approved" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706"
-                          }}
-                        >
-                          <option value="pending" style={{color: "black"}}>Chờ duyệt</option>
-                          <option value="approved" style={{color: "black"}}>Đã duyệt</option>
-                          <option value="rejected" style={{color: "black"}}>Từ chối</option>
-                        </select>
-                      </td>
-                      <td>
-                        <Link href={`/admin/edit/${item.id}`} className="btn" style={{ background: "#E5E7EB", color: "var(--text-primary)", padding: "0.4rem 0.8rem", fontSize: "0.85rem", boxShadow: "none" }}>
-                          Sửa
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
@@ -212,10 +295,10 @@ export default function AdminDashboard() {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center", cursor: "zoom-out" }}
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", zIndex: 1000, display: "flex", justifyContent: "center", alignItems: "center", cursor: "zoom-out" }}
           onClick={() => setLightboxImage(null)}
         >
-          <img src={lightboxImage} alt="Phóng to" style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "8px", objectFit: "contain", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }} />
+          <img src={lightboxImage} alt="Phóng to" style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "12px", objectFit: "contain", boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }} />
         </div>
       )}
     </AdminGuard>

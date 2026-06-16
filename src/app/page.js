@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { user, loading, loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth();
+  const { user, loading, isAdmin, loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth();
   const router = useRouter();
   
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -16,9 +16,13 @@ export default function Home() {
 
   useEffect(() => {
     if (user && !loading) {
-      router.push("/dashboard");
+      if (isAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAdmin, router]);
 
   if (loading) {
     return <div className="loader"></div>;
