@@ -85,70 +85,72 @@ export default function Dashboard() {
     }
 
     setUploading(true);
-    toast.loading("Đang nén ảnh & chuẩn bị tải...", { id: "upload" });
+    toast.loading("Đang xử lý ảnh...", { id: "upload" });
+
+    let fileToUpload = file;
 
     try {
-      // 1. Nén ảnh bằng browser-image-compression
+      // 1. Nén ảnh bằng browser-image-compression (Tắt WebWorker để tránh lỗi tương thích)
       const options = {
-        maxSizeMB: 1, // Tối đa 1MB
-        maxWidthOrHeight: 1920, // Độ phân giải tối đa
-        useWebWorker: true
+        maxSizeMB: 1, 
+        maxWidthOrHeight: 1920,
+        useWebWorker: false // Tắt Worker để khắc phục lỗi trên một số trình duyệt
       };
-      const compressedFile = await imageCompression(file, options);
-      console.log(`Ảnh gốc: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-      console.log(`Ảnh sau khi nén: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
-
-      // 2. Upload ảnh đã nén
-      toast.loading("Đang tải lên hệ thống...", { id: "upload" });
-      const fileName = `${Date.now()}_${compressedFile.name}`;
-      const storageRef = ref(storage, `schedules/${fileName}`);
-      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
-
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(p);
-        },
-        (error) => {
-          console.error("Lỗi upload ảnh:", error);
-          toast.error("Có lỗi xảy ra khi upload ảnh!", { id: "upload" });
-          setUploading(false);
-        },
-        async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          
-          try {
-            await addDoc(collection(db, "schedules"), {
-              userId: user.uid,
-              userEmail: user.email,
-              name: formData.name,
-              className: formData.className,
-              studentId: formData.studentId,
-              school: formData.school,
-              imageUrl: downloadURL,
-              status: "pending",
-              createdAt: serverTimestamp()
-            });
-
-            toast.success("Nộp lịch học thành công!", { id: "upload" });
-            setFormData({ name: "", className: "", studentId: "", school: "" });
-            setFile(null);
-            setFilePreview(null);
-            setProgress(0);
-            document.getElementById('file-input').value = "";
-          } catch (error) {
-            console.error("Lỗi lưu dữ liệu:", error);
-            toast.error("Lỗi khi lưu dữ liệu!", { id: "upload" });
-          }
-          setUploading(false);
-        }
-      );
+      
+      fileToUpload = await imageCompression(file, options);
+      console.log(`Ảnh sau khi nén: ${(fileToUpload.size / 1024 / 1024).toFixed(2)} MB`);
     } catch (error) {
-      console.error("Lỗi nén ảnh:", error);
-      toast.error("Không thể xử lý ảnh này", { id: "upload" });
-      setUploading(false);
+      console.warn("Lỗi nén ảnh, sử dụng ảnh gốc:", error);
+      // Fallback: Nếu nén lỗi, cứ dùng file gốc để đảm bảo user vẫn upload được
+      fileToUpload = file; 
     }
+
+    // 2. Upload ảnh
+    toast.loading("Đang tải lên hệ thống...", { id: "upload" });
+    const fileName = `${Date.now()}_${fileToUpload.name.replace(/[^a-zA-Z0-9.]/g, '')}`; // Loại bỏ ký tự đặc biệt trong tên file
+    const storageRef = ref(storage, `schedules/${fileName}`);
+    const uploadTask = uploadBytesResumable(storageRef, fileToUpload);
+
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(p);
+      },
+      (error) => {
+        console.error("Lỗi upload ảnh:", error);
+        toast.error("Có lỗi xảy ra khi upload ảnh!", { id: "upload" });
+        setUploading(false);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        
+        try {
+          await addDoc(collection(db, "schedules"), {
+            userId: user.uid,
+            userEmail: user.email,
+            name: formData.name,
+            className: formData.className,
+            studentId: formData.studentId,
+            school: formData.school,
+            imageUrl: downloadURL,
+            status: "pending",
+            createdAt: serverTimestamp()
+          });
+
+          toast.success("Nộp lịch học thành công!", { id: "upload" });
+          setFormData({ name: "", className: "", studentId: "", school: "" });
+          setFile(null);
+          setFilePreview(null);
+          setProgress(0);
+          document.getElementById('file-input').value = "";
+        } catch (error) {
+          console.error("Lỗi lưu dữ liệu:", error);
+          toast.error("Lỗi khi lưu dữ liệu!", { id: "upload" });
+        }
+        setUploading(false);
+      }
+    );
   };
 
   const handleDelete = async (id) => {
