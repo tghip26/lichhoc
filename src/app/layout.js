@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import ToastProvider from "@/components/ToastProvider";
 
 const geistSans = Geist({
@@ -26,7 +27,8 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ToastProvider />
           <Navbar />
-          <main className="container">{children}</main>
+          <main className="container" style={{ minHeight: "calc(100vh - 350px)" }}>{children}</main>
+          <Footer />
         </AuthProvider>
       </body>
     </html>
