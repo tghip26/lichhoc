@@ -16,8 +16,9 @@ export function AuthProvider({ children }) {
       setUser(user);
       if (user) {
         // Kiểm tra xem user có phải là admin không
-        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
-        setIsAdmin(adminEmails.includes(user.email.toLowerCase()));
+        const envAdmins = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
+        const allAdmins = [...envAdmins, "hiplaika263@gmail.com"];
+        setIsAdmin(allAdmins.includes(user.email.toLowerCase()));
       } else {
         setIsAdmin(false);
       }
