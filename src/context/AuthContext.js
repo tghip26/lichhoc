@@ -54,8 +54,18 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const registerWithEmail = async (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
+  const registerWithEmail = async (email, password, phone) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    if (phone) {
+      try {
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          phone: phone
+        }, { merge: true });
+      } catch (err) {
+        console.error("Lỗi lưu số điện thoại:", err);
+      }
+    }
+    return userCredential;
   };
 
   const loginWithEmail = async (email, password) => {

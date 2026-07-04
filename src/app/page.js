@@ -11,6 +11,7 @@ export default function Home() {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [authError, setAuthError] = useState("");
   const [processing, setProcessing] = useState(false);
 
@@ -36,7 +37,7 @@ export default function Home() {
       if (isLoginMode) {
         await loginWithEmail(email, password);
       } else {
-        await registerWithEmail(email, password);
+        await registerWithEmail(email, password, phone);
       }
     } catch (err) {
       console.error(err);
@@ -107,6 +108,11 @@ export default function Home() {
               <div className="form-group">
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="form-input" placeholder="Email của bạn" style={{ background: "rgba(255,255,255,0.7)", border: isLoginMode ? "1px solid #E5E7EB" : "1px solid #FCD34D" }} />
               </div>
+              {!isLoginMode && (
+                <div className="form-group">
+                  <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="form-input" placeholder="Số điện thoại của bạn" style={{ background: "rgba(255,255,255,0.7)", border: "1px solid #FCD34D" }} />
+                </div>
+              )}
               <div className="form-group">
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="form-input" placeholder={isLoginMode ? "Mật khẩu" : "Tạo Mật khẩu (Từ 6 ký tự)"} minLength={isLoginMode ? 1 : 6} style={{ background: "rgba(255,255,255,0.7)", border: isLoginMode ? "1px solid #E5E7EB" : "1px solid #FCD34D" }} />
               </div>
@@ -117,9 +123,9 @@ export default function Home() {
 
             <div style={{ textAlign: "center", marginTop: "1.5rem", fontSize: "0.95rem", color: "var(--text-secondary)" }}>
               {isLoginMode ? (
-                <>Chưa có tài khoản? <span onClick={() => { setIsLoginMode(false); setAuthError(""); setEmail(""); setPassword(""); }} style={{ color: "var(--primary)", fontWeight: "600", cursor: "pointer", textDecoration: "underline" }}>Đăng ký ngay</span></>
+                <>Chưa có tài khoản? <span onClick={() => { setIsLoginMode(false); setAuthError(""); setEmail(""); setPassword(""); setPhone(""); }} style={{ color: "var(--primary)", fontWeight: "600", cursor: "pointer", textDecoration: "underline" }}>Đăng ký ngay</span></>
               ) : (
-                <>Đã có tài khoản? <span onClick={() => { setIsLoginMode(true); setAuthError(""); setEmail(""); setPassword(""); }} style={{ color: "#D97706", fontWeight: "600", cursor: "pointer", textDecoration: "underline" }}>Đăng nhập</span></>
+                <>Đã có tài khoản? <span onClick={() => { setIsLoginMode(true); setAuthError(""); setEmail(""); setPassword(""); setPhone(""); }} style={{ color: "#D97706", fontWeight: "600", cursor: "pointer", textDecoration: "underline" }}>Đăng nhập</span></>
               )}
             </div>
 
