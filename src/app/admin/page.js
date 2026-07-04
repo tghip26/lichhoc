@@ -265,8 +265,12 @@ export default function AdminDashboard() {
                   onClick={() => setLightboxImage(item.imageUrl)}
                 />
                 
-                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
                   <strong>Trường:</strong> {item.school}<br/>
+                  {item.dob && <><span style={{color: "var(--primary)"}}>Tuổi/NS:</span> {new Date(item.dob).toLocaleDateString("vi-VN")}<br/></>}
+                  {item.classDate && <><span style={{color: "var(--primary)"}}>Học:</span> {item.weekday ? `${item.weekday} ` : ''}({new Date(item.classDate).toLocaleDateString("vi-VN")})<br/></>}
+                  {item.startTime && item.endTime && <><span style={{color: "var(--primary)"}}>Giờ:</span> {item.startTime} - {item.endTime}<br/></>}
+                  {item.notes && <><span style={{color: "var(--primary)"}}>Ghi chú:</span> {item.notes}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                 </div>
 
@@ -298,13 +302,21 @@ export default function AdminDashboard() {
               <tbody>
                 {filteredSchedules.map((item) => (
                   <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "1rem 1.5rem" }}>
+                    <td style={{ padding: "1rem 1.5rem", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
-                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}</div>
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                        {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                        {item.dob && <><br/>NS: {new Date(item.dob).toLocaleDateString("vi-VN")}</>}
+                      </div>
                     </td>
-                    <td>
+                    <td style={{ verticalAlign: "top", paddingTop: "1rem" }}>
                       <div style={{ fontWeight: 600 }}>{item.school}</div>
-                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Lớp: {item.className}</div>
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                        Lớp: {item.className}
+                        {item.classDate && <><br/>Học: {item.weekday} ({new Date(item.classDate).toLocaleDateString("vi-VN")})</>}
+                        {item.startTime && item.endTime && <><br/>Giờ: {item.startTime} - {item.endTime}</>}
+                        {item.notes && <><br/><i style={{ color: "var(--primary)" }}>Ghi chú: {item.notes}</i></>}
+                      </div>
                     </td>
                     <td>
                       <img 

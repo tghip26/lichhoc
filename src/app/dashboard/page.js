@@ -17,8 +17,14 @@ export default function Dashboard() {
     name: "",
     className: "",
     studentId: "",
-    school: ""
+    school: "",
+    classDate: "",
+    startTime: "",
+    endTime: "",
+    dob: "",
+    notes: ""
   });
+  const [weekday, setWeekday] = useState("");
   const [file, setFile] = useState(null); // Now stores Base64 string
   const [fileName, setFileName] = useState("");
   const [filePreview, setFilePreview] = useState(null);
@@ -58,7 +64,19 @@ export default function Dashboard() {
   }, [user]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Tự động tính Thứ trong tuần khi chọn ngày học
+    if (name === "classDate" && value) {
+      const dateObj = new Date(value);
+      const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      if (!isNaN(dateObj.getTime())) {
+        setWeekday(days[dateObj.getDay()]);
+      } else {
+        setWeekday("");
+      }
+    }
   };
 
   const handleFileChange = (e) => {
@@ -154,6 +172,12 @@ export default function Dashboard() {
         className: formData.className,
         studentId: formData.studentId,
         school: formData.school,
+        classDate: formData.classDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        dob: formData.dob,
+        notes: formData.notes,
+        weekday: weekday,
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: "pending",
         createdAt: serverTimestamp()
@@ -163,7 +187,11 @@ export default function Dashboard() {
       toast.success("Thành công! Lịch học đã được nộp.", { id: "upload" });
       
       // Reset form
-      setFormData({ name: "", className: "", studentId: "", school: "" });
+      setFormData({ 
+        name: "", className: "", studentId: "", school: "", 
+        classDate: "", startTime: "", endTime: "", dob: "", notes: "" 
+      });
+      setWeekday("");
       setFile(null);
       setFilePreview(null);
       setTimeout(() => setProgress(0), 1000);
@@ -235,6 +263,34 @@ export default function Dashboard() {
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Trường</label>
               <input type="text" name="school" value={formData.school} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Đại học Công nghệ" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Ngày sinh</label>
+              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Ngày học
+                {weekday && <span style={{ marginLeft: "10px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: "bold" }}>({weekday})</span>}
+              </label>
+              <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Từ mấy giờ</label>
+              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Đến mấy giờ</label>
+              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <label className="form-label">Ghi chú (Không bắt buộc)</label>
+              <textarea name="notes" value={formData.notes} onChange={handleChange} className="form-input" rows="3" placeholder="Ghi chú thêm (VD: mang theo thẻ sinh viên...)" style={{ resize: "vertical" }}></textarea>
             </div>
           </div>
 

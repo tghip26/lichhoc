@@ -18,12 +18,18 @@ export default function AdminEditPage({ params }) {
     className: "",
     studentId: "",
     school: "",
+    classDate: "",
+    startTime: "",
+    endTime: "",
+    dob: "",
+    notes: "",
     imageUrl: ""
   });
-  const [file, setFile] = useState(null);
+  const [weekday, setWeekday] = useState("");
+  const [file, setFile] = useState(null); // Will store Base64 string if selected
+  const [filePreview, setFilePreview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const fetchDoc = async () => {
@@ -32,13 +38,19 @@ export default function AdminEditPage({ params }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setFormData({
-            name: data.name || "",
-            className: data.className || "",
-            studentId: data.studentId || "",
-            school: data.school || "",
-            imageUrl: data.imageUrl || ""
-          });
+            setFormData({
+              name: data.name || "",
+              className: data.className || "",
+              studentId: data.studentId || "",
+              school: data.school || "",
+              classDate: data.classDate || "",
+              startTime: data.startTime || "",
+              endTime: data.endTime || "",
+              dob: data.dob || "",
+              notes: data.notes || "",
+              imageUrl: data.imageUrl || ""
+            });
+            setWeekday(data.weekday || "");
         } else {
           alert("Không tìm thấy thông tin!");
           router.push("/admin");
@@ -53,12 +65,60 @@ export default function AdminEditPage({ params }) {
   }, [id, router]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Tự động tính Thứ trong tuần khi chọn ngày học
+    if (name === "classDate" && value) {
+      const dateObj = new Date(value);
+      const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      if (!isNaN(dateObj.getTime())) {
+        setWeekday(days[dateObj.getDay()]);
+      } else {
+        setWeekday("");
+      }
+    }
   };
 
   const handleFileChange = (e) => {
-    if (e.target.files[0]) {
-      setFile(e.target.files[0]);
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+
+      const img = new Image();
+      img.src = URL.createObjectURL(selectedFile);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1280;
+        const MAX_HEIGHT = 1280;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const base64String = canvas.toDataURL("image/jpeg", 0.7);
+        setFile(base64String);
+      };
     }
   };
 
@@ -68,26 +128,8 @@ export default function AdminEditPage({ params }) {
 
     try {
       let updatedImageUrl = formData.imageUrl;
-
       if (file) {
-        const fileName = `${Date.now()}_${file.name}`;
-        const storageRef = ref(storage, `schedules/${fileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
-
-        await new Promise((resolve, reject) => {
-          uploadTask.on(
-            "state_changed",
-            (snapshot) => {
-              const p = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setProgress(p);
-            },
-            (error) => reject(error),
-            async () => {
-              updatedImageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve();
-            }
-          );
-        });
+        updatedImageUrl = file; // Sử dụng trực tiếp chuỗi Base64
       }
 
       const docRef = doc(db, "schedules", id);
@@ -96,6 +138,12 @@ export default function AdminEditPage({ params }) {
         className: formData.className,
         studentId: formData.studentId,
         school: formData.school,
+        classDate: formData.classDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        dob: formData.dob,
+        notes: formData.notes,
+        weekday: weekday,
         imageUrl: updatedImageUrl
       });
 
@@ -142,6 +190,34 @@ export default function AdminEditPage({ params }) {
             </div>
             
             <div className="form-group">
+              <label className="form-label">Ngày sinh</label>
+              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Ngày học
+                {weekday && <span style={{ marginLeft: "10px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: "bold" }}>({weekday})</span>}
+              </label>
+              <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Từ mấy giờ</label>
+              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Đến mấy giờ</label>
+              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Ghi chú</label>
+              <textarea name="notes" value={formData.notes} onChange={handleChange} className="form-input" rows="3" style={{ resize: "vertical" }}></textarea>
+            </div>
+            
+            <div className="form-group">
               <label className="form-label">Ảnh lịch học hiện tại</label>
               {formData.imageUrl && (
                 <div style={{ marginBottom: "1rem", textAlign: "center" }}>
@@ -150,16 +226,13 @@ export default function AdminEditPage({ params }) {
               )}
               <label className="form-label">Tải lên ảnh mới (Bỏ trống nếu không đổi)</label>
               <input type="file" accept="image/*" onChange={handleFileChange} className="file-input" />
-            </div>
-            
-            {saving && file && (
-              <div style={{ marginBottom: "1rem" }}>
-                <div style={{ height: "8px", background: "#E5E7EB", borderRadius: "4px", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${progress}%`, background: "var(--primary)", transition: "width 0.2s" }}></div>
+              {filePreview && (
+                <div style={{ marginTop: "1rem", textAlign: "center" }}>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>Ảnh mới sẽ được nén và thay thế ảnh cũ:</p>
+                  <img src={filePreview} alt="Preview mới" style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "8px", border: "2px solid var(--primary-light)", objectFit: "contain" }} />
                 </div>
-                <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", textAlign: "right", marginTop: "0.5rem" }}>Đang tải lên ảnh mới... {Math.round(progress)}%</p>
-              </div>
-            )}
+              )}
+            </div>
 
             <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={saving}>
               {saving ? "Đang lưu thay đổi..." : "Lưu thay đổi"}
