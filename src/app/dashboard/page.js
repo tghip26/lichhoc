@@ -45,8 +45,7 @@ export default function Dashboard() {
     if (user) {
       const q = query(
         collection(db, "schedules"), 
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc")
+        where("userId", "==", user.uid)
       );
       
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -54,6 +53,14 @@ export default function Dashboard() {
           id: doc.id,
           ...doc.data()
         }));
+        
+        // Sắp xếp giảm dần theo thời gian tạo (Client-side sort để tránh lỗi Missing Index)
+        data.sort((a, b) => {
+          const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+        });
+
         setHistory(data);
         setLoadingHistory(false);
       }, (error) => {
@@ -295,12 +302,12 @@ export default function Dashboard() {
 
             <div className="form-group">
               <label className="form-label">Từ mấy giờ</label>
-              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" />
+              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" lang="en-GB" />
             </div>
 
             <div className="form-group">
               <label className="form-label">Đến mấy giờ</label>
-              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" />
+              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" lang="en-GB" />
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>

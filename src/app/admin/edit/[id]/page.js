@@ -221,12 +221,12 @@ export default function AdminEditPage({ params }) {
 
             <div className="form-group">
               <label className="form-label">Từ mấy giờ</label>
-              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" />
+              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" lang="en-GB" />
             </div>
 
             <div className="form-group">
               <label className="form-label">Đến mấy giờ</label>
-              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" />
+              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" lang="en-GB" />
             </div>
 
             <div className="form-group">
