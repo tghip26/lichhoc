@@ -34,6 +34,9 @@ export default function Dashboard() {
   const [progress, setProgress] = useState(0);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -254,6 +257,61 @@ export default function Dashboard() {
     }
   };
 
+  // Tính các chỉ số thống kê động
+  const stats = {
+    total: history.length,
+    pending: history.filter(item => item.status === "pending" || !item.status).length,
+    inProgress: history.filter(item => item.status === "in_progress").length,
+    completed: history.filter(item => item.status === "completed").length,
+    totalSpent: history
+      .filter(item => item.status === "completed" || item.status === "approved" || item.status === "in_progress")
+      .reduce((sum, item) => sum + Number(item.price || 0), 0)
+  };
+
+  // Xuất file CSV báo cáo cho khách hàng
+  const exportToCSV = () => {
+    const headers = ["Ho va Ten", "MSSV", "Lop", "Truong", "Ngay hoc", "Gio hoc", "SDT", "Gia de xuat (VND)", "Trang thai", "Ghi chu"];
+    const rows = history.map(item => [
+      item.name,
+      item.studentId,
+      item.className,
+      item.school,
+      item.classDate,
+      `${item.startTime} - ${item.endTime}`,
+      item.phone,
+      item.price,
+      item.status === "pending" ? "Cho nhan don" : item.status === "approved" ? "Sap hoc" : item.status === "in_progress" ? "Dang hoc" : item.status === "completed" ? "Hoan thanh" : "Tu choi",
+      item.notes
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${(val || "").toString().replace(/"/g, '""')}"`).join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `lich_su_thue_hoc_${user.email.split('@')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Đã xuất file báo cáo CSV!");
+  };
+
+  // Lọc danh sách lịch sử dựa trên từ khoá tìm kiếm & bộ lọc trạng thái
+  const filteredHistory = history.filter(item => {
+    const matchesSearch = 
+      (item.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.className || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.studentId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.school || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.notes || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.phone || "").toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem", marginTop: "2rem" }}>
       
@@ -396,31 +454,142 @@ export default function Dashboard() {
 
       {/* RIGHT COLUMN: History */}
       <div className="glass-panel" style={{ padding: "2.5rem", display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        
+        {/* Tiêu đề & Xuất CSV */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <h2 className="page-title" style={{ fontSize: "1.6rem", margin: 0 }}>Lịch sử của bạn</h2>
-          <span style={{ background: "var(--primary-light)", color: "var(--primary)", padding: "0.3rem 0.8rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700" }}>
-            {history.length} mục
-          </span>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {history.length > 0 && (
+              <button 
+                onClick={exportToCSV}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "var(--primary-light)",
+                  color: "var(--primary)",
+                  border: "none",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "8px",
+                  fontSize: "0.85rem",
+                  fontWeight: "600",
+                  cursor: "pointer"
+                }}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Xuất Excel/CSV
+              </button>
+            )}
+            <span style={{ background: "var(--primary-light)", color: "var(--primary)", padding: "0.3rem 0.8rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700" }}>
+              {history.length} mục
+            </span>
+          </div>
         </div>
+
+        {/* Ô BÁO CÁO THỐNG KÊ ĐỘNG */}
+        {history.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "1.5rem" }}>
+            <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "12px", textAlign: "center", border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)" }}>{stats.total}</div>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", fontWeight: "600", marginTop: "2px" }}>Tổng đơn</div>
+            </div>
+            <div style={{ background: "rgba(245, 158, 11, 0.05)", padding: "10px", borderRadius: "12px", textAlign: "center", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+              <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "#D97706" }}>{stats.pending}</div>
+              <div style={{ fontSize: "0.7rem", color: "#D97706", fontWeight: "600", marginTop: "2px" }}>Chờ duyệt</div>
+            </div>
+            <div style={{ background: "rgba(59, 130, 246, 0.05)", padding: "10px", borderRadius: "12px", textAlign: "center", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+              <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "#3B82F6" }}>{stats.inProgress}</div>
+              <div style={{ fontSize: "0.7rem", color: "#3B82F6", fontWeight: "600", marginTop: "2px" }}>Đang học</div>
+            </div>
+            <div style={{ background: "rgba(16, 185, 129, 0.05)", padding: "10px", borderRadius: "12px", textAlign: "center", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+              <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--success)" }}>{stats.completed}</div>
+              <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600", marginTop: "2px" }}>Hoàn thành</div>
+            </div>
+            <div style={{ gridColumn: "1 / -1", background: "rgba(139, 92, 246, 0.05)", padding: "10px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(139, 92, 246, 0.2)", paddingLeft: "15px", paddingRight: "15px" }}>
+              <span style={{ fontSize: "0.8rem", color: "#8B5CF6", fontWeight: "700" }}>💸 Tổng chi tiêu tích lũy:</span>
+              <span style={{ fontSize: "1rem", fontWeight: "800", color: "#8B5CF6" }}>{stats.totalSpent.toLocaleString("vi-VN")} VNĐ</span>
+            </div>
+          </div>
+        )}
+
+        {/* THANH TÌM KIẾM & LỌC TRẠNG THÁI */}
+        {history.length > 0 && (
+          <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem" }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <input 
+                type="text" 
+                placeholder="Tìm môn học, lớp, MSSV, SĐT..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                style={{
+                  width: "100%",
+                  padding: "0.6rem 0.8rem",
+                  borderRadius: "10px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.85rem",
+                  background: "rgba(255,255,255,0.8)"
+                }}
+              />
+            </div>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                padding: "0.6rem 0.8rem",
+                borderRadius: "10px",
+                border: "1px solid #cbd5e1",
+                fontSize: "0.85rem",
+                background: "white",
+                fontWeight: "600",
+                color: "var(--text-primary)",
+                cursor: "pointer"
+              }}
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending">Chờ nhận đơn</option>
+              <option value="approved">Sắp học</option>
+              <option value="in_progress">Đang học</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="rejected">Từ chối</option>
+            </select>
+          </div>
+        )}
         
         {loadingHistory ? (
           <div className="loader"></div>
-        ) : history.length === 0 ? (
-          /* EMPTY STATE ĐẸP */
+        ) : filteredHistory.length === 0 ? (
+          /* EMPTY STATE */
           <div style={{ textAlign: "center", padding: "4rem 1rem", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: "120px", height: "120px", background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1.5rem", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}>
               <svg style={{ width: "60px", height: "60px", color: "#cbd5e1" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
             </div>
-            <h3 style={{ fontSize: "1.2rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>Chưa có dữ liệu nào</h3>
+            <h3 style={{ fontSize: "1.2rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+              {history.length > 0 ? "Không tìm thấy kết quả" : "Chưa có dữ liệu nào"}
+            </h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", maxWidth: "80%" }}>
-              Trông có vẻ trống vắng quá! Bạn hãy sử dụng biểu mẫu bên trái để tạo đơn thuê học đầu tiên của mình nhé.
+              {history.length > 0 ? "Thử nhập từ khóa tìm kiếm hoặc đổi bộ lọc trạng thái khác xem sao." : "Trông có vẻ trống vắng quá! Hãy sử dụng biểu mẫu bên trái để tạo đơn thuê học đầu tiên của mình nhé."}
             </p>
           </div>
         ) : (
           /* Lịch sử List */
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", overflowY: "auto", maxHeight: "650px", paddingRight: "0.5rem" }}>
-            {history.map(item => (
-              <div key={item.id} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "1.25rem", display: "flex", gap: "1.25rem", transition: "transform 0.2s, box-shadow 0.2s", cursor: "default" }} onMouseOver={e => {e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 20px rgba(0,0,0,0.05)"}} onMouseOut={e => {e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"}}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", overflowY: "auto", maxHeight: "550px", paddingRight: "0.5rem" }}>
+            {filteredHistory.map(item => (
+              <div 
+                key={item.id} 
+                onClick={() => setSelectedItem(item)}
+                style={{ 
+                  background: "white", 
+                  border: "1px solid #e2e8f0", 
+                  borderRadius: "16px", 
+                  padding: "1.25rem", 
+                  display: "flex", 
+                  gap: "1.25rem", 
+                  transition: "transform 0.2s, box-shadow 0.2s", 
+                  cursor: "pointer" 
+                }} 
+                onMouseOver={e => {e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 20px rgba(0,0,0,0.05)"}} 
+                onMouseOut={e => {e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"}}
+              >
                 <div style={{ position: "relative" }}>
                   <img src={item.imageUrl} alt="Lịch" style={{ width: "90px", height: "90px", objectFit: "cover", borderRadius: "10px", border: "1px solid #f1f5f9" }} />
                 </div>
@@ -435,15 +604,18 @@ export default function Dashboard() {
                     <svg style={{ width: "14px", height: "14px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     {item.school} • {item.className}
                   </div>
-
+ 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
                     <p style={{ margin: 0, fontSize: "0.8rem", color: "#9CA3AF", fontWeight: "500" }}>
-                      Nộp lúc: {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : "Vừa xong"}
+                      Ngày học: {item.classDate ? new Date(item.classDate).toLocaleDateString("vi-VN") : "Chưa chọn"}
                     </p>
                     
-                    {item.status !== "approved" && (
+                    {item.status !== "approved" && item.status !== "in_progress" && item.status !== "completed" && (
                       <button 
-                        onClick={() => handleDelete(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(item.id);
+                        }}
                         style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--danger)", cursor: "pointer", padding: "0.4rem 0.6rem", borderRadius: "8px", fontSize: "0.8rem", fontWeight: "600", transition: "all 0.2s" }}
                         title="Xóa lịch này"
                         onMouseOver={e => e.currentTarget.style.background="rgba(239, 68, 68, 0.2)"}
@@ -460,6 +632,121 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* OVERLAY MODAL: HIỂN THỊ CHI TIẾT ĐƠN HÀNG */}
+      {selectedItem && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1.5rem",
+            animation: "fadeIn 0.2s ease"
+          }} 
+          onClick={() => setSelectedItem(null)}
+        >
+          <div 
+            style={{
+              background: "white",
+              borderRadius: "24px",
+              padding: "2rem",
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+              border: "1px solid #e2e8f0"
+            }} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "1rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.4rem", fontWeight: "800", color: "var(--text-primary)" }}>Chi tiết đơn thuê học</h3>
+              <button 
+                onClick={() => setSelectedItem(null)} 
+                style={{ 
+                  background: "rgba(0,0,0,0.05)", 
+                  border: "none", 
+                  fontSize: "1.2rem", 
+                  cursor: "pointer", 
+                  color: "#64748b",
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>HỌ TÊN SINH VIÊN</strong>
+                <span style={{ fontWeight: "700" }}>{selectedItem.name}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>MÃ SINH VIÊN</strong>
+                <span style={{ fontWeight: "700" }}>{selectedItem.studentId}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>LỚP HỌC</strong>
+                <span>{selectedItem.className}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRƯỜNG HỌC</strong>
+                <span>{selectedItem.school}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>SỐ ĐIỆN THOẠI</strong>
+                <span>{selectedItem.phone || "Không cung cấp"}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>NGÀY SINH</strong>
+                <span>{selectedItem.dob ? new Date(selectedItem.dob).toLocaleDateString("vi-VN") : "Không cung cấp"}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>LỊCH HỌC</strong>
+                <span style={{ fontWeight: "700", color: "var(--primary)" }}>{selectedItem.classDate ? new Date(selectedItem.classDate).toLocaleDateString("vi-VN") : ""} ({selectedItem.weekday})</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>KHUNG GIỜ</strong>
+                <span style={{ fontWeight: "700" }}>⏱️ {selectedItem.startTime} - {selectedItem.endTime}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>MỨC GIÁ ĐỀ XUẤT</strong>
+                <span style={{ fontWeight: "800", color: "#8B5CF6" }}>{selectedItem.price ? `${Number(selectedItem.price).toLocaleString("vi-VN")} VNĐ` : "Chưa có"}</span>
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI</strong>
+                {getStatusBadge(selectedItem.status)}
+              </div>
+              <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>GHI CHÚ HỌC TẬP</strong>
+                <span style={{ fontStyle: "italic" }}>{selectedItem.notes || "Không có ghi chú thêm."}</span>
+              </div>
+            </div>
+
+            {selectedItem.imageUrl && (
+              <div style={{ marginTop: "1.5rem" }}>
+                <strong style={{ display: "block", color: "var(--text-primary)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>📷 ẢNH LỊCH HỌC ĐÍNH KÈM</strong>
+                <a href={selectedItem.imageUrl} target="_blank" rel="noreferrer" title="Click để phóng to ảnh">
+                  <img src={selectedItem.imageUrl} alt="Lịch học" style={{ width: "100%", borderRadius: "12px", border: "1px solid #cbd5e1", maxHeight: "300px", objectFit: "contain", background: "#f1f5f9", cursor: "zoom-in" }} />
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );
