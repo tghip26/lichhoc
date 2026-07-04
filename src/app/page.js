@@ -66,9 +66,9 @@ export default function Home() {
   return (
     <div style={{ maxWidth: "800px", margin: "4rem auto", padding: "0 1rem" }}>
       <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-        <h1 className="page-title" style={{ fontSize: "2.2rem", color: "var(--primary)" }}>Hệ Thống Lịch Học Pro</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1.05rem", maxWidth: "500px", margin: "0 auto" }}>
-          Nền tảng quản lý thời gian cá nhân hiện đại và chuyên nghiệp nhất.
+        <h1 className="page-title" style={{ fontSize: "2.2rem", color: "var(--primary)" }}>Hệ Thống ThuêHọc Pro</h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", maxWidth: "600px", margin: "0 auto", lineHeight: "1.6" }}>
+          Giải pháp kết nối sinh viên và người học hộ nhanh chóng, an toàn và bảo mật tuyệt đối. Gửi đơn thuê học chỉ trong 1 phút!
         </p>
       </div>
 

@@ -186,7 +186,7 @@ export default function Dashboard() {
       });
 
       setProgress(100);
-      toast.success("Thành công! Lịch học đã được nộp.", { id: "upload" });
+      toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
       
       // Reset form
       setFormData({ 
@@ -209,12 +209,13 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm("Bạn có chắc chắn muốn xóa lịch học này không?")) {
+    if (confirm("Bạn có chắc chắn muốn xóa đơn thuê học này không?")) {
       try {
         await deleteDoc(doc(db, "schedules", id));
-        toast.success("Đã xóa lịch học");
+        toast.success("Đã xóa đơn thuê học");
       } catch (error) {
-        toast.error("Lỗi khi xóa lịch học");
+        console.error("Lỗi xóa đơn thuê học:", error);
+        toast.error("Lỗi khi xóa đơn thuê học");
       }
     }
   };
@@ -238,10 +239,10 @@ export default function Dashboard() {
         <div style={{ marginBottom: "2rem" }}>
           <h2 className="page-title" style={{ fontSize: "1.6rem", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
             <svg style={{ width: "24px", height: "24px", color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-            Tải lên lịch học mới
+            Tạo đơn thuê học mới
           </h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "0.5rem" }}>
-            Vui lòng điền thông tin và đính kèm ảnh chụp lịch học rõ nét.
+            Vui lòng điền thông tin và đính kèm ảnh chụp lịch cần học hộ rõ nét.
           </p>
         </div>
         
@@ -302,7 +303,7 @@ export default function Dashboard() {
           </div>
 
           <div className="form-group" style={{ marginTop: "0.5rem" }}>
-            <label className="form-label">Ảnh lịch học</label>
+            <label className="form-label">Ảnh lịch cần học hộ</label>
             <label 
               htmlFor="file-input" 
               className="file-input" 
@@ -360,7 +361,7 @@ export default function Dashboard() {
                 <svg className="animate-spin" style={{ width: "20px", height: "20px", animation: "spin 1s linear infinite" }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path></svg>
                 Hệ thống đang xử lý...
               </span>
-            ) : "Gửi lịch học"}
+            ) : "Gửi đơn thuê học"}
           </button>
         </form>
       </div>
@@ -384,7 +385,7 @@ export default function Dashboard() {
             </div>
             <h3 style={{ fontSize: "1.2rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "0.5rem" }}>Chưa có dữ liệu nào</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem", maxWidth: "80%" }}>
-              Trông có vẻ trống vắng quá! Bạn hãy sử dụng biểu mẫu bên trái để tải lên lịch học đầu tiên của mình nhé.
+              Trông có vẻ trống vắng quá! Bạn hãy sử dụng biểu mẫu bên trái để tạo đơn thuê học đầu tiên của mình nhé.
             </p>
           </div>
         ) : (

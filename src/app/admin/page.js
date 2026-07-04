@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    // Lấy dữ liệu Lịch Học
+    // Lấy dữ liệu Thuê Học
     const q = query(collection(db, "schedules"), orderBy("createdAt", "desc"));
     const unsubscribeSchedules = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
             style={{ padding: "0.6rem 1.5rem", border: "none", background: activeTab === "schedules" ? "var(--primary)" : "transparent", color: activeTab === "schedules" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "schedules" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
           >
             <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            Quản lý Lịch Học
+            Quản lý Đơn Thuê Học
           </button>
           <button 
             onClick={() => setActiveTab("users")}
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
             {/* Statistics Cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
           <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid var(--primary)" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Tổng số lịch học</h3>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Tổng số đơn thuê học</h3>
             <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{schedules.length}</p>
           </div>
           <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #D97706" }}>

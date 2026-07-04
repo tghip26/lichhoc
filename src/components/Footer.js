@@ -30,11 +30,11 @@ export default function Footer() {
               L
             </div>
             <span style={{ fontSize: "1.2rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              Lịch Học Pro
+              ThuêHọc Pro
             </span>
           </div>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", lineHeight: "1.6", marginBottom: "1.5rem" }}>
-            Hệ thống quản lý lịch học chuyên nghiệp, giúp tối ưu hóa thời gian và nâng cao hiệu quả công việc cho sinh viên và ban quản lý.
+            Hệ thống kết nối và quản lý lịch thuê học chuyên nghiệp, giúp tối ưu hóa thời gian cho sinh viên và ban quản lý.
           </p>
           
           <div style={{ display: "flex", gap: "1rem" }}>
@@ -91,7 +91,7 @@ export default function Footer() {
       </div>
       
       <div className="container" style={{ marginTop: "3rem", paddingTop: "1.5rem", borderTop: "1px solid rgba(226, 232, 240, 0.8)", textAlign: "center", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-        &copy; {new Date().getFullYear()} Lịch Học Pro. Tất cả quyền được bảo lưu.
+        &copy; {new Date().getFullYear()} ThuêHọc Pro. Tất cả quyền được bảo lưu.
       </div>
     </footer>
   );

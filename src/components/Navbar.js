@@ -49,7 +49,7 @@ export default function Navbar() {
               letterSpacing: "-0.5px",
               lineHeight: "1.2"
             }}>
-              Lịch Học Pro
+              ThuêHọc Pro
             </span>
             <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase" }}>
               Hệ thống quản lý

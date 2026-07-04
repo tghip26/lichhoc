@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Quản lý lịch học",
-  description: "Hệ thống quản lý lịch học dành cho khách thuê",
+  title: "Quản lý Thuê Học",
+  description: "Hệ thống quản lý lịch thuê học chuyên nghiệp",
 };
 
 export default function RootLayout({ children }) {
