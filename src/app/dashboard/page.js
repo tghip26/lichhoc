@@ -23,7 +23,8 @@ export default function Dashboard() {
     endTime: "",
     dob: "",
     notes: "",
-    phone: ""
+    phone: "",
+    price: ""
   });
   const [weekday, setWeekday] = useState("");
   const [file, setFile] = useState(null); // Now stores Base64 string
@@ -179,6 +180,7 @@ export default function Dashboard() {
         dob: formData.dob,
         notes: formData.notes,
         phone: formData.phone,
+        price: formData.price,
         weekday: weekday,
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: "pending",
@@ -191,7 +193,7 @@ export default function Dashboard() {
       // Reset form
       setFormData({ 
         name: "", className: "", studentId: "", school: "", 
-        classDate: "", startTime: "", endTime: "", dob: "", notes: "", phone: "" 
+        classDate: "", startTime: "", endTime: "", dob: "", notes: "", phone: "", price: "" 
       });
       setWeekday("");
       setFile(null);
@@ -223,11 +225,16 @@ export default function Dashboard() {
   const getStatusBadge = (status) => {
     switch (status) {
       case "approved":
-        return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đã duyệt</span>;
+      case "accepted":
+        return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Sắp học</span>;
+      case "in_progress":
+        return <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đang học</span>;
+      case "completed":
+        return <span style={{ background: "rgba(139, 92, 246, 0.15)", color: "#8B5CF6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Hoàn thành</span>;
       case "rejected":
         return <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Từ chối</span>;
       default:
-        return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt</span>;
+        return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ nhận đơn</span>;
     }
   };
 
@@ -294,6 +301,11 @@ export default function Dashboard() {
             <div className="form-group">
               <label className="form-label">Đến mấy giờ</label>
               <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <label className="form-label">Mức giá đề xuất (VNĐ)</label>
+              <input type="number" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50000" />
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>

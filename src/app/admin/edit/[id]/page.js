@@ -24,6 +24,9 @@ export default function AdminEditPage({ params }) {
     dob: "",
     notes: "",
     phone: "",
+    price: "",
+    adminNote: "",
+    assignedTo: "",
     imageUrl: ""
   });
   const [weekday, setWeekday] = useState("");
@@ -50,6 +53,9 @@ export default function AdminEditPage({ params }) {
               dob: data.dob || "",
               notes: data.notes || "",
               phone: data.phone || "",
+              price: data.price || "",
+              adminNote: data.adminNote || "",
+              assignedTo: data.assignedTo || "",
               imageUrl: data.imageUrl || ""
             });
             setWeekday(data.weekday || "");
@@ -146,6 +152,9 @@ export default function AdminEditPage({ params }) {
         dob: formData.dob,
         notes: formData.notes,
         phone: formData.phone,
+        price: formData.price,
+        adminNote: formData.adminNote,
+        assignedTo: formData.assignedTo,
         weekday: weekday,
         imageUrl: updatedImageUrl
       });
@@ -226,6 +235,24 @@ export default function AdminEditPage({ params }) {
             </div>
             
             <div className="form-group">
+              <label className="form-label">Giá tiền (VNĐ)</label>
+              <input type="number" name="price" value={formData.price} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group" style={{ borderTop: "2px solid #E5E7EB", paddingTop: "1.5rem", marginTop: "1rem" }}>
+              <label className="form-label" style={{ color: "#8B5CF6", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                Phân công người đi học hộ
+              </label>
+              <input type="text" name="assignedTo" value={formData.assignedTo} onChange={handleChange} className="form-input" placeholder="Ví dụ: Cậu Vàng" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" style={{ color: "#8B5CF6" }}>Ghi chú nội bộ (Khách hàng không thấy)</label>
+              <textarea name="adminNote" value={formData.adminNote} onChange={handleChange} className="form-input" rows="3" style={{ resize: "vertical" }} placeholder="Ví dụ: Đã nhận cọc 50k..."></textarea>
+            </div>
+
+            <div className="form-group" style={{ borderTop: "2px solid #E5E7EB", paddingTop: "1.5rem" }}>
               <label className="form-label">Ảnh lịch học hiện tại</label>
               {formData.imageUrl && (
                 <div style={{ marginBottom: "1rem", textAlign: "center" }}>

@@ -159,6 +159,12 @@ export default function AdminDashboard() {
             <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Tổng số đơn thuê học</h3>
             <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{schedules.length}</p>
           </div>
+          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #8B5CF6" }}>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Doanh thu dự kiến</h3>
+            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#8B5CF6" }}>
+              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(schedules.filter(s => s.status === "completed").reduce((sum, s) => sum + (Number(s.price) || 0), 0))}
+            </p>
+          </div>
           <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #D97706" }}>
             <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Chờ duyệt</h3>
             <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#D97706" }}>
@@ -192,8 +198,10 @@ export default function AdminDashboard() {
                 style={{ width: "auto", background: "white", cursor: "pointer" }}
               >
                 <option value="all">Tất cả trạng thái</option>
-                <option value="pending">Chờ duyệt</option>
-                <option value="approved">Đã duyệt</option>
+                <option value="pending">Chờ nhận đơn</option>
+                <option value="accepted">Sắp học</option>
+                <option value="in_progress">Đang học</option>
+                <option value="completed">Hoàn thành</option>
                 <option value="rejected">Từ chối</option>
               </select>
             </div>
@@ -247,13 +255,15 @@ export default function AdminDashboard() {
                     onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                     style={{
                       padding: "4px 10px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                      background: item.status === "approved" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                      color: item.status === "approved" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706",
+                      background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                      color: item.status === "completed" ? "#8B5CF6" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706",
                       boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
                     }}
                   >
-                    <option value="pending" style={{color: "black"}}>Chờ duyệt</option>
-                    <option value="approved" style={{color: "black"}}>Đã duyệt</option>
+                    <option value="pending" style={{color: "black"}}>Chờ nhận đơn</option>
+                    <option value="accepted" style={{color: "black"}}>Sắp học</option>
+                    <option value="in_progress" style={{color: "black"}}>Đang học</option>
+                    <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                     <option value="rejected" style={{color: "black"}}>Từ chối</option>
                   </select>
                 </div>
@@ -268,11 +278,14 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
                   <strong>Tài khoản:</strong> <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
                   <strong>Trường:</strong> {item.school}<br/>
+                  {item.price && <><span style={{color: "var(--primary)"}}>Giá đề xuất:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}<br/></>}
                   {item.phone && <><span style={{color: "var(--primary)"}}>SĐT:</span> {item.phone}<br/></>}
                   {item.dob && <><span style={{color: "var(--primary)"}}>Tuổi/NS:</span> {new Date(item.dob).toLocaleDateString("vi-VN")}<br/></>}
                   {item.classDate && <><span style={{color: "var(--primary)"}}>Học:</span> {item.weekday ? `${item.weekday} ` : ''}({new Date(item.classDate).toLocaleDateString("vi-VN")})<br/></>}
                   {item.startTime && item.endTime && <><span style={{color: "var(--primary)"}}>Giờ:</span> {item.startTime} - {item.endTime}<br/></>}
                   {item.notes && <><span style={{color: "var(--primary)"}}>Ghi chú:</span> {item.notes}<br/></>}
+                  {item.assignedTo && <><span style={{color: "#8B5CF6"}}>Người đi học:</span> <strong>{item.assignedTo}</strong><br/></>}
+                  {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                 </div>
 
@@ -319,7 +332,9 @@ export default function AdminDashboard() {
                         Lớp: {item.className}
                         {item.classDate && <><br/>Học: {item.weekday} ({new Date(item.classDate).toLocaleDateString("vi-VN")})</>}
                         {item.startTime && item.endTime && <><br/>Giờ: {item.startTime} - {item.endTime}</>}
+                        {item.price && <><br/>Giá: <strong style={{color: "var(--primary)"}}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}</strong></>}
                         {item.notes && <><br/><i style={{ color: "var(--primary)" }}>Ghi chú: {item.notes}</i></>}
+                        {item.assignedTo && <><br/><strong style={{color: "#8B5CF6"}}>Đi học: {item.assignedTo}</strong></>}
                       </div>
                     </td>
                     <td>
@@ -338,12 +353,14 @@ export default function AdminDashboard() {
                         onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                         style={{
                           padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                          background: item.status === "approved" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                          color: item.status === "approved" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706"
+                          background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: item.status === "completed" ? "#8B5CF6" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : "#D97706"
                         }}
                       >
-                        <option value="pending" style={{color: "black"}}>Chờ duyệt</option>
-                        <option value="approved" style={{color: "black"}}>Đã duyệt</option>
+                        <option value="pending" style={{color: "black"}}>Chờ nhận</option>
+                        <option value="accepted" style={{color: "black"}}>Sắp học</option>
+                        <option value="in_progress" style={{color: "black"}}>Đang học</option>
+                        <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                         <option value="rejected" style={{color: "black"}}>Từ chối</option>
                       </select>
                     </td>
