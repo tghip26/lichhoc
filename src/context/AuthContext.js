@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -12,13 +13,28 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
         // Kiểm tra xem user có phải là admin không
         const envAdmins = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
         const allAdmins = [...envAdmins, "hiplaika263@gmail.com"];
-        setIsAdmin(allAdmins.includes(user.email.toLowerCase()));
+        const adminStatus = allAdmins.includes(user.email.toLowerCase());
+        setIsAdmin(adminStatus);
+        
+        // Lưu/Cập nhật thông tin người dùng vào CSDL để quản lý
+        try {
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            photoURL: user.photoURL || "",
+            role: adminStatus ? "admin" : "user",
+            lastLogin: serverTimestamp()
+          }, { merge: true });
+        } catch (err) {
+          console.error("Không thể lưu user info:", err);
+        }
       } else {
         setIsAdmin(false);
       }

@@ -3,11 +3,11 @@
   --background: #f8fafc;
   --foreground: #0f172a;
   
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-light: #e0e7ff;
+  --primary: #16a34a; /* Green-600 */
+  --primary-hover: #15803d; /* Green-700 */
+  --primary-light: #dcfce7; /* Green-100 */
   
-  --secondary: #ec4899;
+  --secondary: #22c55e; /* Green-500 */
   
   --success: #10b981;
   --danger: #ef4444;
@@ -36,12 +36,14 @@
 body {
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   color: var(--text-primary);
-  /* Premium Mesh Gradient Background */
+  /* Premium Green Mesh Gradient & Dong Son Pattern */
   background-color: var(--background);
   background-image: 
-    radial-gradient(at 40% 20%, hsla(250,100%,88%,0.8) 0px, transparent 50%),
-    radial-gradient(at 80% 0%, hsla(189,100%,86%,0.8) 0px, transparent 50%),
-    radial-gradient(at 0% 50%, hsla(333,100%,89%,0.8) 0px, transparent 50%);
+    linear-gradient(rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.95)),
+    url('/dong-son-bg.png'),
+    radial-gradient(at 40% 20%, hsla(142, 71%, 85%, 0.5) 0px, transparent 60%),
+    radial-gradient(at 80% 0%, hsla(142, 76%, 80%, 0.5) 0px, transparent 60%);
+  background-size: cover, 400px, 100%, 100%;
   background-attachment: fixed;
   min-height: 100vh;
   line-height: 1.6;

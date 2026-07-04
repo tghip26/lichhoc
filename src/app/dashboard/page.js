@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
@@ -19,7 +19,8 @@ export default function Dashboard() {
     studentId: "",
     school: ""
   });
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(null); // Now stores Base64 string
+  const [fileName, setFileName] = useState("");
   const [filePreview, setFilePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -103,23 +104,31 @@ export default function Dashboard() {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Xuất ra file định dạng JPEG, chất lượng 70% để siêu nhẹ
-        canvas.toBlob((blob) => {
-          if (blob) {
-            // Lưu lại blob đã nén siêu nhẹ
-            const compressedFile = new File([blob], selectedFile.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-              type: "image/jpeg",
-              lastModified: Date.now(),
-            });
-            setFile(compressedFile);
-            console.log(`Đã nén tức thì: ${(compressedFile.size / 1024).toFixed(2)} KB`);
-          } else {
-            setFile(selectedFile); // Fallback nếu lỗi
-          }
-        }, "image/jpeg", 0.7);
+        // Xuất ra chuỗi Base64 siêu an toàn, không bao giờ bị kẹt mạng
+        const base64String = canvas.toDataURL("image/jpeg", 0.7);
+        setFile(base64String);
+        setFileName(selectedFile.name.replace(/\.[^/.]+$/, "") + ".jpg");
+        console.log("Đã nén thành chuỗi Base64 an toàn tuyệt đối.");
       };
     }
   };
+
+  // Tính năng Dán ảnh (Ctrl + V)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (e.clipboardData && e.clipboardData.files.length > 0) {
+        const pastedFile = e.clipboardData.files[0];
+        if (pastedFile.type.startsWith("image/")) {
+          // Gắn tên ảo nếu file dán từ clipboard không có tên cụ thể
+          const f = new File([pastedFile], pastedFile.name === "image.png" ? `anh_dan_${Date.now()}.png` : pastedFile.name, { type: pastedFile.type });
+          handleFileChange({ target: { files: [f] } });
+          toast.success("Đã nhận ảnh từ Clipboard!");
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -134,12 +143,12 @@ export default function Dashboard() {
 
     let downloadURL = "";
 
-    // GIAI ĐOẠN 1: Tải ảnh lên Storage
+    // GIAI ĐOẠN 1: Tải ảnh lên Storage bằng mã hóa Base64
     try {
-      const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`; 
-      const storageRef = ref(storage, `schedules/${fileName}`);
+      const finalName = `${Date.now()}_${fileName || 'image.jpg'}`; 
+      const storageRef = ref(storage, `schedules/${finalName}`);
       
-      const snapshot = await uploadBytes(storageRef, file, { contentType: file.type || "image/jpeg" });
+      const snapshot = await uploadString(storageRef, file, 'data_url');
       setProgress(70);
 
       downloadURL = await getDownloadURL(snapshot.ref);
@@ -266,7 +275,7 @@ export default function Dashboard() {
                 <div style={{ position: "relative", width: "100%" }}>
                   <img src={filePreview} alt="Preview" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
                   <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", background: "rgba(0,0,0,0.6)", color: "white", padding: "5px 10px", borderRadius: "6px", fontSize: "0.85rem", backdropFilter: "blur(4px)" }}>
-                    {file?.name || "Đang xử lý ảnh..."}
+                    {fileName || "Đang xử lý ảnh..."}
                   </div>
                 </div>
               ) : (
