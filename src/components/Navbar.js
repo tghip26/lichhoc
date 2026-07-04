@@ -28,16 +28,22 @@ export default function Navbar() {
             height: "42px", 
             borderRadius: "12px", 
             overflow: "hidden", 
-            boxShadow: "0 4px 12px rgba(79, 70, 229, 0.2)",
-            background: "white"
+            boxShadow: "0 4px 12px rgba(22, 163, 74, 0.2)",
+            background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white",
+            fontWeight: "900",
+            fontSize: "1.5rem"
           }}>
-            <img src="/logo.png" alt="Lịch Học Pro Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            L
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ 
               fontSize: "1.4rem", 
               fontWeight: "800", 
-              background: "linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)", 
+              background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", 
               WebkitBackgroundClip: "text", 
               WebkitTextFillColor: "transparent", 
               letterSpacing: "-0.5px",
