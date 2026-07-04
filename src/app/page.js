@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { user, loading, isAdmin, loginWithGoogle, loginWithEmail, registerWithEmail } = useAuth();
+  const { user, loading, isAdmin, loginWithGoogle, loginWithEmail, registerWithEmail, systemSettings } = useAuth();
   const router = useRouter();
   
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -65,7 +65,21 @@ export default function Home() {
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "4rem auto", padding: "0 1rem" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {systemSettings?.announcement && (
+        <div style={{
+          background: "linear-gradient(90deg, #d97706, #f59e0b)",
+          color: "white",
+          padding: "8px 10px",
+          textAlign: "center",
+          fontSize: "0.85rem",
+          fontWeight: "600",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+        }}>
+          <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
+        </div>
+      )}
+      <div style={{ maxWidth: "800px", margin: "4rem auto", padding: "0 1rem", flex: 1 }}>
       <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
         <h1 className="page-title" style={{ fontSize: "2.2rem", color: "var(--primary)" }}>Hệ Thống Thuê Học Pro</h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", maxWidth: "600px", margin: "0 auto", lineHeight: "1.6" }}>
@@ -151,6 +165,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

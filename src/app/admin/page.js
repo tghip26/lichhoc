@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminDashboard() {
+  const { systemSettings } = useAuth();
+
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,6 +20,29 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users"
   const [users, setUsers] = useState([]);
+
+  const [settingsForm, setSettingsForm] = useState({
+    bankName: "MBBank",
+    bankAccount: "",
+    bankOwner: "",
+    announcement: "",
+    hotline: "0999.888.777",
+    zaloContact: ""
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (systemSettings) {
+      setSettingsForm({
+        bankName: systemSettings.bankName || "MBBank",
+        bankAccount: systemSettings.bankAccount || "",
+        bankOwner: systemSettings.bankOwner || "",
+        announcement: systemSettings.announcement || "",
+        hotline: systemSettings.hotline || "0999.888.777",
+        zaloContact: systemSettings.zaloContact || ""
+      });
+    }
+  }, [systemSettings]);
 
   useEffect(() => {
     // Lấy dữ liệu Thuê Học
@@ -55,6 +81,20 @@ export default function AdminDashboard() {
       } catch (error) {
         toast.error("Không thể xóa");
       }
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      await setDoc(doc(db, "settings", "system"), settingsForm);
+      toast.success("Cập nhật cấu hình hệ thống thành công!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi lưu cấu hình!");
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -148,6 +188,13 @@ export default function AdminDashboard() {
           >
             <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Quản lý Tài Khoản
+          </button>
+          <button 
+            onClick={() => setActiveTab("settings")}
+            style={{ padding: "0.6rem 1.5rem", border: "none", background: activeTab === "settings" ? "var(--primary)" : "transparent", color: activeTab === "settings" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "settings" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+          >
+            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3" strokeWidth="2"></circle></svg>
+            Cấu hình hệ thống
           </button>
         </div>
 
@@ -459,6 +506,95 @@ export default function AdminDashboard() {
               </table>
             </div>
           </>
+        )}
+
+        {/* BẢNG CẤU HÌNH HỆ THỐNG */}
+        {activeTab === "settings" && (
+          <div className="glass-panel" style={{ padding: "2.5rem", maxWidth: "600px", margin: "0 auto" }}>
+            <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "10px", color: "var(--primary)" }}>
+              <svg style={{ width: "24px", height: "24px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3" strokeWidth="2"></circle></svg>
+              Cài đặt cấu hình hệ thống
+            </h2>
+
+            <form onSubmit={handleSaveSettings}>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", marginBottom: "1rem", color: "var(--text-primary)", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px" }}>🏦 Tài khoản nhận tiền (VietQR)</h3>
+              <div className="form-group">
+                <label className="form-label">Tên Ngân hàng</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.bankName} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, bankName: e.target.value })} 
+                  required 
+                  className="form-input" 
+                  placeholder="Ví dụ: MBBank, Techcombank, VietinBank..." 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Số tài khoản</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.bankAccount} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, bankAccount: e.target.value })} 
+                  required 
+                  className="form-input" 
+                  placeholder="Nhập số tài khoản" 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tên chủ tài khoản (Không dấu)</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.bankOwner} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, bankOwner: e.target.value })} 
+                  required 
+                  className="form-input" 
+                  placeholder="Ví dụ: NGUYEN VAN A" 
+                />
+              </div>
+
+              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", margin: "2rem 0 1rem 0", color: "var(--text-primary)", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px" }}>📢 Thông tin & Thông báo</h3>
+              <div className="form-group">
+                <label className="form-label">Hotline hệ thống</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.hotline} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, hotline: e.target.value })} 
+                  required 
+                  className="form-input" 
+                  placeholder="Ví dụ: 0999.888.777" 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Link liên hệ Zalo</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.zaloContact} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, zaloContact: e.target.value })} 
+                  className="form-input" 
+                  placeholder="Ví dụ: https://zalo.me/..." 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Dòng chạy chữ Thông báo hệ thống</label>
+                <textarea 
+                  value={settingsForm.announcement} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, announcement: e.target.value })} 
+                  className="form-input" 
+                  rows="3" 
+                  placeholder="Nội dung thông báo hiển thị trên đầu trang..."
+                ></textarea>
+              </div>
+
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                style={{ width: "100%", padding: "1rem", marginTop: "1rem" }}
+                disabled={savingSettings}
+              >
+                {savingSettings ? "Đang lưu..." : "Lưu cấu hình"}
+              </button>
+            </form>
+          </div>
         )}
       </div>
 

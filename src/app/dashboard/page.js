@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, loading, systemSettings } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -313,7 +313,21 @@ export default function Dashboard() {
   });
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem", marginTop: "2rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {systemSettings?.announcement && (
+        <div style={{
+          background: "linear-gradient(90deg, #d97706, #f59e0b)",
+          color: "white",
+          padding: "8px 15px",
+          borderRadius: "12px",
+          fontSize: "0.85rem",
+          fontWeight: "600",
+          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
+        }}>
+          <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
       
       {/* LEFT COLUMN: Upload Form */}
       <div className="glass-panel" style={{ padding: "2.5rem" }}>
@@ -730,6 +744,49 @@ export default function Dashboard() {
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI</strong>
                 {getStatusBadge(selectedItem.status)}
               </div>
+
+              {/* VIETQR AUTOMATIC PAYMENT BLOCK */}
+              {systemSettings?.bankAccount && selectedItem.price && ["approved", "accepted", "in_progress", "completed"].includes(selectedItem.status) && (
+                <div style={{ 
+                  gridColumn: "1 / -1", 
+                  background: "rgba(22, 163, 74, 0.03)", 
+                  padding: "1.5rem", 
+                  borderRadius: "16px", 
+                  border: "1px dashed var(--primary)",
+                  textAlign: "center",
+                  marginTop: "1rem"
+                }}>
+                  <strong style={{ color: "var(--primary)", fontSize: "0.95rem", display: "block", marginBottom: "8px" }}>💳 THANH TOÁN CHUYỂN KHOẢN VIETQR</strong>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
+                    Quét mã QR dưới đây bằng ứng dụng Ngân hàng để thanh toán nhanh chóng.
+                  </p>
+                  
+                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+                    <img 
+                      src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${selectedItem.price}&addInfo=THUEHOC%20${selectedItem.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                      alt="VietQR Payment" 
+                      style={{ 
+                        width: "200px", 
+                        height: "200px", 
+                        objectFit: "contain", 
+                        border: "1px solid #cbd5e1", 
+                        borderRadius: "12px", 
+                        padding: "5px",
+                        background: "white"
+                      }} 
+                    />
+                  </div>
+                  
+                  <div style={{ fontSize: "0.85rem", textAlign: "left", display: "inline-block", background: "white", padding: "10px 15px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                    <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
+                    <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
+                    <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
+                    <strong>Số tiền:</strong> <span style={{ fontWeight: "700", color: "#8B5CF6" }}>{Number(selectedItem.price).toLocaleString("vi-VN")} VNĐ</span><br/>
+                    <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {selectedItem.id.substring(0, 8).toUpperCase()}</span>
+                  </div>
+                </div>
+              )}
+
               <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>GHI CHÚ HỌC TẬP</strong>
                 <span style={{ fontStyle: "italic" }}>{selectedItem.notes || "Không có ghi chú thêm."}</span>
@@ -748,6 +805,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      </div>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -11,6 +11,25 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [systemSettings, setSystemSettings] = useState({
+    bankName: "MBBank",
+    bankAccount: "",
+    bankOwner: "",
+    announcement: "",
+    hotline: "0999.888.777",
+    zaloContact: ""
+  });
+
+  useEffect(() => {
+    const unsubSettings = onSnapshot(doc(db, "settings", "system"), (docSnap) => {
+      if (docSnap.exists()) {
+        setSystemSettings(docSnap.data());
+      }
+    }, (err) => {
+      console.error("Lỗi lấy cấu hình hệ thống:", err);
+    });
+    return () => unsubSettings();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -97,7 +116,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings }}>
       {children}
     </AuthContext.Provider>
   );
