@@ -57,10 +57,6 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  if (loading || !user) {
-    return <div className="loader"></div>;
-  }
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -129,6 +125,14 @@ export default function Dashboard() {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
   }, []);
+
+  if (loading || !user) {
+    return <div className="loader"></div>;
+  }
+
+
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
