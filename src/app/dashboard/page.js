@@ -143,15 +143,29 @@ export default function Dashboard() {
 
     let downloadURL = "";
 
-    // GIAI ĐOẠN 1: Tải ảnh lên Storage bằng mã hóa Base64
+    // GIAI ĐOẠN 1: Tải ảnh qua Trạm trung chuyển (API Route) để tránh lỗi CORS
     try {
       const finalName = `${Date.now()}_${fileName || 'image.jpg'}`; 
-      const storageRef = ref(storage, `schedules/${finalName}`);
+      const token = await user.getIdToken();
       
-      const snapshot = await uploadString(storageRef, file, 'data_url');
-      setProgress(70);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileBase64: file,
+          fileName: finalName,
+          token: token
+        })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Lỗi Trạm trung chuyển");
+      }
 
-      downloadURL = await getDownloadURL(snapshot.ref);
+      const data = await res.json();
+      downloadURL = data.url;
+      
       setProgress(90);
     } catch (error) {
       console.error("Lỗi Storage:", error);
