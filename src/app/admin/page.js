@@ -266,6 +266,7 @@ export default function AdminDashboard() {
                 />
                 
                 <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
+                  <strong>Tài khoản:</strong> <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
                   <strong>Trường:</strong> {item.school}<br/>
                   {item.phone && <><span style={{color: "var(--primary)"}}>SĐT:</span> {item.phone}<br/></>}
                   {item.dob && <><span style={{color: "var(--primary)"}}>Tuổi/NS:</span> {new Date(item.dob).toLocaleDateString("vi-VN")}<br/></>}
@@ -306,6 +307,7 @@ export default function AdminDashboard() {
                     <td style={{ padding: "1rem 1.5rem", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
                       <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                        <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
                         {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                         {item.phone && <><br/>SĐT: <strong>{item.phone}</strong></>}
                         {item.dob && <><br/>NS: {new Date(item.dob).toLocaleDateString("vi-VN")}</>}
