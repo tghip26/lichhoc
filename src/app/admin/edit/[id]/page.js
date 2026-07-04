@@ -53,7 +53,7 @@ export default function AdminEditPage({ params }) {
               dob: data.dob || "",
               notes: data.notes || "",
               phone: data.phone || "",
-              price: data.price || "",
+              price: data.price ? data.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : "",
               adminNote: data.adminNote || "",
               assignedTo: data.assignedTo || "",
               imageUrl: data.imageUrl || ""
@@ -74,7 +74,14 @@ export default function AdminEditPage({ params }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+
+    if (name === "price") {
+      const numericValue = value.replace(/\D/g, "");
+      const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      setFormData({ ...formData, [name]: formattedValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
     
     // Tự động tính Thứ trong tuần khi chọn ngày học
     if (name === "classDate" && value) {
@@ -152,7 +159,7 @@ export default function AdminEditPage({ params }) {
         dob: formData.dob,
         notes: formData.notes,
         phone: formData.phone,
-        price: formData.price,
+        price: formData.price ? String(formData.price).replace(/\./g, "") : "",
         adminNote: formData.adminNote,
         assignedTo: formData.assignedTo,
         weekday: weekday,
@@ -236,7 +243,7 @@ export default function AdminEditPage({ params }) {
             
             <div className="form-group">
               <label className="form-label">Giá tiền (VNĐ)</label>
-              <input type="number" name="price" value={formData.price} onChange={handleChange} className="form-input" />
+              <input type="text" name="price" value={formData.price} onChange={handleChange} className="form-input" />
             </div>
 
             <div className="form-group" style={{ borderTop: "2px solid #E5E7EB", paddingTop: "1.5rem", marginTop: "1rem" }}>

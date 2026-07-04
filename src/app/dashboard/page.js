@@ -74,7 +74,16 @@ export default function Dashboard() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    if (name === "price") {
+      // Bỏ đi các ký tự không phải số
+      const numericValue = value.replace(/\D/g, "");
+      // Định dạng kiểu 100.000
+      const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      setFormData({ ...formData, [name]: formattedValue });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
     
     // Tự động tính Thứ trong tuần khi chọn ngày học
     if (name === "classDate" && value) {
@@ -187,7 +196,7 @@ export default function Dashboard() {
         dob: formData.dob,
         notes: formData.notes,
         phone: formData.phone,
-        price: formData.price,
+        price: formData.price ? formData.price.replace(/\./g, "") : "",
         weekday: weekday,
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: "pending",
@@ -312,7 +321,7 @@ export default function Dashboard() {
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Mức giá đề xuất (VNĐ)</label>
-              <input type="number" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50000" />
+              <input type="text" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50.000" />
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
