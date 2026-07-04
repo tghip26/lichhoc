@@ -294,11 +294,11 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <>
-                  <div style={{ width: "50px", height: "50px", background: "var(--primary-light)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
+                  <div style={{ width: "50px", height: "50px", background: "var(--primary-light)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)", marginBottom: "8px" }}>
                     <svg style={{ width: "24px", height: "24px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                   </div>
-                  <div style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>
-                    Nhấn vào đây để chọn ảnh lịch học
+                  <div style={{ color: "var(--text-secondary)", fontSize: "0.95rem", fontWeight: "600", marginBottom: "4px" }}>
+                    Nhấn chọn ảnh hoặc <kbd style={{ padding: "3px 8px", background: "#f1f5f9", borderRadius: "4px", border: "1px solid #cbd5e1", fontSize: "0.85rem", color: "var(--primary)", fontFamily: "monospace", margin: "0 4px", boxShadow: "0 2px 0 #cbd5e1" }}>Ctrl + V</kbd> để dán
                   </div>
                   <div style={{ color: "#9CA3AF", fontSize: "0.8rem" }}>
                     Hỗ trợ JPG, PNG (tự động nén siêu tốc)
