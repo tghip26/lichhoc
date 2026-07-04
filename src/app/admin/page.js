@@ -276,6 +276,9 @@ export default function AdminDashboard() {
                 />
                 
                 <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
+                  <strong>Tên người thuê:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.name}</span><br/>
+                  <strong>Mã sinh viên:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.studentId}</span><br/>
+                  <strong>Lớp:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.className}</span><br/>
                   <strong>Tài khoản:</strong> <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
                   <strong>Trường:</strong> {item.school}<br/>
                   {item.price && <><span style={{color: "var(--primary)"}}>Giá đề xuất:</span> {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}<br/></>}
