@@ -267,6 +267,7 @@ export default function AdminDashboard() {
                 
                 <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
                   <strong>Trường:</strong> {item.school}<br/>
+                  {item.phone && <><span style={{color: "var(--primary)"}}>SĐT:</span> {item.phone}<br/></>}
                   {item.dob && <><span style={{color: "var(--primary)"}}>Tuổi/NS:</span> {new Date(item.dob).toLocaleDateString("vi-VN")}<br/></>}
                   {item.classDate && <><span style={{color: "var(--primary)"}}>Học:</span> {item.weekday ? `${item.weekday} ` : ''}({new Date(item.classDate).toLocaleDateString("vi-VN")})<br/></>}
                   {item.startTime && item.endTime && <><span style={{color: "var(--primary)"}}>Giờ:</span> {item.startTime} - {item.endTime}<br/></>}
@@ -306,6 +307,7 @@ export default function AdminDashboard() {
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
                       <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                         {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                        {item.phone && <><br/>SĐT: <strong>{item.phone}</strong></>}
                         {item.dob && <><br/>NS: {new Date(item.dob).toLocaleDateString("vi-VN")}</>}
                       </div>
                     </td>

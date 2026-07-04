@@ -22,7 +22,8 @@ export default function Dashboard() {
     startTime: "",
     endTime: "",
     dob: "",
-    notes: ""
+    notes: "",
+    phone: ""
   });
   const [weekday, setWeekday] = useState("");
   const [file, setFile] = useState(null); // Now stores Base64 string
@@ -177,6 +178,7 @@ export default function Dashboard() {
         endTime: formData.endTime,
         dob: formData.dob,
         notes: formData.notes,
+        phone: formData.phone,
         weekday: weekday,
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: "pending",
@@ -189,7 +191,7 @@ export default function Dashboard() {
       // Reset form
       setFormData({ 
         name: "", className: "", studentId: "", school: "", 
-        classDate: "", startTime: "", endTime: "", dob: "", notes: "" 
+        classDate: "", startTime: "", endTime: "", dob: "", notes: "", phone: "" 
       });
       setWeekday("");
       setFile(null);
@@ -268,6 +270,11 @@ export default function Dashboard() {
             <div className="form-group">
               <label className="form-label">Ngày sinh</label>
               <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Số điện thoại</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" placeholder="Ví dụ: 0912345678" />
             </div>
 
             <div className="form-group">

@@ -23,6 +23,7 @@ export default function AdminEditPage({ params }) {
     endTime: "",
     dob: "",
     notes: "",
+    phone: "",
     imageUrl: ""
   });
   const [weekday, setWeekday] = useState("");
@@ -48,6 +49,7 @@ export default function AdminEditPage({ params }) {
               endTime: data.endTime || "",
               dob: data.dob || "",
               notes: data.notes || "",
+              phone: data.phone || "",
               imageUrl: data.imageUrl || ""
             });
             setWeekday(data.weekday || "");
@@ -143,6 +145,7 @@ export default function AdminEditPage({ params }) {
         endTime: formData.endTime,
         dob: formData.dob,
         notes: formData.notes,
+        phone: formData.phone,
         weekday: weekday,
         imageUrl: updatedImageUrl
       });
@@ -192,6 +195,11 @@ export default function AdminEditPage({ params }) {
             <div className="form-group">
               <label className="form-label">Ngày sinh</label>
               <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Số điện thoại</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" placeholder="Ví dụ: 0912345678" />
             </div>
 
             <div className="form-group">
