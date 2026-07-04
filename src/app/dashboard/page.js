@@ -141,27 +141,7 @@ export default function Dashboard() {
     setProgress(30);
     toast.loading("Đang đẩy dữ liệu lên máy chủ...", { id: "upload" });
 
-    let downloadURL = "";
-
-    // GIAI ĐOẠN 1: Tải ảnh trực tiếp lên Storage
-    try {
-      const finalName = `${Date.now()}_${fileName || 'image.jpg'}`; 
-      const storageRef = ref(storage, `schedules/${finalName}`);
-      
-      const snapshot = await uploadString(storageRef, file, 'data_url');
-      setProgress(70);
-
-      downloadURL = await getDownloadURL(snapshot.ref);
-      setProgress(90);
-    } catch (error) {
-      console.error("Lỗi Storage:", error);
-      toast.error(`Lỗi tải ảnh: ${error.message}`, { id: "upload", duration: 8000 });
-      setProgress(0);
-      setUploading(false);
-      return;
-    }
-      
-    // GIAI ĐOẠN 2: Lưu vào Database
+    // GIAI ĐOẠN ĐỘT PHÁ: Lưu thẳng chuỗi văn bản ảnh vào CSDL Firestore (Không cần Storage)
     try {
       await addDoc(collection(db, "schedules"), {
         userId: user.uid,
@@ -170,7 +150,7 @@ export default function Dashboard() {
         className: formData.className,
         studentId: formData.studentId,
         school: formData.school,
-        imageUrl: downloadURL,
+        imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: "pending",
         createdAt: serverTimestamp()
       });
