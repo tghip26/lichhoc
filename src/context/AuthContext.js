@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
@@ -46,11 +46,27 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
+    
+    // Thuật toán phát hiện trình duyệt ẩn (In-app browsers) của Zalo, Messenger, FB, Tiktok...
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isInAppBrowser = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Zalo") > -1) || (ua.indexOf("Instagram") > -1) || (ua.indexOf("TikTok") > -1) || (ua.indexOf("Messenger") > -1);
+
     try {
-      await signInWithPopup(auth, provider);
+      if (isInAppBrowser) {
+        // Bắt buộc dùng Redirect để phá vỡ lớp chặn Popup của Zalo/Mess
+        await signInWithRedirect(auth, provider);
+      } else {
+        // Dùng Popup cho Chrome/Safari thông thường
+        await signInWithPopup(auth, provider);
+      }
     } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
-      throw error;
+      console.error("Lỗi đăng nhập Google:", error);
+      // Nếu Popup bị chặn (ngay cả trên trình duyệt thường), tự động chuyển sang Redirect
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        await signInWithRedirect(auth, provider);
+      } else {
+        throw error;
+      }
     }
   };
 
