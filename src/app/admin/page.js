@@ -408,7 +408,12 @@ export default function AdminDashboard() {
                         </select>
                       </td>
                       <td style={{ padding: "1rem 1.5rem" }}>
-                        <button onClick={() => handleDeleteUser(u.id)} style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: "600", padding: "8px 12px", borderRadius: "8px", transition: "all 0.2s" }} onMouseOver={(e) => e.target.style.background = "var(--danger)", e.target.style.color = "white"} onMouseOut={(e) => e.target.style.background = "rgba(239, 68, 68, 0.1)", e.target.style.color = "var(--danger)"}>
+                        <button 
+                          onClick={() => handleDeleteUser(u.id)} 
+                          style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: "600", padding: "8px 12px", borderRadius: "8px", transition: "all 0.2s" }} 
+                          onMouseOver={(e) => { e.target.style.background = "var(--danger)"; e.target.style.color = "white"; }} 
+                          onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.1)"; e.target.style.color = "var(--danger)"; }}
+                        >
                           Khóa/Xóa
                         </button>
                       </td>
