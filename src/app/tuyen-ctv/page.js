@@ -112,6 +112,16 @@ export default function TuyenCTV() {
       
       sendTelegramAlert(alertText);
 
+      // Tạo thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: "Ứng tuyển CTV mới",
+        message: `Ứng viên ${formData.name} đăng ký ứng tuyển CTV (${formData.school}).`,
+        read: false,
+        link: "/admin",
+        createdAt: serverTimestamp()
+      });
+
       toast.success("Nộp hồ sơ ứng tuyển thành công! Vui lòng đợi Zalo liên hệ.", { id: "ctv-submit" });
       setSubmitted(true);
     } catch (error) {

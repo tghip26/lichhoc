@@ -306,6 +306,16 @@ export default function Dashboard() {
 
       sendTelegramAlert(telegramText);
 
+      // Tạo thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: paymentMethod === "wallet" ? "Đơn thanh toán qua Ví" : "Đơn thuê học mới",
+        message: `Sinh viên ${formData.name} đăng ký học môn ${formData.className} (${formatPrice} đ).`,
+        read: false,
+        link: "/admin",
+        createdAt: serverTimestamp()
+      });
+
       setProgress(100);
 
       if (paymentMethod === "wallet") {
@@ -474,6 +484,17 @@ export default function Dashboard() {
         `• <b>Trạng thái:</b> Chờ Admin đối soát và duyệt cộng tiền.`;
       
       await sendTelegramAlert(topupText);
+
+      // Tạo thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: "Yêu cầu nạp Ví",
+        message: `Tài khoản ${user.email} yêu cầu nạp ${Number(topupAmount).toLocaleString("vi-VN")} đ vào ví.`,
+        read: false,
+        link: "/admin",
+        createdAt: serverTimestamp()
+      });
+
       toast.success("Đã gửi yêu cầu nạp ví thành công! Vui lòng chuyển khoản.", { id: "topup" });
       setShowWalletModal(false);
     } catch (err) {
@@ -534,6 +555,17 @@ export default function Dashboard() {
         `• <b>Trạng thái:</b> Đang chờ Admin đối soát ngân hàng.`;
       
       sendTelegramAlert(telegramText);
+
+      // Tạo thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: "Báo chuyển khoản",
+        message: `Khách hàng báo đã chuyển khoản ${Number(orderPrice).toLocaleString("vi-VN")} đ cho mã đơn ${orderIdSub}.`,
+        read: false,
+        link: "/admin",
+        createdAt: serverTimestamp()
+      });
+
       toast.success("Đã gửi báo cáo chuyển tiền đến Admin!");
       setShowPaymentModal(false);
       

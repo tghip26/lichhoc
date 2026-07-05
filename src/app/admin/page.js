@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment, addDoc, serverTimestamp } from "firebase/firestore";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -78,8 +78,29 @@ export default function AdminDashboard() {
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
+      const schedule = schedules.find(s => s.id === id);
       await updateDoc(doc(db, "schedules", id), { status: newStatus });
       toast.success("Cập nhật trạng thái thành công");
+
+      if (schedule && schedule.userId) {
+        let statusText = "";
+        if (newStatus === "accepted") statusText = "đã được chấp nhận (Sắp học)";
+        if (newStatus === "completed") statusText = "đã hoàn thành (Vui lòng đánh giá)";
+        if (newStatus === "rejected") statusText = "đã bị từ chối";
+        if (newStatus === "in_progress") statusText = "đang học";
+        if (newStatus === "paid") statusText = "đã được xác nhận thanh toán";
+
+        if (statusText) {
+          await addDoc(collection(db, "notifications"), {
+            userId: schedule.userId,
+            title: "Cập nhật lịch học hộ",
+            message: `Lịch học môn ${schedule.className} ngày ${new Date(schedule.classDate).toLocaleDateString("vi-VN")} của bạn ${statusText}.`,
+            read: false,
+            link: "/dashboard",
+            createdAt: serverTimestamp()
+          });
+        }
+      }
     } catch (error) {
       console.error("Lỗi cập nhật trạng thái:", error);
       toast.error("Không thể cập nhật trạng thái");
@@ -171,6 +192,17 @@ export default function AdminDashboard() {
         balance: increment(amount)
       });
       toast.success("Đã điều chỉnh số dư Ví thành công!");
+
+      await addDoc(collection(db, "notifications"), {
+        userId: uid,
+        title: amount > 0 ? "Nạp tiền ví thành công" : "Biến động số dư ví",
+        message: amount > 0 
+          ? `Tài khoản của bạn đã được cộng ${amount.toLocaleString("vi-VN")} đ vào số dư ví.` 
+          : `Số dư ví của bạn đã thay đổi ${amount.toLocaleString("vi-VN")} đ.`,
+        read: false,
+        link: "/dashboard",
+        createdAt: serverTimestamp()
+      });
     } catch (err) {
       console.error("Lỗi điều chỉnh ví:", err);
       toast.error("Không thể điều chỉnh ví.");

@@ -1,12 +1,75 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, limit, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import toast from "react-hot-toast";
 
 export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
   const pathname = usePathname();
+  const [notifications, setNotifications] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "notifications"),
+      where("userId", "==", isAdmin ? "admin" : user.uid),
+      orderBy("createdAt", "desc"),
+      limit(20)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setNotifications(data);
+    }, (err) => console.error("Error loading notifications:", err));
+
+    return () => unsubscribe();
+  }, [user, isAdmin]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleReadNotification = async (notif) => {
+    if (!notif.read) {
+      try {
+        await updateDoc(doc(db, "notifications", notif.id), { read: true });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setShowDropdown(false);
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const unreadList = notifications.filter(n => !n.read);
+      const promises = unreadList.map(n => updateDoc(doc(db, "notifications", n.id), { read: true }));
+      await Promise.all(promises);
+      toast.success("Đã đọc tất cả!");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClearNotifications = async () => {
+    if (confirm("Xóa toàn bộ thông báo?")) {
+      try {
+        const promises = notifications.map(n => deleteDoc(doc(db, "notifications", n.id)));
+        await Promise.all(promises);
+        toast.success("Đã xóa tất cả thông báo!");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
 
   return (
     <nav className="navbar">
@@ -114,6 +177,73 @@ export default function Navbar() {
                       <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
                     )}
                   </Link>
+                )}
+
+                {user && (
+                  <div style={{ position: "relative", display: "inline-block" }}>
+                    <button 
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", position: "relative", display: "flex", alignItems: "center", padding: "6px", borderRadius: "50%", transition: "all 0.2s"
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = "#f1f5f9"}
+                      onMouseOut={e => e.currentTarget.style.background = "none"}
+                    >
+                      <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      {unreadCount > 0 && (
+                        <span style={{
+                          position: "absolute", top: "0px", right: "0px", background: "#ef4444", color: "white", borderRadius: "50%", minWidth: "15px", height: "15px", fontSize: "0.6rem", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", padding: "2px"
+                        }}>
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {showDropdown && (
+                      <div style={{
+                        position: "absolute", right: 0, marginTop: "10px", width: "320px", background: "white", borderRadius: "16px", border: "1px solid #cbd5e1", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 1000, padding: "10px 0"
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 15px 10px 15px", borderBottom: "1px solid #f1f5f9" }}>
+                          <span style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--text-primary)" }}>Thông báo</span>
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            {unreadCount > 0 && (
+                              <span onClick={handleMarkAllRead} style={{ fontSize: "0.75rem", color: "var(--primary)", cursor: "pointer", fontWeight: "600", textDecoration: "underline" }}>Đọc hết</span>
+                            )}
+                            {notifications.length > 0 && (
+                              <span onClick={handleClearNotifications} style={{ fontSize: "0.75rem", color: "var(--danger)", cursor: "pointer", fontWeight: "600", textDecoration: "underline" }}>Xóa hết</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ maxHeight: "280px", overflowY: "auto" }}>
+                          {notifications.length === 0 ? (
+                            <div style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)", fontSize: "0.85rem" }}>Không có thông báo mới.</div>
+                          ) : notifications.map(notif => (
+                            <div 
+                              key={notif.id}
+                              onClick={() => handleReadNotification(notif)}
+                              style={{
+                                padding: "10px 15px", borderBottom: "1px solid #f8fafc", cursor: "pointer", background: notif.read ? "transparent" : "rgba(22, 163, 74, 0.03)", transition: "all 0.15s", textAlign: "left"
+                              }}
+                              onMouseOver={e => e.currentTarget.style.background = "#f8fafc"}
+                              onMouseOut={e => e.currentTarget.style.background = notif.read ? "transparent" : "rgba(22, 163, 74, 0.03)"}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                                <span style={{ fontWeight: notif.read ? "600" : "800", fontSize: "0.82rem", color: notif.read ? "var(--text-secondary)" : "var(--text-primary)" }}>{notif.title}</span>
+                                {!notif.read && <span style={{ width: "6px", height: "6px", background: "#ef4444", borderRadius: "50%" }}></span>}
+                              </div>
+                              <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: "1.4" }}>{notif.message}</p>
+                              <span style={{ fontSize: "0.68rem", color: "#a1a1aa", display: "block", marginTop: "4px" }}>
+                                {notif.createdAt ? new Date(notif.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
