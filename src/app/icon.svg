@@ -1,8 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <!-- Nền màu xanh lá cây bo góc tròn (Brand Green) -->
-  <rect width="512" height="512" rx="120" fill="#16a34a"/>
+  <!-- Nền màu xanh lá cây bo góc tròn (Brand Green Gradient) -->
+  <defs>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#16a34a" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#greenGrad)"/>
   
-  <!-- Vector mũ cử nhân phẳng màu trắng -->
-  <path d="M256 100L50 200l206 100 160-78v98h30V216l16-8z" fill="#ffffff" />
-  <path d="M112 274v70c0 34 64.5 60 144 60s144-26 144-60v-70l-144 70z" fill="#ffffff" />
+  <!-- Vector mũ cử nhân của Navbar được phóng to, đặt ở vị trí trung tâm -->
+  <g fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" transform="translate(96, 96) scale(13.333)">
+    <path d="M12 14l9-5-9-5-9 5 9 5z" />
+    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+    <path d="M21 12v7m-9-7v7" />
+  </g>
 </svg>
