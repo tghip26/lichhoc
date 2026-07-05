@@ -321,11 +321,39 @@ export default function Dashboard() {
     }
   };
 
+  const handleConfirmPayment = async (orderId, orderName, orderPrice) => {
+    try {
+      const docRef = doc(db, "schedules", orderId);
+      await setDoc(docRef, { status: "paid" }, { merge: true });
+      
+      // Báo Telegram
+      const orderIdSub = orderId.substring(0, 8).toUpperCase();
+      const telegramText = `💳 <b>KHÁCH BÁO ĐÃ CHUYỂN TIỀN!</b>\n\n` +
+        `• <b>Mã đơn (VietQR):</b> <code>${orderIdSub}</code>\n` +
+        `• <b>Họ tên sinh viên:</b> ${orderName}\n` +
+        `• <b>Số tiền chuyển:</b> ${Number(orderPrice).toLocaleString("vi-VN")} VNĐ\n` +
+        `• <b>Tài khoản gửi:</b> ${user.email}\n` +
+        `• <b>Trạng thái:</b> Đang chờ Admin đối soát ngân hàng.`;
+      
+      sendTelegramAlert(telegramText);
+      toast.success("Đã gửi báo cáo chuyển tiền đến Admin!");
+      setShowPaymentModal(false);
+      
+      // Đồng bộ state selectedItem nếu đang mở
+      setSelectedItem(prev => prev && prev.id === orderId ? { ...prev, status: "paid" } : prev);
+    } catch (err) {
+      console.error("Lỗi báo chuyển tiền:", err);
+      toast.error("Không thể gửi báo cáo chuyển tiền!");
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "approved":
       case "accepted":
         return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Sắp học</span>;
+      case "paid":
+        return <span style={{ background: "rgba(236, 72, 153, 0.15)", color: "#EC4899", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đã chuyển tiền</span>;
       case "in_progress":
         return <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đang học</span>;
       case "completed":
@@ -890,13 +918,29 @@ export default function Dashboard() {
                     />
                   </div>
                   
-                  <div style={{ fontSize: "0.85rem", textAlign: "left", display: "inline-block", background: "white", padding: "10px 15px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.85rem", textAlign: "left", display: "inline-block", background: "white", padding: "10px 15px", borderRadius: "10px", border: "1px solid #e2e8f0", width: "100%", boxSizing: "border-box" }}>
                     <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
                     <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
                     <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
                     <strong>Số tiền:</strong> <span style={{ fontWeight: "700", color: "#8B5CF6" }}>{Number(selectedItem.price).toLocaleString("vi-VN")} VNĐ</span><br/>
                     <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {selectedItem.id.substring(0, 8).toUpperCase()}</span>
                   </div>
+
+                  {selectedItem.status === "pending" && (
+                    <button
+                      onClick={() => handleConfirmPayment(selectedItem.id, selectedItem.name, selectedItem.price)}
+                      className="btn btn-primary"
+                      style={{
+                        width: "100%",
+                        marginTop: "1rem",
+                        padding: "0.8rem",
+                        borderRadius: "12px",
+                        fontSize: "0.95rem"
+                      }}
+                    >
+                      Tôi đã chuyển khoản thành công
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1033,9 +1077,9 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Nút đóng */}
+            {/* Nút báo chuyển tiền */}
             <button 
-              onClick={() => setShowPaymentModal(false)}
+              onClick={() => handleConfirmPayment(newOrderInfo.id, newOrderInfo.name, newOrderInfo.price)}
               className="btn btn-primary"
               style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", fontSize: "0.95rem" }}
             >
