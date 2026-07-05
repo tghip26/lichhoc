@@ -353,7 +353,7 @@ export default function Dashboard() {
       case "accepted":
         return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Sắp học</span>;
       case "paid":
-        return <span style={{ background: "rgba(236, 72, 153, 0.15)", color: "#EC4899", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đã chuyển tiền</span>;
+        return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt</span>;
       case "in_progress":
         return <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đang học</span>;
       case "completed":
@@ -362,6 +362,23 @@ export default function Dashboard() {
         return <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Từ chối</span>;
       default:
         return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ nhận đơn</span>;
+    }
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    switch (status) {
+      case "paid":
+        return <span style={{ background: "rgba(236, 72, 153, 0.12)", color: "#EC4899", padding: "3px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "700", border: "1px solid rgba(236, 72, 153, 0.2)" }}>Đã báo chuyển tiền</span>;
+      case "approved":
+      case "accepted":
+      case "in_progress":
+      case "completed":
+        return <span style={{ background: "rgba(16, 185, 129, 0.12)", color: "var(--success)", padding: "3px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "700", border: "1px solid rgba(16, 185, 129, 0.2)" }}>Đã thanh toán</span>;
+      case "rejected":
+        return <span style={{ background: "rgba(100, 116, 139, 0.12)", color: "#64748b", padding: "3px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "700", border: "1px solid rgba(100, 116, 139, 0.2)" }}>Đã hủy</span>;
+      case "pending":
+      default:
+        return <span style={{ background: "rgba(239, 68, 68, 0.12)", color: "var(--danger)", padding: "3px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "700", border: "1px solid rgba(239, 68, 68, 0.2)" }}>Chưa thanh toán</span>;
     }
   };
 
@@ -750,9 +767,12 @@ export default function Dashboard() {
                 </div>
                 
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem", flexWrap: "wrap", gap: "6px" }}>
                     <h4 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "700", color: "var(--text-primary)" }}>{item.name}</h4>
-                    {getStatusBadge(item.status)}
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                      {getStatusBadge(item.status)}
+                      {getPaymentStatusBadge(item.status)}
+                    </div>
                   </div>
                   
                   <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.4rem" }}>
@@ -882,8 +902,12 @@ export default function Dashboard() {
                 <span style={{ fontWeight: "800", color: "#8B5CF6" }}>{selectedItem.price ? `${Number(selectedItem.price).toLocaleString("vi-VN")} VNĐ` : "Chưa có"}</span>
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
-                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI</strong>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI LỊCH</strong>
                 {getStatusBadge(selectedItem.status)}
+              </div>
+              <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI THANH TOÁN</strong>
+                {getPaymentStatusBadge(selectedItem.status)}
               </div>
 
               {/* VIETQR AUTOMATIC PAYMENT BLOCK */}
