@@ -21,6 +21,7 @@ export default function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users" or "helpers"
   const [users, setUsers] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [helpers, setHelpers] = useState([]);
 
   const [settingsForm, setSettingsForm] = useState({
@@ -73,7 +74,19 @@ export default function AdminDashboard() {
       setHelpers(hData);
     });
 
-    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); };
+    // Lấy dữ liệu giao dịch nạp ví
+    const qTrans = query(collection(db, "transactions"));
+    const unsubscribeTrans = onSnapshot(qTrans, (snapshot) => {
+      const tData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      tData.sort((a, b) => {
+        const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+      setTransactions(tData);
+    }, (err) => console.error("Lỗi lấy transactions:", err));
+
+    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); unsubscribeTrans(); };
   }, []);
 
   const handleUpdateStatus = async (id, newStatus) => {
@@ -209,6 +222,51 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleApproveTransaction = async (trans) => {
+    try {
+      await updateDoc(doc(db, "transactions", trans.id), { status: "completed" });
+      await updateDoc(doc(db, "users", trans.userId), {
+        balance: increment(trans.amount)
+      });
+
+      // Tạo thông báo cho khách hàng
+      await addDoc(collection(db, "notifications"), {
+        userId: trans.userId,
+        title: "Nạp tiền ví thành công",
+        message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ của bạn đã được duyệt thành công.`,
+        read: false,
+        link: "/dashboard",
+        createdAt: serverTimestamp()
+      });
+
+      toast.success("Đã phê duyệt và cộng tiền ví thành công!");
+    } catch (err) {
+      console.error("Lỗi duyệt nạp tiền:", err);
+      toast.error("Không thể duyệt giao dịch.");
+    }
+  };
+
+  const handleRejectTransaction = async (trans) => {
+    try {
+      await updateDoc(doc(db, "transactions", trans.id), { status: "rejected" });
+
+      // Tạo thông báo cho khách hàng
+      await addDoc(collection(db, "notifications"), {
+        userId: trans.userId,
+        title: "Yêu cầu nạp ví bị từ chối",
+        message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ đã bị từ chối do không khớp sao kê ngân hàng.`,
+        read: false,
+        link: "/dashboard",
+        createdAt: serverTimestamp()
+      });
+
+      toast.success("Đã từ chối giao dịch!");
+    } catch (err) {
+      console.error("Lỗi từ chối giao dịch:", err);
+      toast.error("Không thể từ chối giao dịch.");
+    }
+  };
+
   const handleExportCSV = () => {
     if (schedules.length === 0) {
       toast.error("Không có dữ liệu để xuất");
@@ -312,6 +370,13 @@ export default function AdminDashboard() {
           >
             <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
             Quản lý CTV
+          </button>
+          <button 
+            onClick={() => setActiveTab("transactions")}
+            style={{ padding: "0.6rem 1.5rem", border: "none", background: activeTab === "transactions" ? "var(--primary)" : "transparent", color: activeTab === "transactions" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "transactions" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+          >
+            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m4 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z"></path></svg>
+            Duyệt Nạp Ví
           </button>
           <button 
             onClick={() => setActiveTab("settings")}
@@ -847,6 +912,83 @@ export default function AdminDashboard() {
                             Xóa hồ sơ
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* BẢNG DUYỆT NẠP VÍ */}
+        {activeTab === "transactions" && (
+          <>
+            <div className="table-container glass-panel" style={{ padding: "0" }}>
+              <table style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Khách hàng</th>
+                    <th>Số tiền</th>
+                    <th>Nội dung giao dịch</th>
+                    <th>Thời gian</th>
+                    <th>Trạng thái</th>
+                    <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length === 0 ? (
+                    <tr><td colSpan="6" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không có giao dịch nạp tiền nào.</td></tr>
+                  ) : transactions.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "1rem 1.5rem" }}>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)", textAlign: "left" }}>{t.userEmail}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", textAlign: "left" }}>UID: {t.userId.substring(0, 8).toUpperCase()}</div>
+                      </td>
+                      <td>
+                        <strong style={{ color: t.type === "payment" ? "var(--danger)" : "var(--success)", fontSize: "0.95rem" }}>
+                          {t.type === "payment" ? "-" : "+"}{Number(t.amount || 0).toLocaleString("vi-VN")} đ
+                        </strong>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, textAlign: "left" }}>{t.message}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "left" }}>Loại: {t.type === "payment" ? "Thanh toán đơn" : "Nạp tiền"}</div>
+                      </td>
+                      <td style={{ fontSize: "0.85rem" }}>
+                        {t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                      </td>
+                      <td>
+                        <span style={{ 
+                          padding: "4px 8px", 
+                          borderRadius: "10px", 
+                          fontSize: "0.75rem", 
+                          fontWeight: "700",
+                          background: t.status === "pending" ? "rgba(245, 158, 11, 0.12)" : (t.status === "completed" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)"),
+                          color: t.status === "pending" ? "#d97706" : (t.status === "completed" ? "var(--success)" : "var(--danger)")
+                        }}>
+                          {t.status === "pending" ? "Chờ duyệt" : (t.status === "completed" ? "Thành công" : "Đã từ chối")}
+                        </span>
+                      </td>
+                      <td style={{ padding: "1rem 1.5rem" }}>
+                        {t.status === "pending" ? (
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <button 
+                              onClick={() => handleApproveTransaction(t)} 
+                              className="btn btn-primary"
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", borderRadius: "6px", background: "var(--success)", color: "white", border: "none" }}
+                            >
+                              ✓ Duyệt nạp
+                            </button>
+                            <button 
+                              onClick={() => handleRejectTransaction(t)} 
+                              style={{ padding: "4px 8px", fontSize: "0.75rem", borderRadius: "6px", background: "var(--danger)", color: "white", border: "none", cursor: "pointer" }}
+                            >
+                              ✗ Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontStyle: "italic" }}>Đã xử lý</span>
+                        )}
                       </td>
                     </tr>
                   ))}

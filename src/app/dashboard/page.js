@@ -51,6 +51,9 @@ export default function Dashboard() {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "wallet"
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -109,7 +112,26 @@ export default function Dashboard() {
         }
       });
 
-      return () => { unsubscribe(); unsubscribeProfile(); };
+      // Lắng nghe lịch sử giao dịch ví số dư thời gian thực (không cần index nhờ sort client)
+      const qTrans = query(
+        collection(db, "transactions"),
+        where("userId", "==", user.uid)
+      );
+      const unsubscribeTrans = onSnapshot(qTrans, (snapshot) => {
+        const tData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        tData.sort((a, b) => {
+          const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+        });
+        setTransactions(tData);
+        setLoadingTransactions(false);
+      }, (err) => {
+        console.error("Lỗi tải lịch sử giao dịch ví:", err);
+        setLoadingTransactions(false);
+      });
+
+      return () => { unsubscribe(); unsubscribeProfile(); unsubscribeTrans(); };
     }
   }, [user]);
 
@@ -259,6 +281,17 @@ export default function Dashboard() {
       if (paymentMethod === "wallet") {
         await updateDoc(doc(db, "users", user.uid), {
           balance: increment(-priceNumeric)
+        });
+        
+        // Ghi nhận lịch sử thanh toán ví
+        await addDoc(collection(db, "transactions"), {
+          userId: user.uid,
+          userEmail: user.email,
+          amount: priceNumeric,
+          type: "payment",
+          status: "completed",
+          message: `Thanh toán đơn thuê học môn ${formData.className}`,
+          createdAt: serverTimestamp()
         });
       }
 
@@ -495,6 +528,17 @@ export default function Dashboard() {
         createdAt: serverTimestamp()
       });
 
+      // Ghi lịch sử giao dịch chờ duyệt
+      await addDoc(collection(db, "transactions"), {
+        userId: user.uid,
+        userEmail: user.email,
+        amount: Number(topupAmount),
+        type: "deposit",
+        status: "pending",
+        message: "Nạp tiền vào ví (Quét QR MBBank)",
+        createdAt: serverTimestamp()
+      });
+
       toast.success("Đã gửi yêu cầu nạp ví thành công! Vui lòng chuyển khoản.", { id: "topup" });
       setShowWalletModal(false);
     } catch (err) {
@@ -682,7 +726,47 @@ export default function Dashboard() {
           <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
+
+      {/* TABS SELECTOR */}
+      <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px" }}>
+        <button 
+          onClick={() => setActiveTab("schedules")}
+          style={{
+            background: activeTab === "schedules" ? "var(--primary)" : "white",
+            color: activeTab === "schedules" ? "white" : "var(--text-secondary)",
+            border: "1px solid #cbd5e1",
+            borderRadius: "10px",
+            padding: "8px 16px",
+            fontWeight: "700",
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "schedules" ? "0 4px 10px rgba(22, 163, 74, 0.15)" : "none",
+            transition: "all 0.2s"
+          }}
+        >
+          📅 Đăng đơn & Lịch học
+        </button>
+        <button 
+          onClick={() => setActiveTab("wallet")}
+          style={{
+            background: activeTab === "wallet" ? "var(--primary)" : "white",
+            color: activeTab === "wallet" ? "white" : "var(--text-secondary)",
+            border: "1px solid #cbd5e1",
+            borderRadius: "10px",
+            padding: "8px 16px",
+            fontWeight: "700",
+            fontSize: "0.9rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "wallet" ? "0 4px 10px rgba(22, 163, 74, 0.15)" : "none",
+            transition: "all 0.2s"
+          }}
+        >
+          💰 Ví số dư & Cổng nạp tiền
+        </button>
+      </div>
+
+      {activeTab === "schedules" ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
       
       {/* LEFT COLUMN: Upload Form */}
       <div className="glass-panel dashboard-panel">
@@ -1123,6 +1207,141 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      </div>
+      ) : (
+        /* WALLET & TRANSACTION HISTORY TAB VIEW */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
+          {/* Cổng nạp tiền */}
+          <div className="glass-panel" style={{ padding: "2rem" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              💸 Cổng nạp tiền Ví
+            </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              Nạp tiền vào ví số dư để thanh toán đơn thuê học nhanh chóng và tự động (Admin duyệt tức thì).
+            </p>
+
+            <div style={{ background: "rgba(22, 163, 74, 0.05)", padding: "1.5rem", borderRadius: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(22, 163, 74, 0.2)", marginBottom: "1.5rem" }}>
+              <div>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Số dư hiện tại:</span>
+                <h3 style={{ fontSize: "1.8rem", color: "var(--primary)", fontWeight: "800", margin: "5px 0 0 0" }}>{(userProfile?.balance || 0).toLocaleString("vi-VN")} đ</h3>
+              </div>
+              <div style={{ background: "var(--primary)", color: "white", padding: "10px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1.25rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Chọn số tiền muốn nạp</label>
+              <select 
+                value={topupAmount} 
+                onChange={(e) => setTopupAmount(e.target.value)}
+                className="form-input"
+                style={{ background: "white" }}
+              >
+                <option value="50000">50.000 VNĐ</option>
+                <option value="100000">100.000 VNĐ</option>
+                <option value="200000">200.000 VNĐ</option>
+                <option value="500000">500.000 VNĐ</option>
+                <option value="1000000">1.000.000 VNĐ</option>
+              </select>
+            </div>
+
+            {systemSettings?.bankAccount && (
+              <div style={{ background: "rgba(22, 163, 74, 0.02)", padding: "1.25rem", borderRadius: "16px", border: "1px dashed var(--primary)", marginBottom: "1.5rem", textAlign: "center" }}>
+                <strong style={{ color: "var(--primary)", fontSize: "0.9rem", display: "block", marginBottom: "8px" }}>QUÉT MÃ QR BẰNG APP NGÂN HÀNG</strong>
+                
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+                  <img 
+                    src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${topupAmount}&addInfo=THUENAP%20${user.uid.substring(0, 6).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                    alt="VietQR Topup" 
+                    style={{ width: "180px", height: "180px", objectFit: "contain", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "5px", background: "white" }} 
+                  />
+                </div>
+
+                <div style={{ fontSize: "0.85rem", textAlign: "left", background: "white", padding: "10px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", boxSizing: "border-box" }}>
+                  <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
+                  <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
+                  <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
+                  <strong>Nội dung CK:</strong> <span style={{ fontWeight: "800", color: "var(--primary)", fontFamily: "monospace" }}>THUENAP {user.uid.substring(0, 6).toUpperCase()}</span>
+                </div>
+                <span style={{ fontSize: "0.72rem", color: "var(--danger)", fontWeight: "600", display: "block", marginTop: "8px" }}>⚠️ Chuyển khoản đúng nội dung trên để hệ thống tự ghi nhận ví!</span>
+              </div>
+            )}
+
+            <button 
+              type="button" 
+              onClick={handleTopupRequest}
+              className="btn btn-primary"
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px" }}
+            >
+              Tôi đã chuyển tiền nạp ví
+            </button>
+          </div>
+
+          {/* Lịch sử giao dịch ví */}
+          <div className="glass-panel" style={{ padding: "2rem", display: "flex", flexDirection: "column" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              ⏳ Lịch sử biến động số dư
+            </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "1.5rem" }}>
+              Danh sách chi tiêu từ ví và các giao dịch nạp tiền của bạn.
+            </p>
+
+            <div style={{ flex: 1, maxHeight: "500px", overflowY: "auto" }}>
+              {loadingTransactions ? (
+                <div style={{ textAlign: "center", padding: "2rem" }} className="loader"></div>
+              ) : transactions.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "4rem 1rem", color: "var(--text-secondary)", fontSize: "0.9rem", fontStyle: "italic" }}>
+                  Chưa có giao dịch ví nào được thực hiện.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {transactions.map(t => {
+                    const isPayment = t.type === "payment";
+                    const isPending = t.status === "pending";
+                    return (
+                      <div 
+                        key={t.id} 
+                        style={{
+                          padding: "1rem", 
+                          borderRadius: "16px", 
+                          border: "1px solid #cbd5e1", 
+                          background: isPending ? "rgba(245, 158, 11, 0.02)" : "white",
+                          display: "flex", 
+                          justifyContent: "space-between", 
+                          alignItems: "center"
+                        }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <strong style={{ fontSize: "0.88rem", color: "var(--text-primary)", textAlign: "left" }}>{t.message}</strong>
+                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textAlign: "left" }}>
+                            {t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                          </span>
+                          <span style={{ 
+                            fontSize: "0.72rem", 
+                            fontWeight: "700",
+                            textAlign: "left",
+                            color: isPending ? "#d97706" : (t.status === "completed" ? "var(--success)" : "var(--danger)")
+                          }}>
+                            {isPending ? "⏳ Đang đối soát" : (t.status === "completed" ? "✓ Đã thành công" : "✗ Từ chối")}
+                          </span>
+                        </div>
+                        <div style={{
+                          fontWeight: "800",
+                          fontSize: "1rem",
+                          color: isPayment ? "var(--danger)" : "var(--success)"
+                        }}>
+                          {isPayment ? "-" : "+"}{Number(t.amount).toLocaleString("vi-VN")} đ
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* OVERLAY MODAL: HIỂN THỊ CHI TIẾT ĐƠN HÀNG */}
       {selectedItem && (
@@ -1595,7 +1814,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      </div>
     </div>
   );
 }
