@@ -23,24 +23,17 @@ export function AuthProvider({ children }) {
   });
 
   const sendTelegramAlert = async (text) => {
-    const token = systemSettings?.telegramBotToken;
-    const chatId = systemSettings?.telegramChatId;
-    if (!token || !chatId) {
-      console.log("Telegram Bot Token hoặc Chat ID chưa được cấu hình.");
-      return;
-    }
     try {
-      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      const res = await fetch("/api/telegram", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: "HTML"
-        })
+        body: JSON.stringify({ text })
       });
+      if (!res.ok) {
+        console.warn("Lỗi gửi Telegram từ Server API:", await res.text());
+      }
     } catch (error) {
       console.error("Lỗi gửi tin nhắn Telegram:", error);
     }

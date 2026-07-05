@@ -1088,6 +1088,9 @@ export default function AdminDashboard() {
               </div>
 
               <h3 style={{ fontSize: "1.05rem", fontWeight: "700", margin: "2rem 0 1rem 0", color: "var(--text-primary)", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px" }}>🤖 Cấu hình Telegram Alerts</h3>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.4" }}>
+                ⚠️ <b>LƯU Ý BẢO MẬT:</b> Để tránh hacker chiếm đoạt Bot Telegram, các trường Token và Chat ID dưới đây sẽ được gửi qua API route bảo mật của máy chủ. Khuyến khích cấu hình trực tiếp qua biến môi trường <code>TELEGRAM_BOT_TOKEN</code> và <code>TELEGRAM_CHAT_ID</code> trên Vercel để đảm bảo an toàn tuyệt đối.
+              </p>
               <div className="form-group">
                 <label className="form-label">Telegram Bot Token</label>
                 <input 
