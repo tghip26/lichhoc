@@ -81,6 +81,22 @@ export default function Navbar() {
                     )}
                   </Link>
                 )}
+
+                <Link 
+                  href="/tai-khoan" 
+                  style={{ 
+                    fontWeight: pathname === "/tai-khoan" ? "700" : "500", 
+                    color: pathname === "/tai-khoan" ? "var(--primary)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                    transition: "all 0.2s",
+                    position: "relative"
+                  }}
+                >
+                  Tài khoản
+                  {pathname === "/tai-khoan" && (
+                    <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                  )}
+                </Link>
               </div>
 
               {/* User Profile */}
