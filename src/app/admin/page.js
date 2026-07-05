@@ -351,6 +351,24 @@ export default function AdminDashboard() {
                   {item.assignedTo && <><span style={{color: "#8B5CF6"}}>Người đi học:</span> <strong>{item.assignedTo}</strong><br/></>}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                  
+                  {item.status === "paid" && (
+                    <button
+                      onClick={() => handleUpdateStatus(item.id, "accepted")}
+                      className="btn btn-primary"
+                      style={{
+                        width: "100%",
+                        marginTop: "1.25rem",
+                        padding: "0.6rem",
+                        background: "var(--success)",
+                        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
+                        fontSize: "0.85rem",
+                        fontWeight: "700"
+                      }}
+                    >
+                      🏦 Xác nhận đã nhận tiền
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid-card-footer">
@@ -429,6 +447,26 @@ export default function AdminDashboard() {
                         <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                         <option value="rejected" style={{color: "black"}}>Từ chối</option>
                       </select>
+                      {item.status === "paid" && (
+                        <button
+                          onClick={() => handleUpdateStatus(item.id, "accepted")}
+                          style={{
+                            display: "block",
+                            marginTop: "6px",
+                            padding: "4px 8px",
+                            background: "var(--success)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            boxShadow: "0 2px 6px rgba(16, 185, 129, 0.2)"
+                          }}
+                        >
+                          🏦 Xác nhận tiền
+                        </button>
+                      )}
                     </td>
                     <td style={{ padding: "1rem 1.5rem" }}>
                       <div style={{ display: "flex", gap: "1rem" }}>
