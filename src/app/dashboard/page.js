@@ -39,12 +39,29 @@ export default function Dashboard() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [newOrderInfo, setNewOrderInfo] = useState(null);
+  const [minDate, setMinDate] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    // Đặt ngày học mặc định là ngày hôm nay trên client
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${year}-${month}-${day}`;
+    
+    setMinDate(todayStr);
+    setFormData(prev => ({ ...prev, classDate: todayStr }));
+    
+    // Tính toán thứ cho ngày hôm nay
+    const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+    setWeekday(daysOfWeek[today.getDay()]);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -187,6 +204,18 @@ export default function Dashboard() {
       return;
     }
 
+    // Kiểm tra ngày học không được ở quá khứ
+    if (formData.classDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedDate = new Date(formData.classDate);
+      selectedDate.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        toast.error("Ngày học không được chọn ở quá khứ!");
+        return;
+      }
+    }
+
     if (!file) {
       toast.error("Vui lòng đợi ảnh tải xong hoặc chọn ảnh khác!");
       return;
@@ -253,11 +282,19 @@ export default function Dashboard() {
       toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
       
       // Reset form
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`;
+
       setFormData({ 
         name: "", className: "", studentId: "", school: "", 
-        classDate: "", startTime: "", endTime: "", dob: "", notes: "", phone: "", price: "" 
+        classDate: todayStr, startTime: "", endTime: "", dob: "", notes: "", phone: "", price: "" 
       });
-      setWeekday("");
+      
+      const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      setWeekday(daysOfWeek[today.getDay()]);
       setFile(null);
       setFilePreview(null);
       setTimeout(() => setProgress(0), 1000);
@@ -421,7 +458,7 @@ export default function Dashboard() {
                 Ngày học
                 {weekday && <span style={{ marginLeft: "10px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: "bold" }}>({weekday})</span>}
               </label>
-              <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" />
+              <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" min={minDate} />
             </div>
 
             <div className="form-group">
