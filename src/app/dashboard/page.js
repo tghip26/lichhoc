@@ -1426,6 +1426,143 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* POPUP NẠP TIỀN VÀO VÍ TÀI KHOẢN */}
+      {showWalletModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1001, padding: "1.5rem"
+          }}
+          onClick={() => setShowWalletModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "480px", width: "100%", border: "1px solid #e2e8f0"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)" }}>Nạp tiền vào ví số dư</h3>
+              <button onClick={() => setShowWalletModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1.25rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Số tiền nạp (VNĐ)</label>
+              <select 
+                value={topupAmount} 
+                onChange={(e) => setTopupAmount(e.target.value)}
+                className="form-input"
+                style={{ background: "white" }}
+              >
+                <option value="50000">50.000 VNĐ</option>
+                <option value="100000">100.000 VNĐ</option>
+                <option value="200000">200.000 VNĐ</option>
+                <option value="500000">500.000 VNĐ</option>
+                <option value="1000000">1.000.000 VNĐ</option>
+              </select>
+            </div>
+
+            {systemSettings?.bankAccount && (
+              <div style={{ background: "rgba(22, 163, 74, 0.02)", padding: "1.25rem", borderRadius: "16px", border: "1px dashed var(--primary)", marginBottom: "1.5rem", textAlign: "center" }}>
+                <strong style={{ color: "var(--primary)", fontSize: "0.9rem", display: "block", marginBottom: "8px" }}>QUÉT QR ĐỂ NẠP TIỀN TỰ ĐỘNG</strong>
+                
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+                  <img 
+                    src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${topupAmount}&addInfo=THUENAP%20${user.uid.substring(0, 6).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                    alt="VietQR Topup" 
+                    style={{ width: "170px", height: "170px", objectFit: "contain", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "5px", background: "white" }} 
+                  />
+                </div>
+
+                <div style={{ fontSize: "0.82rem", textAlign: "left", background: "white", padding: "10px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                  <strong>Số tài khoản:</strong> {systemSettings.bankAccount} ({systemSettings.bankName})<br/>
+                  <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
+                  <strong>Nội dung CK:</strong> <span style={{ fontWeight: "800", color: "var(--primary)", fontFamily: "monospace" }}>THUENAP {user.uid.substring(0, 6).toUpperCase()}</span>
+                </div>
+                <span style={{ fontSize: "0.72rem", color: "var(--danger)", fontWeight: "600", display: "block", marginTop: "8px" }}>⚠️ Chuyển khoản đúng nội dung trên để hệ thống tự ghi nhận ví!</span>
+              </div>
+            )}
+
+            <button 
+              type="button" 
+              onClick={handleTopupRequest}
+              className="btn btn-primary"
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px" }}
+            >
+              Tôi đã chuyển tiền nạp ví
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP ĐÁNH GIÁ DỊCH VỤ 5 SAO */}
+      {showReviewModal && reviewItem && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1001, padding: "1.5rem"
+          }}
+          onClick={() => setShowReviewModal(false)}
+        >
+          <form 
+            onSubmit={handleSubmitReview}
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "480px", width: "100%", border: "1px solid #e2e8f0"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)" }}>Đánh giá lịch học hộ</h3>
+              <button type="button" onClick={() => setShowReviewModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
+              Hãy để lại đánh giá của bạn cho môn <strong>{reviewItem.className}</strong> tại <strong>{reviewItem.school}</strong> để giúp cải thiện dịch vụ.
+            </p>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "1.5rem" }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span 
+                  key={star} 
+                  onClick={() => setRating(star)}
+                  style={{ fontSize: "2rem", cursor: "pointer", color: star <= rating ? "#FBBC05" : "#cbd5e1", transition: "color 0.1s" }}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Nhận xét / Feedback</label>
+              <textarea 
+                value={reviewText} 
+                onChange={(e) => setReviewText(e.target.value)}
+                required
+                className="form-input" 
+                rows="4" 
+                placeholder="Tuyệt vời! Bạn học hộ đi đúng giờ và làm bài kiểm tra điểm rất cao. Sẽ tiếp tục ủng hộ Thuê Học Pro!"
+                style={{ resize: "none", background: "white", padding: "0.8rem" }}
+              ></textarea>
+            </div>
+
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", background: "linear-gradient(90deg, #f59e0b, #d97706)" }}
+              disabled={submittingReview}
+            >
+              {submittingReview ? "Đang gửi nhận xét..." : "Gửi Đánh Giá Ngay"}
+            </button>
+          </form>
+        </div>
+      )}
+
       </div>
     </div>
   );
