@@ -157,7 +157,8 @@ export default function AdminDashboard() {
     const matchesSearch = 
       (s.name && s.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (s.studentId && s.studentId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.className && s.className.toLowerCase().includes(searchQuery.toLowerCase()));
+      (s.className && s.className.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (s.id && s.id.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = filterStatus === "all" || (s.status || "pending") === filterStatus;
     
@@ -323,6 +324,7 @@ export default function AdminDashboard() {
                 />
                 
                 <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem", lineHeight: "1.6" }}>
+                  <strong>Mã đơn (VietQR):</strong> <span style={{fontWeight: "700", color: "var(--primary)", fontFamily: "monospace"}}>{item.id.substring(0, 8).toUpperCase()}</span><br/>
                   <strong>Tên người thuê:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.name}</span><br/>
                   <strong>Mã sinh viên:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.studentId}</span><br/>
                   <strong>Lớp:</strong> <span style={{fontWeight: "600", color: "var(--text-primary)"}}>{item.className}</span><br/>
@@ -370,6 +372,7 @@ export default function AdminDashboard() {
                     <td style={{ padding: "1rem 1.5rem", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
                       <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                        Mã đơn: <strong style={{color: "var(--primary)", fontFamily: "monospace"}}>{item.id.substring(0, 8).toUpperCase()}</strong><br/>
                         <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
                         {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                         {item.phone && <><br/>SĐT: <strong>{item.phone}</strong></>}
