@@ -15,19 +15,21 @@ export default function Footer() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
             <div style={{
-              width: "32px", 
-              height: "32px", 
-              borderRadius: "8px", 
-              background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)",
+              width: "36px", 
+              height: "36px", 
+              borderRadius: "10px", 
+              background: "linear-gradient(135deg, var(--primary) 0%, #10b981 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontWeight: "900",
-              fontSize: "1.2rem",
               boxShadow: "0 2px 8px rgba(22, 163, 74, 0.2)"
             }}>
-              L
+              <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7m-9-7v7" />
+              </svg>
             </div>
             <span style={{ fontSize: "1.2rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
               Thuê Học Pro

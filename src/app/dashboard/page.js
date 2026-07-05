@@ -340,7 +340,7 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
       
       {/* LEFT COLUMN: Upload Form */}
-      <div className="glass-panel" style={{ padding: "2.5rem" }}>
+      <div className="glass-panel dashboard-panel">
         <div style={{ marginBottom: "2rem" }}>
           <h2 className="page-title" style={{ fontSize: "1.6rem", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
             <svg style={{ width: "24px", height: "24px", color: "var(--primary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
@@ -352,7 +352,7 @@ export default function Dashboard() {
         </div>
         
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+          <div className="form-grid">
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Họ và Tên</label>
               <input type="text" name="name" value={formData.name} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Nguyễn Văn A" />
@@ -519,7 +519,7 @@ export default function Dashboard() {
       </div>
 
       {/* RIGHT COLUMN: History */}
-      <div className="glass-panel" style={{ padding: "2.5rem", display: "flex", flexDirection: "column" }}>
+      <div className="glass-panel dashboard-panel" style={{ display: "flex", flexDirection: "column" }}>
         
         {/* Tiêu đề & Xuất CSV */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
@@ -643,16 +643,7 @@ export default function Dashboard() {
               <div 
                 key={item.id} 
                 onClick={() => setSelectedItem(item)}
-                style={{ 
-                  background: "white", 
-                  border: "1px solid #e2e8f0", 
-                  borderRadius: "16px", 
-                  padding: "1.25rem", 
-                  display: "flex", 
-                  gap: "1.25rem", 
-                  transition: "transform 0.2s, box-shadow 0.2s", 
-                  cursor: "pointer" 
-                }} 
+                className="history-card" 
                 onMouseOver={e => {e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 20px rgba(0,0,0,0.05)"}} 
                 onMouseOut={e => {e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"}}
               >

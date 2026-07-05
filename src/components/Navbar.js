@@ -9,35 +9,18 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="navbar" style={{ 
-      position: "sticky", 
-      top: 0, 
-      zIndex: 100, 
-      background: "rgba(255, 255, 255, 0.85)",
-      backdropFilter: "blur(24px)", 
-      WebkitBackdropFilter: "blur(24px)",
-      borderBottom: "1px solid rgba(226, 232, 240, 0.8)",
-      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.03)"
-    }}>
-      <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 2rem" }}>
+    <nav className="navbar">
+      <div className="navbar-container">
         
         {/* Brand Area */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", cursor: "pointer" }}>
-          <div style={{
-            width: "42px", 
-            height: "42px", 
-            borderRadius: "12px", 
-            overflow: "hidden", 
-            boxShadow: "0 4px 12px rgba(22, 163, 74, 0.2)",
-            background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontWeight: "900",
-            fontSize: "1.5rem"
-          }}>
-            L
+          <div className="navbar-brand-logo">
+            {/* New Premium SVG Graduation Cap Logo */}
+            <svg style={{ width: "24px", height: "24px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7m-9-7v7" />
+            </svg>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span style={{ 
@@ -58,11 +41,11 @@ export default function Navbar() {
         </Link>
         
         {/* Navigation & User Area */}
-        <div className="nav-links" style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
+        <div className="nav-links-wrapper">
           {user ? (
             <>
               {/* Menu Links */}
-              <div style={{ display: "flex", gap: "1.5rem" }}>
+              <div className="nav-menu-links">
                 {!isAdmin && (
                   <Link 
                     href="/dashboard" 
@@ -76,7 +59,7 @@ export default function Navbar() {
                   >
                     Lịch của tôi
                     {pathname === "/dashboard" && (
-                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, #4f46e5, #9333ea)" }}></span>
+                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
                     )}
                   </Link>
                 )}
@@ -94,15 +77,15 @@ export default function Navbar() {
                   >
                     Bảng Quản Trị
                     {pathname.includes("/admin") && (
-                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, #4f46e5, #9333ea)" }}></span>
+                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
                     )}
                   </Link>
                 )}
               </div>
 
               {/* User Profile */}
-              <div className="nav-user" style={{ display: "flex", alignItems: "center", gap: "1rem", borderLeft: "2px solid #E5E7EB", paddingLeft: "2rem" }}>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+              <div className="nav-user-area">
+                <div className="nav-user-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <span style={{ fontSize: "0.9rem", fontWeight: "700", color: "var(--text-primary)" }}>
                     {user.displayName || user.email.split('@')[0]}
                   </span>
@@ -128,7 +111,7 @@ export default function Navbar() {
                 {user.photoURL ? (
                   <img src={user.photoURL} alt="Avatar" style={{ width: "42px", height: "42px", borderRadius: "50%", border: "2px solid white", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", objectFit: "cover" }} />
                 ) : (
-                  <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "linear-gradient(135deg, #4f46e5, #9333ea)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: "1.2rem", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", border: "2px solid white" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: "1.2rem", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", border: "2px solid white" }}>
                     {user.email[0].toUpperCase()}
                   </div>
                 )}
