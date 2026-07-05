@@ -303,11 +303,7 @@ export default function Navbar() {
                 </button>
               </div>
             </>
-          ) : (
-            <div style={{ fontSize: "0.95rem", color: "var(--text-secondary)", fontWeight: "600", letterSpacing: "0.5px" }}>
-              VERSION 2.0
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </nav>
