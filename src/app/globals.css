@@ -331,14 +331,26 @@ tbody tr:hover {
   display: flex;
   gap: 1.15rem;
   font-size: 0.86rem;
+  align-items: center;
 }
 
 .nav-user-area {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-left: 1.5px solid #E5E7EB;
-  padding-left: 1.15rem;
+}
+
+.nav-divider {
+  width: 1.5px;
+  height: 18px;
+  background-color: #cbd5e1;
+  margin: 0 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .nav-divider {
+    display: none;
+  }
 }
 
 /* Helper Responsive Classes */

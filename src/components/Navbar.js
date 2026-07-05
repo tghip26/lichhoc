@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
@@ -13,6 +13,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (!user) {
@@ -37,6 +38,18 @@ export default function Navbar() {
 
     return () => unsubscribe();
   }, [user, isAdmin]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -183,7 +196,7 @@ export default function Navbar() {
                 )}
 
                 {user && (
-                  <div style={{ position: "relative", display: "inline-block" }}>
+                  <div ref={dropdownRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
                     <button 
                       onClick={() => setShowDropdown(!showDropdown)}
                       style={{
@@ -249,6 +262,8 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              
+              <div className="nav-divider" />
 
               {/* User Profile */}
               <div className="nav-user-area">
