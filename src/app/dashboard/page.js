@@ -962,7 +962,7 @@ export default function Dashboard() {
                         fontSize: "0.95rem"
                       }}
                     >
-                      Tôi đã chuyển khoản thành công
+                      Tôi đã chuyển tiền
                     </button>
                   )}
                 </div>
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
               className="btn btn-primary"
               style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", fontSize: "0.95rem" }}
             >
-              Tôi đã chuyển khoản thành công
+              Tôi đã chuyển tiền
             </button>
           </div>
         </div>
