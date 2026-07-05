@@ -219,7 +219,7 @@ export default function Navbar() {
 
                     {showDropdown && (
                       <div style={{
-                        position: "absolute", right: 0, marginTop: "10px", width: "320px", background: "white", borderRadius: "16px", border: "1px solid #cbd5e1", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 1000, padding: "10px 0"
+                        position: "absolute", right: 0, top: "calc(100% + 8px)", width: "320px", background: "white", borderRadius: "16px", border: "1px solid #cbd5e1", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 1000, padding: "10px 0"
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 15px 10px 15px", borderBottom: "1px solid #f1f5f9" }}>
                           <span style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--text-primary)" }}>Thông báo</span>
