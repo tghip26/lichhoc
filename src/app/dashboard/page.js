@@ -175,6 +175,16 @@ export default function Dashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const timeRegex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (formData.startTime && !timeRegex.test(formData.startTime)) {
+      toast.error("Vui lòng nhập đúng định dạng giờ bắt đầu 24h (Ví dụ: 08:30 hoặc 14:00)");
+      return;
+    }
+    if (formData.endTime && !timeRegex.test(formData.endTime)) {
+      toast.error("Vui lòng nhập đúng định dạng giờ kết thúc 24h (Ví dụ: 11:30 hoặc 17:00)");
+      return;
+    }
+
     if (!file) {
       toast.error("Vui lòng đợi ảnh tải xong hoặc chọn ảnh khác!");
       return;
@@ -383,12 +393,54 @@ export default function Dashboard() {
 
             <div className="form-group">
               <label className="form-label">Từ mấy giờ</label>
-              <input type="time" name="startTime" value={formData.startTime} onChange={handleChange} className="form-input" lang="en-GB" />
+              <input 
+                type="text" 
+                name="startTime" 
+                value={formData.startTime} 
+                onChange={(e) => {
+                  let val = e.target.value.replace(/[^0-9:]/g, "");
+                  if (val.length === 2 && !val.includes(":")) {
+                    val += ":";
+                  }
+                  if (val.length <= 5) {
+                    setFormData({ ...formData, startTime: val });
+                  }
+                }} 
+                onBlur={(e) => {
+                  const regex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+                  if (e.target.value && !regex.test(e.target.value)) {
+                    toast.error("Giờ bắt đầu phải đúng định dạng 24h (Ví dụ: 08:30 hoặc 14:00)");
+                  }
+                }}
+                className="form-input" 
+                placeholder="Ví dụ: 14:30" 
+              />
             </div>
 
             <div className="form-group">
               <label className="form-label">Đến mấy giờ</label>
-              <input type="time" name="endTime" value={formData.endTime} onChange={handleChange} className="form-input" lang="en-GB" />
+              <input 
+                type="text" 
+                name="endTime" 
+                value={formData.endTime} 
+                onChange={(e) => {
+                  let val = e.target.value.replace(/[^0-9:]/g, "");
+                  if (val.length === 2 && !val.includes(":")) {
+                    val += ":";
+                  }
+                  if (val.length <= 5) {
+                    setFormData({ ...formData, endTime: val });
+                  }
+                }} 
+                onBlur={(e) => {
+                  const regex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+                  if (e.target.value && !regex.test(e.target.value)) {
+                    toast.error("Giờ kết thúc phải đúng định dạng 24h (Ví dụ: 17:30 hoặc 20:00)");
+                  }
+                }}
+                className="form-input" 
+                placeholder="Ví dụ: 17:00" 
+              />
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
