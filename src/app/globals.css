@@ -458,3 +458,14 @@ tbody tr:hover {
     object-fit: cover;
   }
 }
+
+/* Skeleton Loading Shimmer */
+@keyframes shimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+.skeleton-pulse {
+  animation: shimmer 1.5s infinite ease-in-out;
+  background: #e2e8f0;
+}

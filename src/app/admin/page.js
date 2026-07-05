@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [lightboxImage, setLightboxImage] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
+  const [sortBy, setSortBy] = useState("newest"); // "newest", "oldest", "dateNearest", "priceHigh", "priceLow"
 
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users"
   const [users, setUsers] = useState([]);
@@ -169,6 +170,31 @@ export default function AdminDashboard() {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+    if (sortBy === "newest") {
+      const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return tB - tA;
+    }
+    if (sortBy === "oldest") {
+      const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return tA - tB;
+    }
+    if (sortBy === "dateNearest") {
+      const tA = a.classDate ? new Date(a.classDate).getTime() : 0;
+      const tB = b.classDate ? new Date(b.classDate).getTime() : 0;
+      return tA - tB;
+    }
+    if (sortBy === "priceHigh") {
+      return (Number(b.price) || 0) - (Number(a.price) || 0);
+    }
+    if (sortBy === "priceLow") {
+      return (Number(a.price) || 0) - (Number(b.price) || 0);
+    }
+    return 0;
+  });
+
   const filteredUsers = users.filter(u => 
     (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (u.displayName && u.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -206,48 +232,67 @@ export default function AdminDashboard() {
         {activeTab === "schedules" && (
           <>
             {/* Statistics Cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
-          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid var(--primary)" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Tổng số đơn thuê học</h3>
-            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{schedules.length}</p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #8B5CF6" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Doanh thu dự kiến</h3>
-            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#8B5CF6" }}>
-              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(schedules.filter(s => s.status === "completed").reduce((sum, s) => sum + (Number(s.price) || 0), 0))}
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #EC4899" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Đã thanh toán</h3>
-            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#EC4899" }}>
-              {schedules.filter(s => s.status === "paid").length}
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #D97706" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Chờ duyệt</h3>
-            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#D97706" }}>
-              {schedules.filter(s => (s.status || "pending") === "pending").length}
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid var(--success)" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Đã duyệt</h3>
-            <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "var(--success)" }}>
-              {schedules.filter(s => s.status === "approved" || s.status === "accepted").length}
-            </p>
-          </div>
-        </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+              <div className="glass-panel" style={{ padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "4px solid var(--primary)", borderTop: "none", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng đơn</p>
+                  <h4 style={{ margin: "2px 0 0 0", fontSize: "1.6rem", fontWeight: "800", color: "var(--text-primary)" }}>{schedules.length}</h4>
+                </div>
+                <div style={{ background: "rgba(22, 163, 74, 0.1)", color: "var(--primary)", padding: "6px 8px", borderRadius: "8px" }}>
+                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "4px solid #8B5CF6", borderTop: "none", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>DT dự kiến</p>
+                  <h4 style={{ margin: "2px 0 0 0", fontSize: "1.4rem", fontWeight: "800", color: "#8B5CF6" }}>
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(schedules.filter(s => s.status === "completed").reduce((sum, s) => sum + (Number(s.price) || 0), 0))}
+                  </h4>
+                </div>
+                <div style={{ background: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6", padding: "6px 8px", borderRadius: "8px" }}>
+                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1"></path></svg>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "4px solid #EC4899", borderTop: "none", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Đã thanh toán</p>
+                  <h4 style={{ margin: "2px 0 0 0", fontSize: "1.6rem", fontWeight: "800", color: "#EC4899" }}>{schedules.filter(s => s.status === "paid").length}</h4>
+                </div>
+                <div style={{ background: "rgba(236, 72, 153, 0.1)", color: "#EC4899", padding: "6px 8px", borderRadius: "8px" }}>
+                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "4px solid #D97706", borderTop: "none", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Chờ duyệt</p>
+                  <h4 style={{ margin: "2px 0 0 0", fontSize: "1.6rem", fontWeight: "800", color: "#D97706" }}>{schedules.filter(s => (s.status || "pending") === "pending").length}</h4>
+                </div>
+                <div style={{ background: "rgba(217, 119, 6, 0.1)", color: "#D97706", padding: "6px 8px", borderRadius: "8px" }}>
+                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ padding: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderLeft: "4px solid var(--success)", borderTop: "none", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Đã duyệt</p>
+                  <h4 style={{ margin: "2px 0 0 0", fontSize: "1.6rem", fontWeight: "800", color: "var(--success)" }}>{schedules.filter(s => s.status === "approved" || s.status === "accepted").length}</h4>
+                </div>
+                <div style={{ background: "rgba(16, 185, 129, 0.1)", color: "var(--success)", padding: "6px 8px", borderRadius: "8px" }}>
+                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+              </div>
+            </div>
 
         {/* Toolbar */}
-        <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "300px" }}>
+        <div className="glass-panel" style={{ padding: "1rem 1.5rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.75rem", flex: 1, minWidth: "300px" }}>
               <input 
                 type="text" 
                 placeholder="Tìm tên, mã SV, lớp..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="form-input"
-                style={{ flex: 1, maxWidth: "350px", background: "white" }}
+                style={{ flex: 1, maxWidth: "280px", background: "white" }}
               />
               <select 
                 value={filterStatus}
@@ -262,6 +307,18 @@ export default function AdminDashboard() {
                 <option value="in_progress">Đang học</option>
                 <option value="completed">Hoàn thành</option>
                 <option value="rejected">Từ chối</option>
+              </select>
+              <select 
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="form-input"
+                style={{ width: "auto", background: "white", cursor: "pointer" }}
+              >
+                <option value="newest">Mới nhất (Nộp đơn)</option>
+                <option value="oldest">Cũ nhất (Nộp đơn)</option>
+                <option value="dateNearest">Ngày học (Gần nhất)</option>
+                <option value="priceHigh">Giá (Cao ➔ Thấp)</option>
+                <option value="priceLow">Giá (Thấp ➔ Cao)</option>
               </select>
             </div>
             
@@ -292,8 +349,12 @@ export default function AdminDashboard() {
 
         {/* Content Area */}
         {loading ? (
-          <div className="loader"></div>
-        ) : filteredSchedules.length === 0 ? (
+          <div className="grid-container">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="grid-card skeleton-pulse" style={{ minHeight: "380px", borderRadius: "16px", background: "rgba(255,255,255,0.4)" }} />
+            ))}
+          </div>
+        ) : sortedSchedules.length === 0 ? (
           <div className="glass-panel" style={{ textAlign: "center", padding: "4rem", color: "var(--text-secondary)" }}>
             <svg style={{ width: "64px", height: "64px", margin: "0 auto 1rem auto", opacity: 0.5 }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <h3 style={{ fontSize: "1.2rem", fontWeight: "600" }}>Không tìm thấy dữ liệu</h3>
@@ -302,7 +363,7 @@ export default function AdminDashboard() {
         ) : viewMode === "grid" ? (
           /* GRID VIEW */
           <div className="grid-container">
-            {filteredSchedules.map((item) => (
+            {sortedSchedules.map((item) => (
               <div key={item.id} className="grid-card">
                 <div className="grid-card-header">
                   <div>
@@ -397,7 +458,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSchedules.map((item) => (
+                {sortedSchedules.map((item) => (
                   <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                     <td style={{ padding: "1rem 1.5rem", verticalAlign: "top" }}>
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
