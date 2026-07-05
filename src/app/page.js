@@ -14,6 +14,8 @@ export default function Home() {
   const [phone, setPhone] = useState("");
   const [authError, setAuthError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
@@ -24,6 +26,135 @@ export default function Home() {
       }
     }
   }, [user, loading, isAdmin, router]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent || navigator.vendor || window.opera;
+      const isZalo = ua.indexOf("Zalo") > -1;
+      const isMessenger = ua.indexOf("Messenger") > -1 || ua.indexOf("FBAN") > -1 || ua.indexOf("FBAV") > -1;
+      
+      if (isZalo || isMessenger) {
+        setIsInAppBrowser(true);
+        const ios = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+        setIsIOS(ios);
+
+        // Nếu là Android, tự động dùng cơ chế Intent để ép mở bằng Chrome
+        if (!ios) {
+          const cleanUrl = window.location.href.replace(/^https?:\/\//, "");
+          window.location.href = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;end`;
+        }
+      }
+    }
+  }, []);
+
+  if (isInAppBrowser) {
+    return (
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: "#0f172a",
+        color: "white",
+        zIndex: 99999,
+        padding: "2rem",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        fontFamily: "system-ui, -apple-system, sans-serif"
+      }}>
+        {/* Mũi tên động nhấp nháy chỉ lên góc trên bên phải trên iPhone */}
+        {isIOS && (
+          <div style={{
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            animation: "bounce 1.5s infinite"
+          }}>
+            <svg style={{ width: "40px", height: "40px", color: "#f59e0b", transform: "rotate(-45deg)" }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+            <span style={{ fontSize: "0.85rem", color: "#f59e0b", fontWeight: "700", marginTop: "5px" }}>Ấn vào dấu 3 chấm ở đây!</span>
+          </div>
+        )}
+
+        <div style={{
+          background: "rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "24px",
+          border: "1px solid rgba(255,255,255,0.1)",
+          maxWidth: "400px",
+          width: "100%",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)"
+        }}>
+          <div style={{
+            width: "70px",
+            height: "70px",
+            background: "rgba(239, 68, 68, 0.15)",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ef4444",
+            margin: "0 auto 1.5rem auto"
+          }}>
+            <svg style={{ width: "36px", height: "36px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+
+          <h2 style={{ fontSize: "1.4rem", fontWeight: "800", marginBottom: "1rem", color: "#f59e0b" }}>Hạn Chế Trình Duyệt Nhúng</h2>
+          
+          <p style={{ fontSize: "0.95rem", color: "#94a3b8", lineHeight: "1.6", marginBottom: "1.5rem" }}>
+            Google đã chặn tính năng đăng nhập trên trình duyệt của Zalo / Messenger để bảo mật tài khoản.
+          </p>
+
+          {isIOS ? (
+            <div style={{ textAlign: "left", background: "rgba(255,255,255,0.03)", padding: "1.25rem", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.05)", fontSize: "0.9rem" }}>
+              <span style={{ fontWeight: "700", color: "#f59e0b", display: "block", marginBottom: "8px" }}>👉 Để đăng nhập bằng Google:</span>
+              1. Bấm vào biểu tượng <strong>Ba Chấm (...)</strong> ở góc trên bên phải màn hình.<br/><br/>
+              2. Chọn <strong>"Mở bằng trình duyệt"</strong> (hoặc <strong>"Mở bằng Safari"</strong>).
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <a 
+                href={`intent://${window.location.href.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`}
+                style={{
+                  background: "var(--primary)",
+                  color: "white",
+                  padding: "0.8rem",
+                  borderRadius: "12px",
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  display: "inline-block",
+                  boxShadow: "0 4px 12px rgba(22, 163, 74, 0.3)"
+                }}
+              >
+                Mở bằng Google Chrome
+              </a>
+              <p style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "10px" }}>
+                Nếu không tự chuyển, vui lòng ấn vào dấu ba chấm ở góc trên bên phải và chọn "Mở bằng trình duyệt".
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Keyframe hiệu ứng nhấp nháy cho mũi tên */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes bounce {
+            0%, 100% { transform: translateY(0) rotate(-45deg); }
+            50% { transform: translateY(-10px) rotate(-45deg); }
+          }
+        `}} />
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="loader"></div>;
