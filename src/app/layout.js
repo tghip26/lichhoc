@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Quản lý Thuê Học",
+  title: "Thuê học online",
   description: "Hệ thống quản lý lịch thuê học chuyên nghiệp",
 };
 
