@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Nền màu xanh lá cây bo góc tròn (Brand Green) -->
+  <rect width="512" height="512" rx="120" fill="#16a34a"/>
+  
+  <!-- Vector mũ cử nhân phẳng màu trắng -->
+  <path d="M256 100L50 200l206 100 160-78v98h30V216l16-8z" fill="#ffffff" />
+  <path d="M112 274v70c0 34 64.5 60 144 60s144-26 144-60v-70l-144 70z" fill="#ffffff" />
+</svg>
