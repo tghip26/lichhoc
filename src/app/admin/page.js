@@ -218,7 +218,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="glass-panel" style={{ padding: "1.5rem", textAlign: "center", borderTop: "4px solid #EC4899" }}>
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Đã báo chuyển tiền</h3>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "1px" }}>Đã thanh toán</h3>
             <p style={{ margin: 0, fontSize: "2.5rem", fontWeight: "800", color: "#EC4899" }}>
               {schedules.filter(s => s.status === "paid").length}
             </p>
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="pending">Chờ nhận đơn</option>
-                <option value="paid">Khách báo chuyển tiền</option>
+                <option value="paid">Đã thanh toán</option>
                 <option value="accepted">Sắp học</option>
                 <option value="in_progress">Đang học</option>
                 <option value="completed">Hoàn thành</option>
@@ -320,7 +320,7 @@ export default function AdminDashboard() {
                     }}
                   >
                     <option value="pending" style={{color: "black"}}>Chờ nhận đơn</option>
-                    <option value="paid" style={{color: "black"}}>Khách báo chuyển tiền</option>
+                    <option value="paid" style={{color: "black"}}>Đã thanh toán</option>
                     <option value="accepted" style={{color: "black"}}>Sắp học</option>
                     <option value="in_progress" style={{color: "black"}}>Đang học</option>
                     <option value="completed" style={{color: "black"}}>Hoàn thành</option>
@@ -441,7 +441,7 @@ export default function AdminDashboard() {
                         }}
                       >
                         <option value="pending" style={{color: "black"}}>Chờ nhận</option>
-                        <option value="paid" style={{color: "black"}}>Đã chuyển tiền</option>
+                        <option value="paid" style={{color: "black"}}>Đã thanh toán</option>
                         <option value="accepted" style={{color: "black"}}>Sắp học</option>
                         <option value="in_progress" style={{color: "black"}}>Đang học</option>
                         <option value="completed" style={{color: "black"}}>Hoàn thành</option>
