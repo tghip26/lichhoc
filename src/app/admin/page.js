@@ -27,7 +27,9 @@ export default function AdminDashboard() {
     bankOwner: "",
     announcement: "",
     hotline: "0999.888.777",
-    zaloContact: ""
+    zaloContact: "",
+    telegramBotToken: "",
+    telegramChatId: ""
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -39,7 +41,9 @@ export default function AdminDashboard() {
         bankOwner: systemSettings.bankOwner || "",
         announcement: systemSettings.announcement || "",
         hotline: systemSettings.hotline || "0999.888.777",
-        zaloContact: systemSettings.zaloContact || ""
+        zaloContact: systemSettings.zaloContact || "",
+        telegramBotToken: systemSettings.telegramBotToken || "",
+        telegramChatId: systemSettings.telegramChatId || ""
       });
     }
   }, [systemSettings]);
@@ -586,6 +590,28 @@ export default function AdminDashboard() {
                   rows="3" 
                   placeholder="Nội dung thông báo hiển thị trên đầu trang..."
                 ></textarea>
+              </div>
+
+              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", margin: "2rem 0 1rem 0", color: "var(--text-primary)", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px" }}>🤖 Cấu hình Telegram Alerts</h3>
+              <div className="form-group">
+                <label className="form-label">Telegram Bot Token</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.telegramBotToken} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramBotToken: e.target.value })} 
+                  className="form-input" 
+                  placeholder="Ví dụ: 123456789:ABCdefGhI..." 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Telegram Chat ID (Nhóm hoặc Cá nhân)</label>
+                <input 
+                  type="text" 
+                  value={settingsForm.telegramChatId} 
+                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramChatId: e.target.value })} 
+                  className="form-input" 
+                  placeholder="Ví dụ: -100123456789 hoặc 987654321" 
+                />
               </div>
 
               <button 

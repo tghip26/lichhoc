@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -17,8 +17,34 @@ export function AuthProvider({ children }) {
     bankOwner: "",
     announcement: "",
     hotline: "0999.888.777",
-    zaloContact: ""
+    zaloContact: "",
+    telegramBotToken: "",
+    telegramChatId: ""
   });
+
+  const sendTelegramAlert = async (text) => {
+    const token = systemSettings?.telegramBotToken;
+    const chatId = systemSettings?.telegramChatId;
+    if (!token || !chatId) {
+      console.log("Telegram Bot Token hoặc Chat ID chưa được cấu hình.");
+      return;
+    }
+    try {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: "HTML"
+        })
+      });
+    } catch (error) {
+      console.error("Lỗi gửi tin nhắn Telegram:", error);
+    }
+  };
 
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, "settings", "system"), (docSnap) => {
@@ -41,6 +67,18 @@ export function AuthProvider({ children }) {
         const adminStatus = allAdmins.includes(user.email.toLowerCase());
         setIsAdmin(adminStatus);
         
+        // Kiểm tra xem có phải đăng ký mới (chưa có tài liệu trên Firestore)
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (!userDocSnap.exists()) {
+            // Báo Telegram người dùng Google/Redirect mới
+            sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Tên hiển thị:</b> ${user.displayName || user.email.split('@')[0]}\n• <b>Email:</b> ${user.email}\n• <b>Hình thức:</b> Liên kết ngoài (Google)\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
+          }
+        } catch (err) {
+          console.error("Lỗi kiểm tra người dùng mới:", err);
+        }
+
         // Lưu/Cập nhật thông tin người dùng vào CSDL để quản lý
         try {
           await setDoc(doc(db, "users", user.uid), {
@@ -100,6 +138,11 @@ export function AuthProvider({ children }) {
         console.error("Lỗi lưu số điện thoại:", err);
       }
     }
+    
+    // Gửi thông báo đăng ký tài khoản mới thủ công
+    const phoneStr = phone ? `\n• <b>Số điện thoại:</b> ${phone}` : "";
+    sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Email:</b> ${email}${phoneStr}\n• <b>Hình thức:</b> Tạo bằng Email\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
+
     return userCredential;
   };
 
@@ -116,7 +159,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings, sendTelegramAlert }}>
       {children}
     </AuthContext.Provider>
   );

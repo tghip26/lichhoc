@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
 export default function Dashboard() {
-  const { user, loading, systemSettings } = useAuth();
+  const { user, loading, systemSettings, sendTelegramAlert } = useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -215,6 +215,23 @@ export default function Dashboard() {
         status: "pending",
         createdAt: serverTimestamp()
       });
+
+      // Báo Telegram đơn hàng mới cho Admin
+      const cleanPrice = formData.price || "Chưa đề xuất";
+      const telegramText = `🔔 <b>CÓ ĐƠN THUÊ HỌC MỚI!</b>\n\n` +
+        `• <b>Họ tên sinh viên:</b> ${formData.name}\n` +
+        `• <b>Mã sinh viên:</b> ${formData.studentId}\n` +
+        `• <b>Lớp học:</b> ${formData.className}\n` +
+        `• <b>Trường:</b> ${formData.school}\n` +
+        `• <b>Ngày học:</b> ${formData.classDate} (${weekday})\n` +
+        `• <b>Khung giờ:</b> ${formData.startTime} - ${formData.endTime}\n` +
+        `• <b>SĐT liên hệ:</b> ${formData.phone || "Không cung cấp"}\n` +
+        `• <b>Mức giá đề xuất:</b> ${cleanPrice} VNĐ\n` +
+        `• <b>Ghi chú:</b> ${formData.notes || "Không có"}\n` +
+        `• <b>Tài khoản nộp đơn:</b> ${user.email}\n` +
+        `• <b>Thời gian nộp:</b> ${new Date().toLocaleString("vi-VN")}`;
+      
+      sendTelegramAlert(telegramText);
 
       setProgress(100);
       toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
