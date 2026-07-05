@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment } from "firebase/firestore";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -19,8 +19,9 @@ export default function AdminDashboard() {
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [sortBy, setSortBy] = useState("newest"); // "newest", "oldest", "dateNearest", "priceHigh", "priceLow"
 
-  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users"
+  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users" or "helpers"
   const [users, setUsers] = useState([]);
+  const [helpers, setHelpers] = useState([]);
 
   const [settingsForm, setSettingsForm] = useState({
     bankName: "MBBank",
@@ -65,7 +66,14 @@ export default function AdminDashboard() {
       setUsers(uData);
     });
 
-    return () => { unsubscribeSchedules(); unsubscribeUsers(); };
+    // Lấy dữ liệu Cộng Tác Viên
+    const qHelpers = query(collection(db, "helpers"), orderBy("createdAt", "desc"));
+    const unsubscribeHelpers = onSnapshot(qHelpers, (snapshot) => {
+      const hData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHelpers(hData);
+    });
+
+    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); };
   }, []);
 
   const handleUpdateStatus = async (id, newStatus) => {
@@ -120,6 +128,52 @@ export default function AdminDashboard() {
       } catch (err) {
         toast.error("Không thể xóa người dùng");
       }
+    }
+  };
+
+  const handleAssignHelper = async (scheduleId, helperName) => {
+    try {
+      await updateDoc(doc(db, "schedules", scheduleId), { assignedTo: helperName });
+      toast.success("Đã giao việc thành công!");
+    } catch (error) {
+      console.error("Lỗi giao việc:", error);
+      toast.error("Giao việc thất bại!");
+    }
+  };
+
+  const handleUpdateHelperStatus = async (id, newStatus) => {
+    try {
+      await updateDoc(doc(db, "helpers", id), { 
+        status: newStatus,
+        isApproved: newStatus === "approved"
+      });
+      toast.success("Đã cập nhật trạng thái CTV!");
+    } catch (err) {
+      console.error("Lỗi cập nhật CTV:", err);
+      toast.error("Không thể cập nhật CTV");
+    }
+  };
+
+  const handleDeleteHelper = async (id) => {
+    if (confirm("Chắc chắn muốn xóa hồ sơ CTV này?")) {
+      try {
+        await deleteDoc(doc(db, "helpers", id));
+        toast.success("Đã xóa hồ sơ CTV!");
+      } catch (err) {
+        toast.error("Lỗi xóa hồ sơ CTV");
+      }
+    }
+  };
+
+  const handleAdjustBalance = async (uid, amount) => {
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        balance: increment(amount)
+      });
+      toast.success("Đã điều chỉnh số dư Ví thành công!");
+    } catch (err) {
+      console.error("Lỗi điều chỉnh ví:", err);
+      toast.error("Không thể điều chỉnh ví.");
     }
   };
 
@@ -219,6 +273,13 @@ export default function AdminDashboard() {
           >
             <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Quản lý Tài Khoản
+          </button>
+          <button 
+            onClick={() => setActiveTab("helpers")}
+            style={{ padding: "0.6rem 1.5rem", border: "none", background: activeTab === "helpers" ? "var(--primary)" : "transparent", color: activeTab === "helpers" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "helpers" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+          >
+            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+            Quản lý CTV
           </button>
           <button 
             onClick={() => setActiveTab("settings")}
@@ -409,10 +470,24 @@ export default function AdminDashboard() {
                   {item.classDate && <><span style={{color: "var(--primary)"}}>Học:</span> {item.weekday ? `${item.weekday} ` : ''}({new Date(item.classDate).toLocaleDateString("vi-VN")})<br/></>}
                   {item.startTime && item.endTime && <><span style={{color: "var(--primary)"}}>Giờ:</span> {item.startTime} - {item.endTime}<br/></>}
                   {item.notes && <><span style={{color: "var(--primary)"}}>Ghi chú:</span> {item.notes}<br/></>}
-                  {item.assignedTo && <><span style={{color: "#8B5CF6"}}>Người đi học:</span> <strong>{item.assignedTo}</strong><br/></>}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                   
+                  <div style={{ marginTop: "10px", borderTop: "1px dashed rgba(0,0,0,0.05)", paddingTop: "8px" }}>
+                    <label style={{ fontSize: "0.72rem", fontWeight: "700", color: "#8B5CF6", display: "block", marginBottom: "4px" }}>GIAO LỊCH HỌC HỘ:</label>
+                    <select
+                      value={item.assignedTo || ""}
+                      onChange={(e) => handleAssignHelper(item.id, e.target.value)}
+                      className="form-input"
+                      style={{ padding: "4px 8px", fontSize: "0.8rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    >
+                      <option value="">-- Chưa giao việc --</option>
+                      {helpers.filter(h => h.isApproved).map(h => (
+                        <option key={h.id} value={h.name}>{h.name} ({h.school})</option>
+                      ))}
+                    </select>
+                  </div>
+
                   {item.status === "paid" && (
                     <button
                       onClick={() => handleUpdateStatus(item.id, "accepted")}
@@ -478,7 +553,21 @@ export default function AdminDashboard() {
                         {item.startTime && item.endTime && <><br/>Giờ: {item.startTime} - {item.endTime}</>}
                         {item.price && <><br/>Giá: <strong style={{color: "var(--primary)"}}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}</strong></>}
                         {item.notes && <><br/><i style={{ color: "var(--primary)" }}>Ghi chú: {item.notes}</i></>}
-                        {item.assignedTo && <><br/><strong style={{color: "#8B5CF6"}}>Đi học: {item.assignedTo}</strong></>}
+                        
+                        <div style={{ marginTop: "6px", maxWidth: "160px" }}>
+                          <span style={{ fontSize: "0.72rem", fontWeight: "700", color: "#8B5CF6" }}>Giao việc:</span>
+                          <select
+                            value={item.assignedTo || ""}
+                            onChange={(e) => handleAssignHelper(item.id, e.target.value)}
+                            className="form-input"
+                            style={{ padding: "2px 4px", fontSize: "0.75rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "6px", width: "100%", marginTop: "2px", border: "1px solid #cbd5e1" }}
+                          >
+                            <option value="">-- Chưa giao --</option>
+                            {helpers.filter(h => h.isApproved).map(h => (
+                              <option key={h.id} value={h.name}>{h.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -568,6 +657,7 @@ export default function AdminDashboard() {
                     <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Tài khoản</th>
                     <th>Email</th>
                     <th>Ngày hoạt động cuối</th>
+                    <th>Số dư Ví</th>
                     <th>Quyền (Role)</th>
                     <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
                   </tr>
@@ -589,6 +679,22 @@ export default function AdminDashboard() {
                       <td>
                         <div style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
                           {u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString("vi-VN") : "Chưa rõ"}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <strong style={{ color: "var(--primary)", fontSize: "0.95rem" }}>{(u.balance || 0).toLocaleString("vi-VN")} đ</strong>
+                          <button 
+                            onClick={() => {
+                              const amount = prompt(`Nhập số tiền muốn nạp cho ${u.displayName || u.email} (Ví dụ: 100000 để cộng, -50000 để trừ):`);
+                              if (amount && !isNaN(amount)) {
+                                handleAdjustBalance(u.id, Number(amount));
+                              }
+                            }}
+                            style={{ padding: "4px 8px", background: "var(--primary)", color: "white", border: "none", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
+                          >
+                            ± Nạp ví
+                          </button>
                         </div>
                       </td>
                       <td>
@@ -614,6 +720,101 @@ export default function AdminDashboard() {
                         >
                           Khóa/Xóa
                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* BẢNG QUẢN LÝ CTV */}
+        {activeTab === "helpers" && (
+          <>
+            <div className="table-container glass-panel" style={{ padding: "0" }}>
+              <table style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Cộng tác viên</th>
+                    <th>Trường / Lớp</th>
+                    <th>Liên hệ</th>
+                    <th>Năng lực & Giờ rảnh</th>
+                    <th>Ảnh chân dung/Thẻ SV</th>
+                    <th>Trạng thái</th>
+                    <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {helpers.length === 0 ? (
+                    <tr><td colSpan="7" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không có hồ sơ ứng tuyển nào.</td></tr>
+                  ) : helpers.map((h) => (
+                    <tr key={h.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "1rem 1.5rem" }}>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{h.name}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>MSSV: {h.studentId}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{h.school}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Lớp: {h.className}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{h.email}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--primary)" }}>
+                          SĐT: <a href={`https://zalo.me/${h.phone}`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: "700", textDecoration: "underline", color: "var(--primary)" }}>{h.phone} 💬</a>
+                        </div>
+                      </td>
+                      <td style={{ maxWidth: "250px", fontSize: "0.85rem", lineHeight: "1.4" }}>
+                        <strong>Rảnh:</strong> {h.availability}<br/>
+                        <strong style={{ color: "var(--primary)" }}>Giới thiệu:</strong> {h.bio}
+                      </td>
+                      <td>
+                        {h.imageUrl && (
+                          <img 
+                            src={h.imageUrl} 
+                            alt="Thẻ SV" 
+                            style={{ width: "80px", height: "50px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #E5E7EB" }} 
+                            onClick={() => setLightboxImage(h.imageUrl)}
+                          />
+                        )}
+                      </td>
+                      <td>
+                        {h.status === "approved" ? (
+                          <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đã duyệt</span>
+                        ) : h.status === "rejected" ? (
+                          <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Từ chối</span>
+                        ) : (
+                          <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt</span>
+                        )}
+                      </td>
+                      <td style={{ padding: "1rem 1.5rem" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                          {h.status !== "approved" && (
+                            <button 
+                              onClick={() => handleUpdateHelperStatus(h.id, "approved")} 
+                              className="btn" 
+                              style={{ padding: "4px 8px", background: "var(--success)", color: "white", fontSize: "0.75rem", borderRadius: "6px" }}
+                            >
+                              Phê duyệt
+                            </button>
+                          )}
+                          {h.status !== "rejected" && (
+                            <button 
+                              onClick={() => handleUpdateHelperStatus(h.id, "rejected")} 
+                              className="btn" 
+                              style={{ padding: "4px 8px", background: "#f59e0b", color: "white", fontSize: "0.75rem", borderRadius: "6px" }}
+                            >
+                              Từ chối
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteHelper(h.id)} 
+                            className="btn" 
+                            style={{ padding: "4px 8px", background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", fontSize: "0.75rem", borderRadius: "6px" }}
+                          >
+                            Xóa hồ sơ
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

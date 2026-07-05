@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { db } from "@/lib/firebase";
+import { collection, query, orderBy, onSnapshot, limit } from "firebase/firestore";
 
 export default function Home() {
   const { user, loading, isAdmin, loginWithGoogle, loginWithEmail, registerWithEmail, systemSettings } = useAuth();
@@ -16,6 +18,18 @@ export default function Home() {
   const [processing, setProcessing] = useState(false);
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [reviews, setReviews] = useState([]);
+
+  useEffect(() => {
+    // Lấy 6 đánh giá mới nhất
+    const qReviews = query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(6));
+    const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
+      const rData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setReviews(rData);
+    }, (err) => console.error("Lỗi tải reviews:", err));
+
+    return () => unsubscribeReviews();
+  }, []);
 
   useEffect(() => {
     if (user && !loading) {
@@ -296,6 +310,40 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* REVIEWS SECTION */}
+      <div style={{ marginTop: "4rem", borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: "3rem", width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1.6rem", color: "var(--primary)", margin: "0 0 0.5rem 0", fontWeight: "800" }}>⭐ Đánh giá từ Học viên ⭐</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.95rem" }}>Sự tin tưởng và hài lòng từ các bạn là động lực phát triển của Thuê Học Pro</p>
+        </div>
+        
+        {reviews.length === 0 ? (
+          <div style={{ textAlign: "center", color: "var(--text-secondary)", fontStyle: "italic", fontSize: "0.9rem" }}>
+            Chưa có lượt đánh giá nào. Hãy là người đầu tiên trải nghiệm dịch vụ!
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
+            {reviews.map((r) => (
+              <div key={r.id} className="glass-panel" style={{ padding: "1.25rem", borderRadius: "18px", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "white", boxShadow: "0 4px 15px rgba(0,0,0,0.02)" }}>
+                <div>
+                  <div style={{ color: "#FBBC05", fontSize: "1.1rem", marginBottom: "0.5rem" }}>
+                    {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                  </div>
+                  <p style={{ color: "var(--text-primary)", fontSize: "0.9rem", fontStyle: "italic", margin: "0 0 1rem 0", lineHeight: "1.5" }}>
+                    "{r.comment}"
+                  </p>
+                </div>
+                <div style={{ borderTop: "1px dashed #f1f5f9", paddingTop: "0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: "700", color: "var(--text-primary)", fontSize: "0.8rem" }}>{r.userName}</span>
+                  <span style={{ background: "var(--primary-light)", color: "var(--primary)", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "700" }}>{r.school}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       </div>
     </div>
   );

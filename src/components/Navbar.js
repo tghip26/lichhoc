@@ -97,6 +97,24 @@ export default function Navbar() {
                     <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
                   )}
                 </Link>
+
+                {!isAdmin && (
+                  <Link 
+                    href="/tuyen-ctv" 
+                    style={{ 
+                      fontWeight: pathname === "/tuyen-ctv" ? "700" : "500", 
+                      color: pathname === "/tuyen-ctv" ? "var(--primary)" : "var(--text-secondary)",
+                      textDecoration: "none",
+                      transition: "all 0.2s",
+                      position: "relative"
+                    }}
+                  >
+                    Tuyển CTV 🎓
+                    {pathname === "/tuyen-ctv" && (
+                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                    )}
+                  </Link>
+                )}
               </div>
 
               {/* User Profile */}

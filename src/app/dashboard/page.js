@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
@@ -40,6 +40,17 @@ export default function Dashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [newOrderInfo, setNewOrderInfo] = useState(null);
   const [minDate, setMinDate] = useState("");
+  const [userProfile, setUserProfile] = useState(null);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [topupAmount, setTopupAmount] = useState("100000");
+  const [paymentMethod, setPaymentMethod] = useState("qr"); // "qr" or "wallet"
+  const [historyView, setHistoryView] = useState("list"); // "list" or "calendar"
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewItem, setReviewItem] = useState(null);
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -90,7 +101,15 @@ export default function Dashboard() {
         setLoadingHistory(false);
       });
 
-      return () => unsubscribe();
+      // Lắng nghe số dư ví thời gian thực
+      const docRef = doc(db, "users", user.uid);
+      const unsubscribeProfile = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data());
+        }
+      });
+
+      return () => { unsubscribe(); unsubscribeProfile(); };
     }
   }, [user]);
 
@@ -216,6 +235,15 @@ export default function Dashboard() {
       }
     }
 
+    const priceNumeric = formData.price ? Number(formData.price.replace(/\./g, "")) : 0;
+
+    if (paymentMethod === "wallet") {
+      if ((userProfile?.balance || 0) < priceNumeric) {
+        toast.error("Số dư ví không đủ! Vui lòng nạp thêm tiền hoặc chọn quét QR.");
+        return;
+      }
+    }
+
     if (!file) {
       toast.error("Vui lòng đợi ảnh tải xong hoặc chọn ảnh khác!");
       return;
@@ -227,6 +255,13 @@ export default function Dashboard() {
 
     // GIAI ĐOẠN ĐỘT PHÁ: Lưu thẳng chuỗi văn bản ảnh vào CSDL Firestore (Không cần Storage)
     try {
+      // 1. Trừ tiền ví trước nếu chọn thanh toán bằng ví
+      if (paymentMethod === "wallet") {
+        await updateDoc(doc(db, "users", user.uid), {
+          balance: increment(-priceNumeric)
+        });
+      }
+
       const docRef = await addDoc(collection(db, "schedules"), {
         userId: user.uid,
         userEmail: user.email || "No Email",
@@ -243,43 +278,51 @@ export default function Dashboard() {
         price: formData.price ? formData.price.replace(/\./g, "") : "",
         weekday: weekday,
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
-        status: "pending",
+        status: paymentMethod === "wallet" ? "paid" : "pending",
+        paymentMethod: paymentMethod,
         createdAt: serverTimestamp()
       });
 
       // Báo Telegram đơn hàng mới cho Admin
       const orderIdSub = docRef.id.substring(0, 8).toUpperCase();
-      const cleanPrice = formData.price || "Chưa đề xuất";
-      const telegramText = `🔔 <b>CÓ ĐƠN THUÊ HỌC MỚI!</b>\n\n` +
+      const formatPrice = Number(formData.price ? formData.price.replace(/\./g, "") : 0).toLocaleString("vi-VN");
+      const timeAlert = formData.startTime && formData.endTime ? ` Khung giờ: ${formData.startTime} - ${formData.endTime}` : "";
+      
+      const paymentInfo = paymentMethod === "wallet" 
+        ? `💰 <b>THANH TOÁN BẰNG VÍ</b> (Hệ thống đã tự trừ số dư)` 
+        : `📸 <b>CHUYỂN KHOẢN TRỰC TIẾP</b> (Chờ quét QR)`;
+
+      const telegramText = `📝 <b>CÓ ĐƠN ĐĂNG KÝ THUÊ HỌC MỚI!</b>\n\n` +
         `• <b>Mã đơn (VietQR):</b> <code>${orderIdSub}</code>\n` +
         `• <b>Họ tên sinh viên:</b> ${formData.name}\n` +
-        `• <b>Mã sinh viên:</b> ${formData.studentId}\n` +
+        `• <b>Mã số sinh viên:</b> ${formData.studentId}\n` +
         `• <b>Lớp học:</b> ${formData.className}\n` +
-        `• <b>Trường:</b> ${formData.school}\n` +
-        `• <b>Ngày học:</b> ${formData.classDate} (${weekday})\n` +
-        `• <b>Khung giờ:</b> ${formData.startTime} - ${formData.endTime}\n` +
-        `• <b>SĐT liên hệ:</b> ${formData.phone || "Không cung cấp"}\n` +
-        `• <b>Mức giá đề xuất:</b> ${cleanPrice} VNĐ\n` +
-        `• <b>Ghi chú:</b> ${formData.notes || "Không có"}\n` +
-        `• <b>Tài khoản nộp đơn:</b> ${user.email}\n` +
-        `• <b>Thời gian nộp:</b> ${new Date().toLocaleString("vi-VN")}`;
-      
+        `• <b>Trường học:</b> ${formData.school}\n` +
+        `• <b>Ngày học:</b> ${weekday} (${new Date(formData.classDate).toLocaleDateString("vi-VN")})${timeAlert}\n` +
+        `• <b>Số điện thoại:</b> ${formData.phone}\n` +
+        `• <b>Giá thuê:</b> ${formatPrice} VNĐ\n` +
+        `• <b>Phương thức:</b> ${paymentInfo}\n\n` +
+        `<i>Vui lòng truy cập Bảng quản trị để phê duyệt lịch!</i>`;
+
       sendTelegramAlert(telegramText);
 
-      // Lưu thông tin đơn hàng mới để hiển thị popup thanh toán ngay
-      setNewOrderInfo({
-        id: docRef.id,
-        name: formData.name,
-        studentId: formData.studentId,
-        className: formData.className,
-        price: formData.price ? formData.price.replace(/\./g, "") : "0",
-        classDate: formData.classDate,
-        weekday: weekday
-      });
-      setShowPaymentModal(true);
-
       setProgress(100);
-      toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
+
+      if (paymentMethod === "wallet") {
+        toast.success("Thành công! Đã thanh toán đơn hàng bằng ví tài khoản.", { id: "upload" });
+      } else {
+        toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
+        setNewOrderInfo({
+          id: docRef.id,
+          name: formData.name,
+          studentId: formData.studentId,
+          className: formData.className,
+          price: formData.price ? formData.price.replace(/\./g, "") : "0",
+          classDate: formData.classDate,
+          weekday: weekday
+        });
+        setShowPaymentModal(true);
+      }
       
       // Reset form
       const today = new Date();
@@ -309,6 +352,102 @@ export default function Dashboard() {
     }
   };
 
+  const renderCalendar = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 là Chủ nhật, 6 là Thứ 7
+
+    const monthNames = [
+      "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+      "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+    ];
+
+    const handlePrevMonth = () => {
+      setCurrentDate(new Date(year, month - 1, 1));
+    };
+
+    const handleNextMonth = () => {
+      setCurrentDate(new Date(year, month + 1, 1));
+    };
+
+    const daysGrid = [];
+    for (let i = 0; i < firstDayIndex; i++) {
+      daysGrid.push(null);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      daysGrid.push(new Date(year, month, d));
+    }
+
+    return (
+      <div style={{ background: "white", padding: "1.25rem", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "var(--text-primary)" }}>{monthNames[month]} - {year}</h3>
+          <div style={{ display: "flex", gap: "5px" }}>
+            <button type="button" onClick={handlePrevMonth} className="btn" style={{ padding: "4px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "none", cursor: "pointer", borderRadius: "6px", color: "var(--text-primary)" }}>◀</button>
+            <button type="button" onClick={handleNextMonth} className="btn" style={{ padding: "4px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "none", cursor: "pointer", borderRadius: "6px", color: "var(--text-primary)" }}>▶</button>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px", textAlign: "center", fontWeight: "700", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "8px" }}>
+          <span style={{ color: "#ef4444" }}>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
+          {daysGrid.map((day, idx) => {
+            if (!day) return <div key={`empty-${idx}`} style={{ minHeight: "55px", background: "#f8fafc", borderRadius: "8px", opacity: 0.3 }} />;
+            
+            const dateString = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+            const daySchedules = history.filter(item => item.classDate === dateString);
+
+            return (
+              <div 
+                key={dateString} 
+                style={{ 
+                  minHeight: "55px", 
+                  background: daySchedules.length > 0 ? "rgba(22, 163, 74, 0.05)" : "#f8fafc", 
+                  border: daySchedules.length > 0 ? "1px solid var(--primary)" : "1px solid #e2e8f0", 
+                  borderRadius: "8px", 
+                  padding: "4px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  cursor: daySchedules.length > 0 ? "pointer" : "default",
+                  transition: "all 0.1s"
+                }}
+                onClick={() => {
+                  if (daySchedules.length > 0) {
+                    setSelectedItem(daySchedules[0]);
+                  }
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", fontWeight: "700", color: daySchedules.length > 0 ? "var(--primary)" : "var(--text-primary)" }}>{day.getDate()}</span>
+                {daySchedules.length > 0 && (
+                  <div style={{ display: "flex", gap: "3px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {daySchedules.map(item => {
+                      let dotColor = "#D97706";
+                      if (item.status === "approved" || item.status === "accepted" || item.status === "in_progress") dotColor = "var(--success)";
+                      if (item.status === "completed") dotColor = "#8B5CF6";
+                      if (item.status === "rejected") dotColor = "var(--danger)";
+                      return (
+                        <span 
+                          key={item.id} 
+                          title={`${item.name} - ${item.className}`}
+                          style={{ width: "6px", height: "6px", borderRadius: "50%", background: dotColor }} 
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa đơn thuê học này không?")) {
       try {
@@ -318,6 +457,65 @@ export default function Dashboard() {
         console.error("Lỗi xóa đơn thuê học:", error);
         toast.error("Lỗi khi xóa đơn thuê học");
       }
+    }
+  };
+
+  const handleTopupRequest = async () => {
+    if (!topupAmount || Number(topupAmount) <= 0) {
+      toast.error("Vui lòng nhập số tiền nạp hợp lệ!");
+      return;
+    }
+    toast.loading("Đang gửi yêu cầu nạp tiền...", { id: "topup" });
+    try {
+      const topupText = `💳 <b>YÊU CẦU NẠP TIỀN VÍ MỚI!</b>\n\n` +
+        `• <b>Tài khoản khách:</b> ${user.email}\n` +
+        `• <b>Số tiền nạp ví:</b> ${Number(topupAmount).toLocaleString("vi-VN")} VNĐ\n` +
+        `• <b>Nội dung CK chuyển khoản:</b> <code>THUENAP ${user.uid.substring(0, 6).toUpperCase()}</code>\n` +
+        `• <b>Trạng thái:</b> Chờ Admin đối soát và duyệt cộng tiền.`;
+      
+      await sendTelegramAlert(topupText);
+      toast.success("Đã gửi yêu cầu nạp ví thành công! Vui lòng chuyển khoản.", { id: "topup" });
+      setShowWalletModal(false);
+    } catch (err) {
+      toast.error("Gửi yêu cầu thất bại!", { id: "topup" });
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewText.trim()) {
+      toast.error("Vui lòng điền nội dung nhận xét!");
+      return;
+    }
+    setSubmittingReview(true);
+    toast.loading("Đang gửi nhận xét đánh giá...", { id: "review" });
+    try {
+      await addDoc(collection(db, "reviews"), {
+        userId: user.uid,
+        userEmail: user.email,
+        userName: userProfile?.displayName || user.email.split('@')[0],
+        scheduleId: reviewItem.id,
+        className: reviewItem.className,
+        school: reviewItem.school,
+        rating: rating,
+        comment: reviewText,
+        createdAt: serverTimestamp()
+      });
+      
+      // Đánh dấu đơn đã được đánh giá
+      await updateDoc(doc(db, "schedules", reviewItem.id), { reviewed: true });
+      
+      // Đồng bộ state selectedItem nếu đang xem
+      setSelectedItem(prev => prev && prev.id === reviewItem.id ? { ...prev, reviewed: true } : prev);
+      
+      toast.success("Cảm ơn bạn đã gửi đánh giá dịch vụ!", { id: "review" });
+      setShowReviewModal(false);
+      setReviewText("");
+    } catch (err) {
+      console.error("Lỗi gửi đánh giá:", err);
+      toast.error("Không thể gửi đánh giá lúc này!", { id: "review" });
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -610,6 +808,37 @@ export default function Dashboard() {
             </label>
           </div>
           
+          <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+            <label className="form-label" style={{ fontWeight: "700", display: "block", marginBottom: "6px" }}>Phương thức thanh toán</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div 
+                onClick={() => setPaymentMethod("qr")}
+                style={{ 
+                  padding: "10px 15px", border: paymentMethod === "qr" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "qr" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
+                }}
+              >
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "qr" ? "var(--primary)" : "var(--text-primary)" }}>📸 Chuyển khoản QR</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Nhận VietQR sau khi tạo đơn</span>
+              </div>
+              <div 
+                onClick={() => {
+                  const priceNumeric = formData.price ? Number(formData.price.replace(/\./g, "")) : 0;
+                  if ((userProfile?.balance || 0) < priceNumeric) {
+                    toast.error("Số dư tài khoản không đủ để thanh toán. Vui lòng nạp thêm tiền!");
+                    return;
+                  }
+                  setPaymentMethod("wallet");
+                }}
+                style={{ 
+                  padding: "10px 15px", border: paymentMethod === "wallet" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "wallet" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s", opacity: (userProfile?.balance || 0) <= 0 ? 0.5 : 1
+                }}
+              >
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "wallet" ? "var(--primary)" : "var(--text-primary)" }}>💳 Ví tài khoản (Trừ tiền)</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Số dư hiện có: {(userProfile?.balance || 0).toLocaleString("vi-VN")} đ</span>
+              </div>
+            </div>
+          </div>
+          
           {uploading && (
             <div style={{ marginBottom: "1.5rem", background: "#f8fafc", padding: "1rem", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600", color: "var(--primary)" }}>
@@ -686,9 +915,24 @@ export default function Dashboard() {
               <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--success)" }}>{stats.completed}</div>
               <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600", marginTop: "2px" }}>Hoàn thành</div>
             </div>
-            <div style={{ gridColumn: "1 / -1", background: "rgba(139, 92, 246, 0.05)", padding: "10px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(139, 92, 246, 0.2)", paddingLeft: "15px", paddingRight: "15px" }}>
-              <span style={{ fontSize: "0.8rem", color: "#8B5CF6", fontWeight: "700" }}>💸 Tổng chi tiêu tích lũy:</span>
-              <span style={{ fontSize: "1rem", fontWeight: "800", color: "#8B5CF6" }}>{stats.totalSpent.toLocaleString("vi-VN")} VNĐ</span>
+            <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div style={{ background: "rgba(139, 92, 246, 0.05)", padding: "10px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(139, 92, 246, 0.2)", paddingLeft: "12px", paddingRight: "12px" }}>
+                <span style={{ fontSize: "0.75rem", color: "#8B5CF6", fontWeight: "700" }}>💸 Đã chi:</span>
+                <span style={{ fontSize: "0.9rem", fontWeight: "800", color: "#8B5CF6" }}>{stats.totalSpent.toLocaleString("vi-VN")} đ</span>
+              </div>
+              <div style={{ background: "rgba(22, 163, 74, 0.05)", padding: "10px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid rgba(22, 163, 74, 0.2)", paddingLeft: "12px", paddingRight: "12px" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--primary)", fontWeight: "700" }}>💰 Số dư Ví:</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "0.9rem", fontWeight: "800", color: "var(--primary)" }}>{(userProfile?.balance || 0).toLocaleString("vi-VN")} đ</span>
+                  <button 
+                    type="button"
+                    onClick={() => setShowWalletModal(true)} 
+                    style={{ background: "var(--primary)", color: "white", border: "none", borderRadius: "6px", padding: "2px 6px", fontSize: "0.65rem", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    Nạp
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -733,11 +977,51 @@ export default function Dashboard() {
               <option value="completed">Hoàn thành</option>
               <option value="rejected">Từ chối</option>
             </select>
+            <div style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "4px", borderRadius: "10px" }}>
+              <button 
+                type="button"
+                onClick={() => setHistoryView("list")}
+                style={{
+                  border: "none",
+                  background: historyView === "list" ? "white" : "transparent",
+                  color: historyView === "list" ? "var(--primary)" : "var(--text-secondary)",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "0.8rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: historyView === "list" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                  transition: "all 0.2s"
+                }}
+              >
+                Danh sách
+              </button>
+              <button 
+                type="button"
+                onClick={() => setHistoryView("calendar")}
+                style={{
+                  border: "none",
+                  background: historyView === "calendar" ? "white" : "transparent",
+                  color: historyView === "calendar" ? "var(--primary)" : "var(--text-secondary)",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "0.8rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: historyView === "calendar" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                  transition: "all 0.2s"
+                }}
+              >
+                Lịch biểu
+              </button>
+            </div>
           </div>
         )}
         
         {loadingHistory ? (
           <div className="loader"></div>
+        ) : historyView === "calendar" ? (
+          renderCalendar()
         ) : filteredHistory.length === 0 ? (
           /* EMPTY STATE */
           <div style={{ textAlign: "center", padding: "4rem 1rem", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -909,6 +1193,35 @@ export default function Dashboard() {
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI THANH TOÁN</strong>
                 {getPaymentStatusBadge(selectedItem.status)}
               </div>
+              {selectedItem.status === "completed" && (
+                <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px", gridColumn: "1 / -1" }}>
+                  <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>ĐÁNH GIÁ DỊCH VỤ DÀNH CHO BẠN</strong>
+                  {selectedItem.reviewed ? (
+                    <span style={{ color: "var(--success)", fontWeight: "600", fontSize: "0.9rem" }}>⭐ Bạn đã gửi nhận xét đánh giá môn học này.</span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setReviewItem(selectedItem);
+                        setShowReviewModal(true);
+                      }}
+                      className="btn"
+                      style={{
+                        padding: "6px 12px",
+                        background: "linear-gradient(90deg, #f59e0b, #d97706)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        fontSize: "0.8rem",
+                        boxShadow: "0 2px 6px rgba(245, 158, 11, 0.3)"
+                      }}
+                    >
+                      ⭐ Viết nhận xét đánh giá 5 sao
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* VIETQR AUTOMATIC PAYMENT BLOCK */}
               {systemSettings?.bankAccount && selectedItem.price && selectedItem.status !== "rejected" && (
