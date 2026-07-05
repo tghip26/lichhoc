@@ -728,10 +728,22 @@ export default function Dashboard() {
       )}
 
       {/* TABS SELECTOR */}
-      <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px" }}>
+      <div 
+        className="hide-scrollbar" 
+        style={{ 
+          display: "flex", 
+          gap: "10px", 
+          borderBottom: "1px solid #e2e8f0", 
+          paddingBottom: "10px",
+          overflowX: "auto",
+          whiteSpace: "nowrap",
+          WebkitOverflowScrolling: "touch"
+        }}
+      >
         <button 
           onClick={() => setActiveTab("schedules")}
           style={{
+            flexShrink: 0,
             background: activeTab === "schedules" ? "var(--primary)" : "white",
             color: activeTab === "schedules" ? "white" : "var(--text-secondary)",
             border: "1px solid #cbd5e1",
@@ -749,6 +761,7 @@ export default function Dashboard() {
         <button 
           onClick={() => setActiveTab("wallet")}
           style={{
+            flexShrink: 0,
             background: activeTab === "wallet" ? "var(--primary)" : "white",
             color: activeTab === "wallet" ? "white" : "var(--text-secondary)",
             border: "1px solid #cbd5e1",

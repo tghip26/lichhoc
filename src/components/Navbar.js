@@ -22,14 +22,17 @@ export default function Navbar() {
 
     const q = query(
       collection(db, "notifications"),
-      where("userId", "==", isAdmin ? "admin" : user.uid),
-      orderBy("createdAt", "desc"),
-      limit(20)
+      where("userId", "==", isAdmin ? "admin" : user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setNotifications(data);
+      data.sort((a, b) => {
+        const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+      setNotifications(data.slice(0, 20));
     }, (err) => console.error("Error loading notifications:", err));
 
     return () => unsubscribe();
