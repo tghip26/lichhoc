@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [newOrderInfo, setNewOrderInfo] = useState(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -196,7 +198,7 @@ export default function Dashboard() {
 
     // GIAI ĐOẠN ĐỘT PHÁ: Lưu thẳng chuỗi văn bản ảnh vào CSDL Firestore (Không cần Storage)
     try {
-      await addDoc(collection(db, "schedules"), {
+      const docRef = await addDoc(collection(db, "schedules"), {
         userId: user.uid,
         userEmail: user.email || "No Email",
         name: formData.name,
@@ -217,8 +219,10 @@ export default function Dashboard() {
       });
 
       // Báo Telegram đơn hàng mới cho Admin
+      const orderIdSub = docRef.id.substring(0, 8).toUpperCase();
       const cleanPrice = formData.price || "Chưa đề xuất";
       const telegramText = `🔔 <b>CÓ ĐƠN THUÊ HỌC MỚI!</b>\n\n` +
+        `• <b>Mã đơn (VietQR):</b> <code>${orderIdSub}</code>\n` +
         `• <b>Họ tên sinh viên:</b> ${formData.name}\n` +
         `• <b>Mã sinh viên:</b> ${formData.studentId}\n` +
         `• <b>Lớp học:</b> ${formData.className}\n` +
@@ -232,6 +236,18 @@ export default function Dashboard() {
         `• <b>Thời gian nộp:</b> ${new Date().toLocaleString("vi-VN")}`;
       
       sendTelegramAlert(telegramText);
+
+      // Lưu thông tin đơn hàng mới để hiển thị popup thanh toán ngay
+      setNewOrderInfo({
+        id: docRef.id,
+        name: formData.name,
+        studentId: formData.studentId,
+        className: formData.className,
+        price: formData.price ? formData.price.replace(/\./g, "") : "0",
+        classDate: formData.classDate,
+        weekday: weekday
+      });
+      setShowPaymentModal(true);
 
       setProgress(100);
       toast.success("Thành công! Đơn thuê học đã được nộp.", { id: "upload" });
@@ -806,7 +822,7 @@ export default function Dashboard() {
               </div>
 
               {/* VIETQR AUTOMATIC PAYMENT BLOCK */}
-              {systemSettings?.bankAccount && selectedItem.price && ["approved", "accepted", "in_progress", "completed"].includes(selectedItem.status) && (
+              {systemSettings?.bankAccount && selectedItem.price && selectedItem.status !== "rejected" && (
                 <div style={{ 
                   gridColumn: "1 / -1", 
                   background: "rgba(22, 163, 74, 0.03)", 
@@ -861,6 +877,133 @@ export default function Dashboard() {
                 </a>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* POPUP THANH TOÁN TỨC THÌ (KHI TẠO ĐƠN THÀNH CÔNG) */}
+      {showPaymentModal && newOrderInfo && (
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1001,
+            padding: "1.5rem",
+            animation: "fadeIn 0.2s ease"
+          }}
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div 
+            style={{
+              background: "white",
+              borderRadius: "24px",
+              padding: "2rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.3)",
+              border: "1px solid #e2e8f0",
+              textAlign: "center"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Icon chúc mừng */}
+            <div style={{
+              width: "60px",
+              height: "60px",
+              background: "rgba(16, 185, 129, 0.1)",
+              color: "var(--success)",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1rem auto"
+            }}>
+              <svg style={{ width: "30px", height: "30px" }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.4rem", fontWeight: "800", color: "var(--success)" }}>Đăng Đơn Thành Công!</h3>
+            <p style={{ margin: "0 0 1.5rem 0", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+              Đơn hàng của bạn đã được ghi nhận. Vui lòng chuyển khoản quét mã QR bên dưới để Admin duyệt lịch học nhanh nhất.
+            </p>
+
+            {/* Tóm tắt đơn */}
+            <div style={{ 
+              background: "#f8fafc", 
+              padding: "1rem", 
+              borderRadius: "16px", 
+              fontSize: "0.85rem", 
+              textAlign: "left", 
+              border: "1px solid #e2e8f0",
+              marginBottom: "1.5rem"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Sinh viên:</span>
+                <strong style={{ color: "var(--text-primary)" }}>{newOrderInfo.name} ({newOrderInfo.studentId})</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Lịch học:</span>
+                <strong style={{ color: "var(--text-primary)" }}>{newOrderInfo.classDate ? new Date(newOrderInfo.classDate).toLocaleDateString("vi-VN") : ""} ({newOrderInfo.weekday})</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Giá đề xuất:</span>
+                <strong style={{ color: "#8B5CF6", fontSize: "0.95rem" }}>{Number(newOrderInfo.price).toLocaleString("vi-VN")} VNĐ</strong>
+              </div>
+            </div>
+
+            {/* VietQR tự sinh */}
+            {systemSettings?.bankAccount && (
+              <div style={{ 
+                background: "rgba(22, 163, 74, 0.02)", 
+                padding: "1.25rem", 
+                borderRadius: "16px", 
+                border: "1px dashed var(--primary)",
+                marginBottom: "1.5rem"
+              }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+                  <img 
+                    src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${newOrderInfo.price}&addInfo=THUEHOC%20${newOrderInfo.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                    alt="VietQR Payment" 
+                    style={{ 
+                      width: "180px", 
+                      height: "180px", 
+                      objectFit: "contain", 
+                      border: "1px solid #cbd5e1", 
+                      borderRadius: "12px", 
+                      padding: "5px",
+                      background: "white"
+                    }} 
+                  />
+                </div>
+                
+                <div style={{ fontSize: "0.85rem", textAlign: "left", background: "white", padding: "10px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", display: "inline-block", width: "100%", boxSizing: "border-box" }}>
+                  <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
+                  <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
+                  <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
+                  <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {newOrderInfo.id.substring(0, 8).toUpperCase()}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Nút đóng */}
+            <button 
+              onClick={() => setShowPaymentModal(false)}
+              className="btn btn-primary"
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", fontSize: "0.95rem" }}
+            >
+              Tôi đã chuyển khoản thành công
+            </button>
           </div>
         </div>
       )}
