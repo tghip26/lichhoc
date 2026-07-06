@@ -765,6 +765,7 @@ export default function AdminDashboard() {
                   <tr>
                     <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Tài khoản</th>
                     <th>Email</th>
+                    <th>Số điện thoại</th>
                     <th>Ngày hoạt động cuối</th>
                     <th>Số dư Ví</th>
                     <th>Quyền (Role)</th>
@@ -773,7 +774,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {filteredUsers.length === 0 ? (
-                    <tr><td colSpan="5" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy tài khoản nào.</td></tr>
+                    <tr><td colSpan="7" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy tài khoản nào.</td></tr>
                   ) : filteredUsers.map((u) => (
                     <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 1.5rem" }}>
@@ -784,6 +785,17 @@ export default function AdminDashboard() {
                       </td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{u.email}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: "var(--primary)" }}>
+                          {u.phone ? (
+                            <a href={`https://zalo.me/${u.phone}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)" }}>
+                              {u.phone} 💬
+                            </a>
+                          ) : (
+                            <span style={{ color: "var(--text-secondary)", fontStyle: "italic", fontSize: "0.85rem" }}>Chưa cập nhật</span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>

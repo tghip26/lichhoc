@@ -491,3 +491,31 @@ tbody tr:hover {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Notifications Dropdown styling & mobile alignment */
+.notifications-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 320px;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 10px 0;
+}
+
+@media (max-width: 768px) {
+  .notifications-dropdown {
+    right: -80px;
+    width: 290px;
+  }
+}
+
+@media (max-width: 400px) {
+  .notifications-dropdown {
+    right: -55px;
+    width: 275px;
+  }
+}

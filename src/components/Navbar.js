@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, limit, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 export default function Navbar() {
   const { user, isAdmin, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -62,6 +63,9 @@ export default function Navbar() {
       }
     }
     setShowDropdown(false);
+    if (notif.link) {
+      router.push(notif.link);
+    }
   };
 
   const handleMarkAllRead = async () => {
@@ -218,9 +222,7 @@ export default function Navbar() {
                     </button>
 
                     {showDropdown && (
-                      <div style={{
-                        position: "absolute", right: 0, top: "calc(100% + 8px)", width: "320px", background: "white", borderRadius: "16px", border: "1px solid #cbd5e1", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 1000, padding: "10px 0"
-                      }}>
+                      <div className="notifications-dropdown">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 15px 10px 15px", borderBottom: "1px solid #f1f5f9" }}>
                           <span style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--text-primary)" }}>Thông báo</span>
                           <div style={{ display: "flex", gap: "10px" }}>
