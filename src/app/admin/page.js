@@ -18,6 +18,8 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [transFilterStatus, setTransFilterStatus] = useState("all");
+  const [helperFilterStatus, setHelperFilterStatus] = useState("all");
   const [lightboxImage, setLightboxImage] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [sortBy, setSortBy] = useState("newest"); // "newest", "oldest", "dateNearest", "priceHigh", "priceLow"
@@ -378,10 +380,39 @@ function AdminDashboard() {
     return 0;
   });
 
-  const filteredUsers = users.filter(u => 
-    (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (u.displayName && u.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredUsers = users.filter(u => {
+    const query = searchQuery.toLowerCase();
+    return (
+      (u.email && u.email.toLowerCase().includes(query)) ||
+      (u.displayName && u.displayName.toLowerCase().includes(query)) ||
+      (u.phone && u.phone.includes(query)) ||
+      (u.alias && u.alias.toLowerCase().includes(query))
+    );
+  });
+
+  const filteredTransactions = transactions.filter(t => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      (t.userEmail && t.userEmail.toLowerCase().includes(query)) || 
+      (t.message && t.message.toLowerCase().includes(query)) ||
+      (t.userId && t.userId.toLowerCase().includes(query));
+    const matchesStatus = transFilterStatus === "all" || t.status === transFilterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredHelpers = helpers.filter(h => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = 
+      (h.name && h.name.toLowerCase().includes(query)) ||
+      (h.email && h.email.toLowerCase().includes(query)) ||
+      (h.phone && h.phone.includes(query)) ||
+      (h.school && h.school.toLowerCase().includes(query)) ||
+      (h.className && h.className.toLowerCase().includes(query));
+    const matchesStatus = helperFilterStatus === "all" || 
+                          (helperFilterStatus === "pending" && h.status !== "approved" && h.status !== "rejected") ||
+                          h.status === helperFilterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <AdminGuard>
@@ -797,12 +828,34 @@ function AdminDashboard() {
               <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "300px" }}>
                 <input 
                   type="text" 
-                  placeholder="Tìm email hoặc tên người dùng..." 
+                  placeholder="Tìm email, tên, biệt danh hoặc SĐT..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="form-input"
                   style={{ flex: 1, maxWidth: "400px", background: "white" }}
                 />
+              </div>
+            </div>
+
+            {/* Thống kê Users */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.5rem", borderLeft: "4px solid var(--primary)", background: "white", borderRadius: "16px" }}>
+                <div style={{ fontSize: "2rem", color: "var(--primary)" }}>👥</div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng số tài khoản</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-primary)", marginTop: "4px" }}>
+                    {users.length} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "var(--text-secondary)" }}>tài khoản</span>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.5rem", borderLeft: "4px solid #10B981", background: "white", borderRadius: "16px" }}>
+                <div style={{ fontSize: "2rem", color: "#10B981" }}>💰</div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng số dư ví</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "#10B981", marginTop: "4px" }}>
+                    {users.reduce((sum, u) => sum + (u.balance || 0), 0).toLocaleString("vi-VN")} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "var(--text-secondary)" }}>VNĐ</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -920,6 +973,60 @@ function AdminDashboard() {
         {/* BẢNG QUẢN LÝ CTV */}
         {activeTab === "helpers" && (
           <>
+            {/* Toolbar cho CTV */}
+            <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                <input 
+                  type="text" 
+                  placeholder="Tìm tên, trường, email, SĐT..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", background: "white" }}
+                />
+                <select
+                  value={helperFilterStatus}
+                  onChange={(e) => setHelperFilterStatus(e.target.value)}
+                  className="form-input"
+                  style={{ width: "180px", background: "white" }}
+                >
+                  <option value="all">Tất cả CTV</option>
+                  <option value="pending">Chờ phê duyệt</option>
+                  <option value="approved">Đã duyệt</option>
+                  <option value="rejected">Từ chối</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Thống kê CTV */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid var(--primary)", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng hồ sơ ứng tuyển</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "var(--text-primary)", marginTop: "4px" }}>{helpers.length}</div>
+                </div>
+                <div style={{ background: "rgba(22, 163, 74, 0.1)", color: "var(--primary)", padding: "8px", borderRadius: "8px" }}>📁</div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid #10B981", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Cộng tác viên chính thức</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "#10B981", marginTop: "4px" }}>
+                    {helpers.filter(h => h.status === "approved").length}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10B981", padding: "8px", borderRadius: "8px" }}>🎓</div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid #D97706", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Hồ sơ chờ duyệt</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "#D97706", marginTop: "4px" }}>
+                    {helpers.filter(h => h.status !== "approved" && h.status !== "rejected").length}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(217, 119, 6, 0.1)", color: "#D97706", padding: "8px", borderRadius: "8px" }}>⏳</div>
+              </div>
+            </div>
+
             <div className="table-container glass-panel" style={{ padding: "0" }}>
               <table style={{ width: "100%" }}>
                 <thead>
@@ -934,9 +1041,9 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {helpers.length === 0 ? (
-                    <tr><td colSpan="7" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không có hồ sơ ứng tuyển nào.</td></tr>
-                  ) : helpers.map((h) => (
+                  {filteredHelpers.length === 0 ? (
+                    <tr><td colSpan="7" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy hồ sơ cộng tác viên nào.</td></tr>
+                  ) : filteredHelpers.map((h) => (
                     <tr key={h.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 1.5rem" }}>
                         <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{h.name}</div>
@@ -1015,6 +1122,60 @@ function AdminDashboard() {
         {/* BẢNG DUYỆT NẠP VÍ */}
         {activeTab === "transactions" && (
           <>
+            {/* Toolbar cho Transactions */}
+            <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                <input 
+                  type="text" 
+                  placeholder="Tìm email hoặc nội dung giao dịch..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, minWidth: "250px", background: "white" }}
+                />
+                <select
+                  value={transFilterStatus}
+                  onChange={(e) => setTransFilterStatus(e.target.value)}
+                  className="form-input"
+                  style={{ width: "180px", background: "white" }}
+                >
+                  <option value="all">Tất cả giao dịch</option>
+                  <option value="pending">Chờ duyệt nạp</option>
+                  <option value="completed">Nạp thành công</option>
+                  <option value="rejected">Đã từ chối</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Thống kê Giao dịch */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.25rem", marginBottom: "2rem" }}>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid var(--primary)", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng giao dịch</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "var(--text-primary)", marginTop: "4px" }}>{transactions.length}</div>
+                </div>
+                <div style={{ background: "rgba(22, 163, 74, 0.1)", color: "var(--primary)", padding: "8px", borderRadius: "8px" }}>📊</div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid #10B981", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Đã nạp thành công</div>
+                  <div style={{ fontSize: "1.3rem", fontWeight: "850", color: "#10B981", marginTop: "4px" }}>
+                    {transactions.filter(t => t.status === "completed" && t.type === "deposit").reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString("vi-VN")} đ
+                  </div>
+                </div>
+                <div style={{ background: "rgba(16, 185, 129, 0.1)", color: "#10B981", padding: "8px", borderRadius: "8px" }}>💰</div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem", borderLeft: "4px solid #D97706", background: "white", borderRadius: "16px" }}>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Giao dịch chờ duyệt</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "#D97706", marginTop: "4px" }}>
+                    {transactions.filter(t => t.status === "pending").length}
+                  </div>
+                </div>
+                <div style={{ background: "rgba(217, 119, 6, 0.1)", color: "#D97706", padding: "8px", borderRadius: "8px" }}>⏳</div>
+              </div>
+            </div>
+
             <div className="table-container glass-panel" style={{ padding: "0" }}>
               <table style={{ width: "100%" }}>
                 <thead>
@@ -1028,9 +1189,9 @@ function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.length === 0 ? (
-                    <tr><td colSpan="6" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không có giao dịch nạp tiền nào.</td></tr>
-                  ) : transactions.map((t) => (
+                  {filteredTransactions.length === 0 ? (
+                    <tr><td colSpan="6" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy giao dịch nạp tiền nào.</td></tr>
+                  ) : filteredTransactions.map((t) => (
                     <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 1.5rem" }}>
                         <div style={{ fontWeight: 700, color: "var(--text-primary)", textAlign: "left" }}>{t.userEmail}</div>
