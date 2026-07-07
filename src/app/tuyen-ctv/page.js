@@ -118,7 +118,7 @@ export default function TuyenCTV() {
         title: "Ứng tuyển CTV mới",
         message: `Ứng viên ${formData.name} đăng ký ứng tuyển CTV (${formData.school}).`,
         read: false,
-        link: "/admin",
+        link: "/admin?tab=helpers",
         createdAt: serverTimestamp()
       });
 

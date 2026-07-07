@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc, deleteDoc, updateDoc, increment, setDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
-export default function Dashboard() {
+function Dashboard() {
   const { user, loading, systemSettings, sendTelegramAlert } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -60,6 +62,12 @@ export default function Dashboard() {
       router.push("/");
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     // Đặt ngày học mặc định là ngày hôm nay trên client
@@ -345,7 +353,7 @@ export default function Dashboard() {
         title: paymentMethod === "wallet" ? "Đơn thanh toán qua Ví" : "Đơn thuê học mới",
         message: `Sinh viên ${formData.name} đăng ký học môn ${formData.className} (${formatPrice} đ).`,
         read: false,
-        link: "/admin",
+        link: "/admin?tab=schedules",
         createdAt: serverTimestamp()
       });
 
@@ -524,7 +532,7 @@ export default function Dashboard() {
         title: "Yêu cầu nạp Ví",
         message: `Tài khoản ${user.email} yêu cầu nạp ${Number(topupAmount).toLocaleString("vi-VN")} đ vào ví.`,
         read: false,
-        link: "/admin",
+        link: "/admin?tab=transactions",
         createdAt: serverTimestamp()
       });
 
@@ -585,6 +593,9 @@ export default function Dashboard() {
   };
 
   const handleConfirmPayment = async (orderId, orderName, orderPrice) => {
+    if (!confirm(`Bạn đã chắc chắn chuyển khoản đúng số tiền ${Number(orderPrice).toLocaleString("vi-VN")} đ và đúng nội dung QR chưa?`)) {
+      return;
+    }
     try {
       const docRef = doc(db, "schedules", orderId);
       await setDoc(docRef, { status: "paid" }, { merge: true });
@@ -606,7 +617,7 @@ export default function Dashboard() {
         title: "Báo chuyển khoản",
         message: `Khách hàng báo đã chuyển khoản ${Number(orderPrice).toLocaleString("vi-VN")} đ cho mã đơn ${orderIdSub}.`,
         read: false,
-        link: "/admin",
+        link: "/admin?tab=schedules",
         createdAt: serverTimestamp()
       });
 
@@ -1828,5 +1839,17 @@ export default function Dashboard() {
       )}
 
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#f8fafc", color: "var(--text-secondary)" }}>
+        Đang tải trang cá nhân...
+      </div>
+    }>
+      <Dashboard />
+    </Suspense>
   );
 }

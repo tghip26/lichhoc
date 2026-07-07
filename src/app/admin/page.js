@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment, addDoc, serverTimestamp } from "firebase/firestore";
@@ -8,8 +9,10 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const { systemSettings } = useAuth();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
 
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +38,12 @@ export default function AdminDashboard() {
     telegramChatId: ""
   });
   const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     if (systemSettings) {
@@ -90,6 +99,16 @@ export default function AdminDashboard() {
   }, []);
 
   const handleUpdateStatus = async (id, newStatus) => {
+    let statusText = "thay đổi trạng thái";
+    if (newStatus === "accepted") statusText = "DUYỆT lịch học (Sắp học)";
+    if (newStatus === "completed") statusText = "đánh dấu HOÀN THÀNH lịch học";
+    if (newStatus === "rejected") statusText = "TỪ CHỐI lịch học";
+    if (newStatus === "in_progress") statusText = "chuyển sang Đang học";
+    if (newStatus === "paid") statusText = "xác nhận Đã thanh toán";
+
+    if (!confirm(`Bạn có chắc chắn muốn ${statusText}?`)) {
+      return;
+    }
     try {
       const schedule = schedules.find(s => s.id === id);
       await updateDoc(doc(db, "schedules", id), { status: newStatus });
@@ -109,7 +128,7 @@ export default function AdminDashboard() {
             title: "Cập nhật lịch học hộ",
             message: `Lịch học môn ${schedule.className} ngày ${new Date(schedule.classDate).toLocaleDateString("vi-VN")} của bạn ${statusText}.`,
             read: false,
-            link: "/dashboard",
+            link: `/dashboard?tab=schedules`,
             createdAt: serverTimestamp()
           });
         }
@@ -165,6 +184,16 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleSetUserAlias = async (uid, alias) => {
+    try {
+      await updateDoc(doc(db, "users", uid), { alias: alias.trim() });
+      toast.success("Đã cập nhật tên gợi nhớ!");
+    } catch (err) {
+      console.error("Lỗi cập nhật biệt danh:", err);
+      toast.error("Không thể cập nhật tên gợi nhớ.");
+    }
+  };
+
   const handleAssignHelper = async (scheduleId, helperName) => {
     try {
       await updateDoc(doc(db, "schedules", scheduleId), { assignedTo: helperName });
@@ -176,8 +205,12 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateHelperStatus = async (id, newStatus) => {
+    const actionText = newStatus === "approved" ? "PHÊ DUYỆT" : "TỪ CHỐI";
+    if (!confirm(`Bạn có chắc chắn muốn ${actionText} cộng tác viên này không?`)) {
+      return;
+    }
     try {
-      await updateDoc(doc(db, "helpers", id), { 
+      await updateDoc(doc(db, "helpers", id), {
         status: newStatus,
         isApproved: newStatus === "approved"
       });
@@ -213,7 +246,7 @@ export default function AdminDashboard() {
           ? `Tài khoản của bạn đã được cộng ${amount.toLocaleString("vi-VN")} đ vào số dư ví.` 
           : `Số dư ví của bạn đã thay đổi ${amount.toLocaleString("vi-VN")} đ.`,
         read: false,
-        link: "/dashboard",
+        link: "/dashboard?tab=wallet",
         createdAt: serverTimestamp()
       });
     } catch (err) {
@@ -223,6 +256,9 @@ export default function AdminDashboard() {
   };
 
   const handleApproveTransaction = async (trans) => {
+    if (!confirm(`Bạn chắc chắn muốn DUYỆT nạp số tiền ${trans.amount.toLocaleString("vi-VN")} đ cho tài khoản ${trans.userEmail}?`)) {
+      return;
+    }
     try {
       await updateDoc(doc(db, "transactions", trans.id), { status: "completed" });
       await updateDoc(doc(db, "users", trans.userId), {
@@ -235,7 +271,7 @@ export default function AdminDashboard() {
         title: "Nạp tiền ví thành công",
         message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ của bạn đã được duyệt thành công.`,
         read: false,
-        link: "/dashboard",
+        link: "/dashboard?tab=wallet",
         createdAt: serverTimestamp()
       });
 
@@ -247,6 +283,9 @@ export default function AdminDashboard() {
   };
 
   const handleRejectTransaction = async (trans) => {
+    if (!confirm(`Bạn chắc chắn muốn TỪ CHỐI yêu cầu nạp số tiền ${trans.amount.toLocaleString("vi-VN")} đ của tài khoản ${trans.userEmail}?`)) {
+      return;
+    }
     try {
       await updateDoc(doc(db, "transactions", trans.id), { status: "rejected" });
 
@@ -256,7 +295,7 @@ export default function AdminDashboard() {
         title: "Yêu cầu nạp ví bị từ chối",
         message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ đã bị từ chối do không khớp sao kê ngân hàng.`,
         read: false,
-        link: "/dashboard",
+        link: "/dashboard?tab=wallet",
         createdAt: serverTimestamp()
       });
 
@@ -648,7 +687,15 @@ export default function AdminDashboard() {
                       <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{item.name}</div>
                       <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                         Mã đơn: <strong style={{color: "var(--primary)", fontFamily: "monospace"}}>{item.id.substring(0, 8).toUpperCase()}</strong><br/>
-                        <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span><br/>
+                        <span style={{color: "var(--primary)", fontWeight: "600"}}>{item.userEmail || "Không xác định"}</span>
+                        {(() => {
+                          const userDoc = users.find(u => u.id === item.userId);
+                          return userDoc?.alias ? (
+                            <div style={{ fontSize: "0.78rem", color: "#8B5CF6", fontWeight: "700", marginTop: "2px", marginBottom: "4px" }}>
+                              🏷️ Tên gợi nhớ: {userDoc.alias}
+                            </div>
+                          ) : null;
+                        })()}<br/>
                         {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
                         {item.phone && <><br/>SĐT: <strong>{item.phone}</strong></>}
                         {item.dob && <><br/>NS: {new Date(item.dob).toLocaleDateString("vi-VN")}</>}
@@ -780,7 +827,27 @@ export default function AdminDashboard() {
                       <td style={{ padding: "1rem 1.5rem" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName || 'U'}&background=random`} alt="Avatar" style={{ width: "40px", height: "40px", borderRadius: "50%" }} />
-                          <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{u.displayName || "Khách"}</div>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
+                              {u.displayName || "Khách"}
+                            </div>
+                            {u.alias && (
+                              <div style={{ fontSize: "0.78rem", color: "#8B5CF6", fontWeight: "600", marginTop: "2px" }}>
+                                🏷️ {u.alias}
+                              </div>
+                            )}
+                            <button 
+                              onClick={() => {
+                                const newAlias = prompt(`Nhập tên gợi nhớ (biệt danh) cho tài khoản ${u.displayName || u.email}:`, u.alias || "");
+                                if (newAlias !== null) {
+                                  handleSetUserAlias(u.id, newAlias);
+                                }
+                              }}
+                              style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "0.72rem", cursor: "pointer", textDecoration: "underline", padding: 0, width: "fit-content", textAlign: "left", marginTop: "4px" }}
+                            >
+                              {u.alias ? "Sửa tên gợi nhớ" : "Đặt tên gợi nhớ"}
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td>
@@ -1147,5 +1214,17 @@ export default function AdminDashboard() {
         </div>
       )}
     </AdminGuard>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#f8fafc", color: "var(--text-secondary)" }}>
+        Đang tải trang quản trị...
+      </div>
+    }>
+      <AdminDashboard />
+    </Suspense>
   );
 }
