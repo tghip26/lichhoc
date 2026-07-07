@@ -343,6 +343,104 @@ function AdminDashboard() {
     document.body.removeChild(link);
   };
 
+  const handleExportUsersCSV = () => {
+    if (users.length === 0) {
+      toast.error("Không có dữ liệu người dùng để xuất");
+      return;
+    }
+    const headers = ["Email", "Tên hiển thị", "Tên gợi nhớ (Biệt danh)", "Số điện thoại", "Số dư Ví (VNĐ)", "Quyền hạn", "Hoạt động cuối"];
+    const csvContent = [
+      headers.join(","),
+      ...users.map(u => {
+        const lastLoginStr = u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString("vi-VN") : "Chưa rõ";
+        return [
+          `"${u.email || ""}"`,
+          `"${u.displayName || ""}"`,
+          `"${u.alias || ""}"`,
+          `"${u.phone || ""}"`,
+          `"${u.balance || 0}"`,
+          `"${u.role === "admin" ? "Quản trị viên" : "Khách hàng"}"`,
+          `"${lastLoginStr}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `danh_sach_thanh_vien_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportHelpersCSV = () => {
+    if (helpers.length === 0) {
+      toast.error("Không có dữ liệu CTV để xuất");
+      return;
+    }
+    const headers = ["Họ và Tên", "MSSV", "Trường", "Lớp", "Email", "Số điện thoại", "Giờ rảnh", "Trạng thái hồ sơ"];
+    const csvContent = [
+      headers.join(","),
+      ...helpers.map(h => {
+        const statusStr = h.status === "approved" ? "Đã duyệt" : (h.status === "rejected" ? "Từ chối" : "Chờ duyệt");
+        return [
+          `"${h.name || ""}"`,
+          `"${h.studentId || ""}"`,
+          `"${h.school || ""}"`,
+          `"${h.className || ""}"`,
+          `"${h.email || ""}"`,
+          `"${h.phone || ""}"`,
+          `"${h.availability || ""}"`,
+          `"${statusStr}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `danh_sach_ctv_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportTransactionsCSV = () => {
+    if (transactions.length === 0) {
+      toast.error("Không có dữ liệu giao dịch để xuất");
+      return;
+    }
+    const headers = ["Khách hàng", "Số tiền (VNĐ)", "Loại giao dịch", "Nội dung", "Thời gian", "Trạng thái"];
+    const csvContent = [
+      headers.join(","),
+      ...transactions.map(t => {
+        const typeStr = t.type === "payment" ? "Thanh toán đơn" : "Nạp tiền";
+        const statusStr = t.status === "pending" ? "Chờ duyệt" : (t.status === "completed" ? "Thành công" : "Đã từ chối");
+        const dateStr = t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : "";
+        return [
+          `"${t.userEmail || ""}"`,
+          `"${t.amount || 0}"`,
+          `"${typeStr}"`,
+          `"${t.message || ""}"`,
+          `"${dateStr}"`,
+          `"${statusStr}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `lich_su_giao_dich_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const filteredSchedules = schedules.filter(s => {
     const matchesSearch = 
       (s.name && s.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -567,15 +665,21 @@ function AdminDashboard() {
               <div style={{ display: "flex", background: "white", padding: "0.2rem", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
                 <button 
                   onClick={() => setViewMode("grid")}
-                  style={{ background: viewMode === "grid" ? "var(--primary-light)" : "transparent", color: viewMode === "grid" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                  style={{ background: viewMode === "grid" ? "var(--primary-light)" : "transparent", color: viewMode === "grid" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1.25rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
                 >
                   Lưới
                 </button>
                 <button 
                   onClick={() => setViewMode("list")}
-                  style={{ background: viewMode === "list" ? "var(--primary-light)" : "transparent", color: viewMode === "list" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                  style={{ background: viewMode === "list" ? "var(--primary-light)" : "transparent", color: viewMode === "list" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1.25rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
                 >
                   Danh sách
+                </button>
+                <button 
+                  onClick={() => setViewMode("calendar")}
+                  style={{ background: viewMode === "calendar" ? "var(--primary-light)" : "transparent", color: viewMode === "calendar" ? "var(--primary)" : "var(--text-secondary)", border: "none", padding: "0.5rem 1.25rem", borderRadius: "6px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+                >
+                  Lịch tháng
                 </button>
               </div>
 
@@ -698,7 +802,7 @@ function AdminDashboard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : viewMode === "list" ? (
           /* LIST VIEW */
           <div className="table-container glass-panel" style={{ padding: "0" }}>
             <table style={{ width: "100%" }}>
@@ -816,6 +920,16 @@ function AdminDashboard() {
               </tbody>
             </table>
           </div>
+        ) : (
+          /* CALENDAR VIEW */
+          <AdminCalendarView 
+            schedules={sortedSchedules} 
+            users={users} 
+            handleUpdateStatus={handleUpdateStatus} 
+            handleAssignHelper={handleAssignHelper} 
+            helpers={helpers} 
+            setLightboxImage={setLightboxImage} 
+          />
         )}
         </>
         )}
@@ -825,7 +939,7 @@ function AdminDashboard() {
           <>
             {/* Toolbar cho Users */}
             <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-              <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "300px" }}>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                 <input 
                   type="text" 
                   placeholder="Tìm email, tên, biệt danh hoặc SĐT..." 
@@ -834,6 +948,9 @@ function AdminDashboard() {
                   className="form-input"
                   style={{ flex: 1, maxWidth: "400px", background: "white" }}
                 />
+                <button onClick={handleExportUsersCSV} className="btn" style={{ background: "white", color: "var(--success)", border: "1px solid var(--success)", padding: "0.6rem 1.2rem", boxShadow: "none" }}>
+                  📥 Xuất Excel
+                </button>
               </div>
             </div>
 
@@ -975,26 +1092,31 @@ function AdminDashboard() {
           <>
             {/* Toolbar cho CTV */}
             <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                <input 
-                  type="text" 
-                  placeholder="Tìm tên, trường, email, SĐT..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, minWidth: "250px", background: "white" }}
-                />
-                <select
-                  value={helperFilterStatus}
-                  onChange={(e) => setHelperFilterStatus(e.target.value)}
-                  className="form-input"
-                  style={{ width: "180px", background: "white" }}
-                >
-                  <option value="all">Tất cả CTV</option>
-                  <option value="pending">Chờ phê duyệt</option>
-                  <option value="approved">Đã duyệt</option>
-                  <option value="rejected">Từ chối</option>
-                </select>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "250px" }}>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm tên, trường, email, SĐT..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="form-input"
+                    style={{ flex: 1, minWidth: "200px", background: "white" }}
+                  />
+                  <select
+                    value={helperFilterStatus}
+                    onChange={(e) => setHelperFilterStatus(e.target.value)}
+                    className="form-input"
+                    style={{ width: "180px", background: "white" }}
+                  >
+                    <option value="all">Tất cả CTV</option>
+                    <option value="pending">Chờ phê duyệt</option>
+                    <option value="approved">Đã duyệt</option>
+                    <option value="rejected">Từ chối</option>
+                  </select>
+                </div>
+                <button onClick={handleExportHelpersCSV} className="btn" style={{ background: "white", color: "var(--success)", border: "1px solid var(--success)", padding: "0.6rem 1.2rem", boxShadow: "none" }}>
+                  📥 Xuất Excel
+                </button>
               </div>
             </div>
 
@@ -1124,26 +1246,31 @@ function AdminDashboard() {
           <>
             {/* Toolbar cho Transactions */}
             <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
-                <input 
-                  type="text" 
-                  placeholder="Tìm email hoặc nội dung giao dịch..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, minWidth: "250px", background: "white" }}
-                />
-                <select
-                  value={transFilterStatus}
-                  onChange={(e) => setTransFilterStatus(e.target.value)}
-                  className="form-input"
-                  style={{ width: "180px", background: "white" }}
-                >
-                  <option value="all">Tất cả giao dịch</option>
-                  <option value="pending">Chờ duyệt nạp</option>
-                  <option value="completed">Nạp thành công</option>
-                  <option value="rejected">Đã từ chối</option>
-                </select>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "1rem", flex: 1, minWidth: "250px" }}>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm email hoặc nội dung giao dịch..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="form-input"
+                    style={{ flex: 1, minWidth: "200px", background: "white" }}
+                  />
+                  <select
+                    value={transFilterStatus}
+                    onChange={(e) => setTransFilterStatus(e.target.value)}
+                    className="form-input"
+                    style={{ width: "180px", background: "white" }}
+                  >
+                    <option value="all">Tất cả giao dịch</option>
+                    <option value="pending">Chờ duyệt nạp</option>
+                    <option value="completed">Nạp thành công</option>
+                    <option value="rejected">Đã từ chối</option>
+                  </select>
+                </div>
+                <button onClick={handleExportTransactionsCSV} className="btn" style={{ background: "white", color: "var(--success)", border: "1px solid var(--success)", padding: "0.6rem 1.2rem", boxShadow: "none" }}>
+                  📥 Xuất Excel
+                </button>
               </div>
             </div>
 
@@ -1375,6 +1502,242 @@ function AdminDashboard() {
         </div>
       )}
     </AdminGuard>
+  );
+}
+
+// 📅 Component Lịch Tháng tương tác dành cho Admin
+function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignHelper, helpers, setLightboxImage }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const startDayOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const dayCells = [];
+  for (let i = 0; i < startDayOffset; i++) {
+    dayCells.push(null);
+  }
+  for (let d = 1; d <= totalDays; d++) {
+    dayCells.push(new Date(year, month, d));
+  }
+
+  const getLocalDateString = (date) => {
+    if (!date) return "";
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const getStatusColor = (status) => {
+    const map = {
+      completed: { bg: "rgba(139, 92, 246, 0.12)", text: "#8B5CF6", label: "Hoàn thành" },
+      in_progress: { bg: "rgba(59, 130, 246, 0.12)", text: "#3B82F6", label: "Đang học" },
+      accepted: { bg: "rgba(16, 185, 129, 0.12)", text: "var(--success)", label: "Sắp học" },
+      rejected: { bg: "rgba(239, 68, 68, 0.12)", text: "var(--danger)", label: "Từ chối" },
+      paid: { bg: "rgba(236, 72, 153, 0.12)", text: "#EC4899", label: "Đã thanh toán" },
+      pending: { bg: "rgba(245, 158, 11, 0.12)", text: "#D97706", label: "Chờ nhận" }
+    };
+    return map[status] || map.pending;
+  };
+
+  return (
+    <div className="glass-panel" style={{ padding: "1.5rem", borderRadius: "16px", background: "white", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "10px" }}>
+        <h3 style={{ fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)", margin: 0, textAlign: "left" }}>
+          📅 Lịch Trực Học Hộ Tháng {month + 1} / {year}
+        </h3>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button onClick={prevMonth} className="btn" style={{ padding: "0.4rem 0.8rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.85rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
+            ◀ Tháng trước
+          </button>
+          <button onClick={nextMonth} className="btn" style={{ padding: "0.4rem 0.8rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.85rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
+            Tháng sau ▶
+          </button>
+        </div>
+      </div>
+
+      {/* Tên các ngày thứ */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px", textAlign: "center", fontWeight: "700", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "8px", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
+        <div>Thứ 2</div>
+        <div>Thứ 3</div>
+        <div>Thứ 4</div>
+        <div>Thứ 5</div>
+        <div>Thứ 6</div>
+        <div>Thứ 7</div>
+        <div style={{ color: "var(--danger)" }}>Chủ Nhật</div>
+      </div>
+
+      {/* Lưới các ô ngày */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px", minHeight: "450px" }}>
+        {dayCells.map((cellDate, idx) => {
+          if (!cellDate) {
+            return <div key={`empty-${idx}`} style={{ background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }} />;
+          }
+
+          const cellDateStr = getLocalDateString(cellDate);
+          const daySchedules = schedules.filter(s => s.classDate === cellDateStr);
+          const isToday = getLocalDateString(new Date()) === cellDateStr;
+
+          return (
+            <div 
+              key={cellDateStr} 
+              style={{
+                background: isToday ? "rgba(22, 163, 74, 0.04)" : "white",
+                borderRadius: "10px",
+                border: isToday ? "2px solid var(--primary)" : "1px solid #e2e8f0",
+                padding: "8px",
+                minHeight: "105px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                boxShadow: isToday ? "0 4px 12px rgba(22, 163, 74, 0.08)" : "none"
+              }}
+            >
+              <div style={{ fontWeight: "800", fontSize: "0.9rem", color: isToday ? "var(--primary)" : "var(--text-secondary)", marginBottom: "6px", alignSelf: "flex-end" }}>
+                {cellDate.getDate()}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, overflowY: "auto", maxHeight: "110px" }} className="hide-scrollbar">
+                {daySchedules.map(item => {
+                  const styleColors = getStatusColor(item.status);
+                  const userDoc = users.find(u => u.id === item.userId);
+                  const nameDisplay = userDoc?.alias || item.name || "Khách";
+                  
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      style={{
+                        background: styleColors.bg,
+                        color: styleColors.text,
+                        fontSize: "0.7rem",
+                        fontWeight: "750",
+                        padding: "4px 6px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        textAlign: "left",
+                        border: `1px solid ${styleColors.text}22`
+                      }}
+                      title={`${item.startTime} - ${item.className} (${nameDisplay})`}
+                    >
+                      {item.startTime?.substring(0, 5) || ""} {item.className}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Hộp thoại chi tiết lịch học khi click */}
+      {selectedItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 1100, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div className="glass-panel" style={{ width: "92%", maxWidth: "480px", background: "white", padding: "1.5rem", borderRadius: "20px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)", position: "relative", textAlign: "left" }}>
+            <button 
+              onClick={() => setSelectedItem(null)} 
+              style={{ position: "absolute", top: "15px", right: "15px", background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text-secondary)" }}
+            >
+              ×
+            </button>
+            <h3 style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "1rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "10px" }}>
+              📝 Chi tiết Lịch Học
+            </h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "400px", overflowY: "auto" }} className="hide-scrollbar">
+              <div>
+                <strong>Học viên:</strong> {selectedItem.name}
+                {(() => {
+                  const userDoc = users.find(u => u.id === selectedItem.userId);
+                  return userDoc?.alias ? <span style={{ color: "#8B5CF6", fontWeight: "700", marginLeft: "6px" }}>(🏷️ {userDoc.alias})</span> : null;
+                })()}
+              </div>
+              <div><strong>Môn học:</strong> {selectedItem.className}</div>
+              <div><strong>Mã đơn VietQR:</strong> <span style={{ fontFamily: "monospace", color: "var(--primary)", fontWeight: "700" }}>{selectedItem.id.substring(0, 8).toUpperCase()}</span></div>
+              <div><strong>Trường:</strong> {selectedItem.school} • Lớp: {selectedItem.className}</div>
+              <div><strong>Thời gian:</strong> {selectedItem.weekday} ({new Date(selectedItem.classDate).toLocaleDateString("vi-VN")})</div>
+              <div><strong>Giờ học:</strong> {selectedItem.startTime} - {selectedItem.endTime}</div>
+              <div><strong>Học phí:</strong> <span style={{ color: "var(--primary)", fontWeight: "700" }}>{Number(selectedItem.price || 0).toLocaleString("vi-VN")} đ</span></div>
+              
+              {selectedItem.phone && (
+                <div>
+                  <strong>Liên hệ:</strong> <a href={`https://zalo.me/${selectedItem.phone}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline", fontWeight: "700" }}>{selectedItem.phone} 💬</a>
+                </div>
+              )}
+              {selectedItem.notes && <div><strong>Ghi chú:</strong> <i style={{ color: "var(--primary)" }}>{selectedItem.notes}</i></div>}
+
+              {selectedItem.imageUrl && (
+                <div style={{ marginTop: "8px" }}>
+                  <strong>Ảnh lịch học:</strong>
+                  <img 
+                    src={selectedItem.imageUrl} 
+                    alt="Lịch học" 
+                    style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "8px", marginTop: "4px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                    onClick={() => {
+                      setLightboxImage(selectedItem.imageUrl);
+                    }}
+                  />
+                </div>
+              )}
+
+              <div style={{ marginTop: "12px", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                <label style={{ fontWeight: "700", display: "block", marginBottom: "6px", fontSize: "0.85rem" }}>Cập nhật trạng thái:</label>
+                <select
+                  value={selectedItem.status || "pending"}
+                  onChange={(e) => {
+                    handleUpdateStatus(selectedItem.id, e.target.value);
+                    setSelectedItem(prev => ({ ...prev, status: e.target.value }));
+                  }}
+                  className="form-input"
+                  style={{ background: "white", cursor: "pointer", fontWeight: "700" }}
+                >
+                  <option value="pending">Chờ nhận</option>
+                  <option value="paid">Đã thanh toán</option>
+                  <option value="accepted">Sắp học</option>
+                  <option value="in_progress">Đang học</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="rejected">Từ chối</option>
+                </select>
+              </div>
+
+              <div style={{ marginTop: "8px" }}>
+                <label style={{ fontWeight: "700", display: "block", marginBottom: "6px", fontSize: "0.85rem" }}>Giao việc CTV:</label>
+                <select
+                  value={selectedItem.assignedTo || ""}
+                  onChange={(e) => {
+                    handleAssignHelper(selectedItem.id, e.target.value);
+                    setSelectedItem(prev => ({ ...prev, assignedTo: e.target.value }));
+                  }}
+                  className="form-input"
+                  style={{ background: "white", cursor: "pointer" }}
+                >
+                  <option value="">-- Chưa giao --</option>
+                  {helpers.filter(h => h.isApproved).map(h => (
+                    <option key={h.id} value={h.name}>{h.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
