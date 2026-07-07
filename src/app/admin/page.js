@@ -1505,10 +1505,12 @@ function AdminDashboard() {
   );
 }
 
-// 📅 Component Lịch Tháng tương tác dành cho Admin
+// 📅 Component Lịch Tháng tương tác dành cho Admin (Tối ưu hóa di động)
 function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignHelper, helpers, setLightboxImage }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -1516,6 +1518,13 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
   const firstDayIndex = new Date(year, month, 1).getDay();
   const startDayOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
   const totalDays = new Date(year, month + 1, 0).getDate();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const prevMonth = () => {
     setCurrentDate(new Date(year, month - 1, 1));
@@ -1554,34 +1563,34 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
   };
 
   return (
-    <div className="glass-panel" style={{ padding: "1.5rem", borderRadius: "16px", background: "white", marginBottom: "2rem" }}>
+    <div className="glass-panel" style={{ padding: isMobile ? "0.8rem" : "1.5rem", borderRadius: "16px", background: "white", marginBottom: "2rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "10px" }}>
-        <h3 style={{ fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)", margin: 0, textAlign: "left" }}>
+        <h3 style={{ fontSize: isMobile ? "1.1rem" : "1.25rem", fontWeight: "800", color: "var(--text-primary)", margin: 0, textAlign: "left" }}>
           📅 Lịch Trực Học Hộ Tháng {month + 1} / {year}
         </h3>
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button onClick={prevMonth} className="btn" style={{ padding: "0.4rem 0.8rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.85rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
+          <button onClick={prevMonth} className="btn" style={{ padding: "0.4rem 0.6rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.78rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
             ◀ Tháng trước
           </button>
-          <button onClick={nextMonth} className="btn" style={{ padding: "0.4rem 0.8rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.85rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
+          <button onClick={nextMonth} className="btn" style={{ padding: "0.4rem 0.6rem", background: "#f1f5f9", color: "var(--text-primary)", fontSize: "0.78rem", boxShadow: "none", border: "1px solid #cbd5e1" }}>
             Tháng sau ▶
           </button>
         </div>
       </div>
 
       {/* Tên các ngày thứ */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px", textAlign: "center", fontWeight: "700", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "8px", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
-        <div>Thứ 2</div>
-        <div>Thứ 3</div>
-        <div>Thứ 4</div>
-        <div>Thứ 5</div>
-        <div>Thứ 6</div>
-        <div>Thứ 7</div>
-        <div style={{ color: "var(--danger)" }}>Chủ Nhật</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px", textAlign: "center", fontWeight: "700", fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "8px", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
+        <div>T2</div>
+        <div>T3</div>
+        <div>T4</div>
+        <div>T5</div>
+        <div>T6</div>
+        <div>T7</div>
+        <div style={{ color: "var(--danger)" }}>CN</div>
       </div>
 
       {/* Lưới các ô ngày */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px", minHeight: "450px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: isMobile ? "3px" : "6px", minHeight: isMobile ? "280px" : "450px" }}>
         {dayCells.map((cellDate, idx) => {
           if (!cellDate) {
             return <div key={`empty-${idx}`} style={{ background: "#f8fafc", borderRadius: "8px", border: "1px solid #f1f5f9" }} />;
@@ -1590,61 +1599,144 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
           const cellDateStr = getLocalDateString(cellDate);
           const daySchedules = schedules.filter(s => s.classDate === cellDateStr);
           const isToday = getLocalDateString(new Date()) === cellDateStr;
+          const isSelected = getLocalDateString(selectedDate) === cellDateStr;
 
           return (
             <div 
               key={cellDateStr} 
+              onClick={() => setSelectedDate(cellDate)}
               style={{
-                background: isToday ? "rgba(22, 163, 74, 0.04)" : "white",
+                background: isSelected ? "rgba(22, 163, 74, 0.08)" : (isToday ? "rgba(59, 130, 246, 0.04)" : "white"),
                 borderRadius: "10px",
-                border: isToday ? "2px solid var(--primary)" : "1px solid #e2e8f0",
-                padding: "8px",
-                minHeight: "105px",
+                border: isSelected ? "2px solid var(--primary)" : (isToday ? "2px solid #93C5FD" : "1px solid #e2e8f0"),
+                padding: isMobile ? "4px" : "8px",
+                minHeight: isMobile ? "55px" : "105px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "stretch",
-                boxShadow: isToday ? "0 4px 12px rgba(22, 163, 74, 0.08)" : "none"
+                cursor: "pointer",
+                boxShadow: isSelected ? "0 4px 12px rgba(22, 163, 74, 0.12)" : "none"
               }}
             >
-              <div style={{ fontWeight: "800", fontSize: "0.9rem", color: isToday ? "var(--primary)" : "var(--text-secondary)", marginBottom: "6px", alignSelf: "flex-end" }}>
+              <div style={{ fontWeight: "800", fontSize: "0.85rem", color: isSelected ? "var(--primary)" : (isToday ? "#2563EB" : "var(--text-secondary)"), marginBottom: "4px", alignSelf: "flex-end" }}>
                 {cellDate.getDate()}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, overflowY: "auto", maxHeight: "110px" }} className="hide-scrollbar">
-                {daySchedules.map(item => {
-                  const styleColors = getStatusColor(item.status);
-                  const userDoc = users.find(u => u.id === item.userId);
-                  const nameDisplay = userDoc?.alias || item.name || "Khách";
-                  
-                  return (
-                    <div 
-                      key={item.id}
-                      onClick={() => setSelectedItem(item)}
-                      style={{
-                        background: styleColors.bg,
-                        color: styleColors.text,
-                        fontSize: "0.7rem",
-                        fontWeight: "750",
-                        padding: "4px 6px",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        textAlign: "left",
-                        border: `1px solid ${styleColors.text}22`
-                      }}
-                      title={`${item.startTime} - ${item.className} (${nameDisplay})`}
-                    >
-                      {item.startTime?.substring(0, 5) || ""} {item.className}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }} className="hide-scrollbar">
+                {!isMobile ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", overflowY: "auto", maxHeight: "75px" }} className="hide-scrollbar">
+                    {daySchedules.map(item => {
+                      const styleColors = getStatusColor(item.status);
+                      const userDoc = users.find(u => u.id === item.userId);
+                      const nameDisplay = userDoc?.alias || item.name || "Khách";
+                      
+                      return (
+                        <div 
+                          key={item.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedItem(item);
+                          }}
+                          style={{
+                            background: styleColors.bg,
+                            color: styleColors.text,
+                            fontSize: "0.7rem",
+                            fontWeight: "750",
+                            padding: "4px 6px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            textAlign: "left",
+                            border: `1px solid ${styleColors.text}22`
+                          }}
+                          title={`${item.startTime} - ${item.className} (${nameDisplay})`}
+                        >
+                          {item.startTime?.substring(0, 5) || ""} {item.className}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  daySchedules.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "center", gap: "3px", flexWrap: "wrap", marginTop: "auto" }}>
+                      {daySchedules.slice(0, 3).map(item => {
+                        const colors = getStatusColor(item.status);
+                        return (
+                          <span 
+                            key={item.id} 
+                            style={{ width: "6px", height: "6px", borderRadius: "50%", background: colors.text, display: "inline-block" }} 
+                          />
+                        );
+                      })}
+                      {daySchedules.length > 3 && (
+                        <span style={{ fontSize: "0.6rem", fontWeight: "900", color: "var(--text-secondary)", lineHeight: 1 }}>+</span>
+                      )}
                     </div>
-                  );
-                })}
+                  )
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Danh sách lịch học hiển thị bên dưới grid trên mobile */}
+      {isMobile && (
+        <div style={{ marginTop: "1.5rem", borderTop: "1px solid #e2e8f0", paddingTop: "1rem", textAlign: "left" }}>
+          <h4 style={{ fontSize: "0.9rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "0.75rem" }}>
+            📅 Lịch ngày {selectedDate.toLocaleDateString("vi-VN")}:
+          </h4>
+          {schedules.filter(s => s.classDate === getLocalDateString(selectedDate)).length === 0 ? (
+            <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", fontStyle: "italic", textAlign: "center", padding: "1rem" }}>Không có lịch học nào trong ngày này.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {schedules.filter(s => s.classDate === getLocalDateString(selectedDate)).map(item => {
+                const styleColors = getStatusColor(item.status);
+                const userDoc = users.find(u => u.id === item.userId);
+                const nameDisplay = userDoc?.alias || item.name || "Khách";
+
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => setSelectedItem(item)}
+                    style={{
+                      background: "white",
+                      border: `1px solid #e2e8f0`,
+                      borderLeft: `4px solid ${styleColors.text}`,
+                      padding: "10px 12px",
+                      borderRadius: "10px",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                  >
+                    <div style={{ flex: 1, marginRight: "10px" }}>
+                      <div style={{ fontSize: "0.82rem", fontWeight: "700", color: "var(--text-primary)" }}>{item.className}</div>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                        🕒 {item.startTime} - {item.endTime} • {nameDisplay}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: "0.68rem",
+                      fontWeight: "700",
+                      background: styleColors.bg,
+                      color: styleColors.text,
+                      padding: "3px 6px",
+                      borderRadius: "6px",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {styleColors.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Hộp thoại chi tiết lịch học khi click */}
       {selectedItem && (
