@@ -85,15 +85,10 @@ function AdminDashboard() {
       setHelpers(hData);
     });
 
-    // Lấy dữ liệu giao dịch nạp ví
-    const qTrans = query(collection(db, "transactions"));
+    // Lấy dữ liệu giao dịch nạp ví (Sắp xếp thời gian mới nhất trực tiếp trên máy chủ)
+    const qTrans = query(collection(db, "transactions"), orderBy("createdAt", "desc"));
     const unsubscribeTrans = onSnapshot(qTrans, (snapshot) => {
       const tData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      tData.sort((a, b) => {
-        const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
-        const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
-        return timeB - timeA;
-      });
       setTransactions(tData);
     }, (err) => console.error("Lỗi lấy transactions:", err));
 
