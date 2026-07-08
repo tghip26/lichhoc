@@ -11,15 +11,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [systemSettings, setSystemSettings] = useState({
-    bankName: "MBBank",
-    bankAccount: "",
-    bankOwner: "",
-    announcement: "",
-    hotline: "0999.888.777",
-    zaloContact: "",
-    telegramBotToken: "",
-    telegramChatId: ""
+  const [systemSettings, setSystemSettings] = useState(() => {
+    // Thử đọc từ bộ nhớ đệm để cấu hình load lập tức
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem("systemSettings");
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          console.error("Lỗi parse cấu hình cache:", e);
+        }
+      }
+    }
+    // Giá trị cấu hình mặc định dự phòng chuẩn xác của bạn
+    return {
+      bankName: "MBBank",
+      bankAccount: "2637979279",
+      bankOwner: "TRUONG HOANG HIEP",
+      announcement: "Đặt lịch học hộ -> Chờ thông báo xác nhận lịch qua Zalo theo SĐT đã đăng kí",
+      hotline: "0852866856",
+      zaloContact: "https://zalo.me/0852866856",
+      telegramBotToken: "8987058324:AAGROX1cy0wWbausiuTKLYQ70AUoyiLEt4Q",
+      telegramChatId: "5484109031"
+    };
   });
 
   const sendTelegramAlert = async (text) => {
@@ -42,13 +56,17 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, "settings", "system"), (docSnap) => {
       if (docSnap.exists()) {
-        setSystemSettings(docSnap.data());
+        const data = docSnap.data();
+        setSystemSettings(data);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("systemSettings", JSON.stringify(data));
+        }
       }
     }, (err) => {
-      console.error("Lỗi lấy cấu hình hệ thống:", err);
+      console.warn("Lỗi lấy cấu hình hệ thống (bình thường nếu khách chưa đăng nhập và chưa up rules):", err.message);
     });
     return () => unsubSettings();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {

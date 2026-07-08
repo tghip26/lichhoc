@@ -28,6 +28,12 @@ export async function POST(request) {
       }
     }
 
+    // Giá trị mặc định dự phòng tối cao nếu cả môi trường lẫn Firestore đều không lấy được (do lỗi phân quyền)
+    if (!token || !chatId) {
+      token = token || "8987058324:AAGROX1cy0wWbausiuTKLYQ70AUoyiLEt4Q";
+      chatId = chatId || "5484109031";
+    }
+
     if (!token || !chatId) {
       console.error("Lỗi: Token hoặc Chat ID chưa được cấu hình trên môi trường máy chủ.");
       return NextResponse.json({ error: 'Telegram credentials are not configured on the server' }, { status: 500 });
