@@ -244,6 +244,22 @@ function Dashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Chống spam gửi đơn thuê học liên tục (cooldown 30 giây)
+    if (typeof window !== "undefined") {
+      const lastOrderTime = localStorage.getItem("lastOrderTime");
+      const now = Date.now();
+      if (lastOrderTime) {
+        const timeDiff = now - Number(lastOrderTime);
+        const cooldownMs = 30000; // 30s
+        if (timeDiff < cooldownMs) {
+          const secondsLeft = Math.ceil((cooldownMs - timeDiff) / 1000);
+          toast.error(`Bạn thao tác quá nhanh! Vui lòng đợi thêm ${secondsLeft} giây để đăng ký đơn thuê học tiếp theo.`);
+          return;
+        }
+      }
+    }
+
     const timeRegex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
     if (formData.startTime && !timeRegex.test(formData.startTime)) {
       toast.error("Vui lòng nhập đúng định dạng giờ bắt đầu 24h (Ví dụ: 08:30 hoặc 14:00)");
@@ -359,6 +375,11 @@ function Dashboard() {
       });
 
       setProgress(100);
+
+      // Ghi nhớ thời gian gửi đơn học thành công để chống spam
+      if (typeof window !== "undefined") {
+        localStorage.setItem("lastOrderTime", Date.now().toString());
+      }
 
       if (paymentMethod === "wallet") {
         toast.success("Thành công! Đã thanh toán đơn hàng bằng ví tài khoản.", { id: "upload" });
