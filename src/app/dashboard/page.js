@@ -56,6 +56,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "wallet"
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [submittingTopup, setSubmittingTopup] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -516,6 +517,24 @@ function Dashboard() {
       toast.error("Vui lòng nhập số tiền nạp hợp lệ!");
       return;
     }
+    if (submittingTopup) return;
+
+    // Chống spam gửi yêu cầu nạp tiền liên tục (cooldown 30 giây)
+    if (typeof window !== "undefined") {
+      const lastTopupTime = localStorage.getItem("lastTopupTime");
+      const now = Date.now();
+      if (lastTopupTime) {
+        const timeDiff = now - Number(lastTopupTime);
+        const cooldownMs = 30000; // 30s
+        if (timeDiff < cooldownMs) {
+          const secondsLeft = Math.ceil((cooldownMs - timeDiff) / 1000);
+          toast.error(`Bạn thao tác quá nhanh! Vui lòng đợi thêm ${secondsLeft} giây để gửi yêu cầu nạp ví tiếp theo.`);
+          return;
+        }
+      }
+    }
+
+    setSubmittingTopup(true);
     toast.loading("Đang gửi yêu cầu nạp tiền...", { id: "topup" });
     try {
       const topupText = `💳 <b>YÊU CẦU NẠP TIỀN VÍ MỚI!</b>\n\n` +
@@ -547,10 +566,17 @@ function Dashboard() {
         createdAt: serverTimestamp()
       });
 
+      // Ghi nhớ thời gian gửi thành công
+      if (typeof window !== "undefined") {
+        localStorage.setItem("lastTopupTime", Date.now().toString());
+      }
+
       toast.success("Đã gửi yêu cầu nạp ví thành công! Vui lòng chuyển khoản.", { id: "topup" });
       setShowWalletModal(false);
     } catch (err) {
       toast.error("Gửi yêu cầu thất bại!", { id: "topup" });
+    } finally {
+      setSubmittingTopup(false);
     }
   };
 
@@ -1297,8 +1323,9 @@ function Dashboard() {
               onClick={handleTopupRequest}
               className="btn btn-primary"
               style={{ width: "100%", padding: "0.8rem", borderRadius: "12px" }}
+              disabled={submittingTopup}
             >
-              Tôi đã chuyển tiền nạp ví
+              {submittingTopup ? "Đang xử lý..." : "Tôi đã chuyển tiền nạp ví"}
             </button>
           </div>
 
@@ -1766,8 +1793,9 @@ function Dashboard() {
               onClick={handleTopupRequest}
               className="btn btn-primary"
               style={{ width: "100%", padding: "0.8rem", borderRadius: "12px" }}
+              disabled={submittingTopup}
             >
-              Tôi đã chuyển tiền nạp ví
+              {submittingTopup ? "Đang xử lý..." : "Tôi đã chuyển tiền nạp ví"}
             </button>
           </div>
         </div>
