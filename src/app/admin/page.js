@@ -191,6 +191,16 @@ function AdminDashboard() {
     }
   };
 
+  const handleSetHelperAlias = async (id, alias) => {
+    try {
+      await updateDoc(doc(db, "helpers", id), { alias: alias.trim() });
+      toast.success("Đã cập nhật tên gợi nhớ cho CTV!");
+    } catch (err) {
+      console.error("Lỗi cập nhật biệt danh CTV:", err);
+      toast.error("Không thể cập nhật tên gợi nhớ cho CTV.");
+    }
+  };
+
   const handleAssignHelper = async (scheduleId, helperName) => {
     try {
       await updateDoc(doc(db, "schedules", scheduleId), { assignedTo: helperName });
@@ -497,6 +507,7 @@ function AdminDashboard() {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
       (h.name && h.name.toLowerCase().includes(query)) ||
+      (h.alias && h.alias.toLowerCase().includes(query)) ||
       (h.email && h.email.toLowerCase().includes(query)) ||
       (h.phone && h.phone.includes(query)) ||
       (h.school && h.school.toLowerCase().includes(query)) ||
@@ -550,7 +561,7 @@ function AdminDashboard() {
             onClick={() => setActiveTab("transactions")}
             style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "transactions" ? "var(--primary)" : "transparent", color: activeTab === "transactions" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "transactions" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m4 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2z"></path></svg>
+            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m4 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 012 2z"></path></svg>
             Duyệt Nạp Ví
           </button>
           <button 
@@ -760,8 +771,8 @@ function AdminDashboard() {
                       style={{ padding: "4px 8px", fontSize: "0.8rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                     >
                       <option value="">-- Chưa giao việc --</option>
-                      {helpers.filter(h => h.isApproved).map(h => (
-                        <option key={h.id} value={h.name}>{h.name} ({h.school})</option>
+                      {helpers.filter(h => h.status === 'approved').map(h => (
+                        <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name} ({h.school})</option>
                       ))}
                     </select>
                   </div>
@@ -849,9 +860,9 @@ function AdminDashboard() {
                             style={{ padding: "2px 4px", fontSize: "0.75rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "6px", width: "100%", marginTop: "2px", border: "1px solid #cbd5e1" }}
                           >
                             <option value="">-- Chưa giao --</option>
-                            {helpers.filter(h => h.isApproved).map(h => (
-                              <option key={h.id} value={h.name}>{h.name}</option>
-                            ))}
+                             {helpers.filter(h => h.isApproved).map(h => (
+                               <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name}</option>
+                             ))}
                           </select>
                         </div>
                       </div>
@@ -1163,8 +1174,22 @@ function AdminDashboard() {
                   ) : filteredHelpers.map((h) => (
                     <tr key={h.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 1.5rem" }}>
-                        <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{h.name}</div>
+                        <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
+                          {h.name} {h.alias && <span style={{ color: "var(--primary)", fontWeight: "600", fontSize: "0.85rem" }}>({h.alias})</span>}
+                        </div>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>MSSV: {h.studentId}</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newAlias = prompt(`Nhập tên gợi nhớ (biệt danh) cho CTV ${h.name}:`, h.alias || "");
+                            if (newAlias !== null) {
+                              handleSetHelperAlias(h.id, newAlias);
+                            }
+                          }}
+                          style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "0.72rem", cursor: "pointer", textDecoration: "underline", padding: 0, width: "fit-content", textAlign: "left", marginTop: "4px" }}
+                        >
+                          {h.alias ? "Sửa tên gợi nhớ" : "Đặt tên gợi nhớ"}
+                        </button>
                       </td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{h.school}</div>
@@ -1816,7 +1841,7 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                 >
                   <option value="">-- Chưa giao --</option>
                   {helpers.filter(h => h.isApproved).map(h => (
-                    <option key={h.id} value={h.name}>{h.name}</option>
+                    <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name}</option>
                   ))}
                 </select>
               </div>

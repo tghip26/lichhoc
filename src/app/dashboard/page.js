@@ -1336,6 +1336,7 @@ function Dashboard() {
                   <strong>Nội dung CK:</strong> <span style={{ fontWeight: "800", color: "var(--primary)", fontFamily: "monospace" }}>THUENAP {user.uid.substring(0, 6).toUpperCase()}</span>
                 </div>
                 <span style={{ fontSize: "0.72rem", color: "var(--danger)", fontWeight: "600", display: "block", marginTop: "8px" }}>⚠️ Chuyển khoản đúng nội dung trên để hệ thống tự ghi nhận ví!</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "600", display: "block", marginTop: "4px" }}>ℹ️ Rút tiền liên hệ Zalo Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)" }}>0852866856</a></span>
               </div>
             )}
 
@@ -1806,6 +1807,7 @@ function Dashboard() {
                   <strong>Nội dung CK:</strong> <span style={{ fontWeight: "800", color: "var(--primary)", fontFamily: "monospace" }}>THUENAP {user.uid.substring(0, 6).toUpperCase()}</span>
                 </div>
                 <span style={{ fontSize: "0.72rem", color: "var(--danger)", fontWeight: "600", display: "block", marginTop: "8px" }}>⚠️ Chuyển khoản đúng nội dung trên để hệ thống tự ghi nhận ví!</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "600", display: "block", marginTop: "4px" }}>ℹ️ Rút tiền liên hệ Zalo Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)" }}>0852866856</a></span>
               </div>
             )}
 
