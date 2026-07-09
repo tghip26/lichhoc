@@ -37,8 +37,10 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       // Khách hàng tự xem lịch sử của mình. Admin được xem toàn bộ.
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
-      // Chỉ Admin mới được quyền ghi nhận giao dịch nạp tiền hoặc duyệt nạp.
-      allow write: if isAdmin();
+      // Người dùng đã đăng nhập được tạo giao dịch mới ở trạng thái chờ duyệt (pending)
+      allow create: if request.auth != null && request.resource.data.status == 'pending';
+      // Chỉ Admin mới được quyền cập nhật hoặc xóa giao dịch
+      allow update, delete: if isAdmin();
     }
 
     // 4. Quy tắc cho bộ sưu tập 'notifications' (Thông báo hệ thống)
@@ -66,6 +68,16 @@ service cloud.firestore {
       allow read: if true;
       // Chỉ Admin mới được quyền thay đổi cấu hình.
       allow write: if isAdmin();
+    }
+
+    // 7. Quy tắc cho bộ sưu tập 'helpers' (Hồ sơ đăng ký CTV)
+    match /helpers/{helperId} {
+      // Cho phép tạo khi đã đăng nhập
+      allow create: if request.auth != null;
+      // Chỉ người nộp hồ sơ hoặc Admin mới được đọc hoặc cập nhật hồ sơ
+      allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      // Chỉ Admin mới được xóa hồ sơ đăng ký CTV
+      allow delete: if isAdmin();
     }
   }
 }

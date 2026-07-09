@@ -58,6 +58,21 @@ function Dashboard() {
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [submittingTopup, setSubmittingTopup] = useState(false);
 
+  // Cộng tác viên (CTV) state
+  const [openJobs, setOpenJobs] = useState([]);
+  const [myJobs, setMyJobs] = useState([]);
+  const [isCTVMode, setIsCTVMode] = useState(false);
+  const [ctvActiveTab, setCtvActiveTab] = useState("job_board"); // "job_board" or "my_jobs"
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState("");
+  const [payoutBankName, setPayoutBankName] = useState("MBBank");
+  const [payoutBankAccount, setPayoutBankAccount] = useState("");
+  const [payoutBankOwner, setPayoutBankOwner] = useState("");
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [selectedJobForProof, setSelectedJobForProof] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
+  const [submittingProof, setSubmittingProof] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
@@ -140,9 +155,46 @@ function Dashboard() {
         setLoadingTransactions(false);
       });
 
-      return () => { unsubscribe(); unsubscribeProfile(); unsubscribeTrans(); };
+      // Lấy danh sách chợ đơn cho CTV
+      let unsubscribeOpenJobs = () => {};
+      let unsubscribeMyJobs = () => {};
+
+      if (userProfile?.role === "helper" || userProfile?.role === "admin") {
+        const qOpen = query(
+          collection(db, "schedules"),
+          where("status", "in", ["paid", "accepted"])
+        );
+        unsubscribeOpenJobs = onSnapshot(qOpen, (snapshot) => {
+          const openData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(s => !s.helperId);
+          setOpenJobs(openData);
+        }, (err) => console.error("Lỗi tải chợ đơn:", err));
+
+        const qMyJobs = query(
+          collection(db, "schedules"),
+          where("helperId", "==", user.uid)
+        );
+        unsubscribeMyJobs = onSnapshot(qMyJobs, (snapshot) => {
+          const myData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          myData.sort((a, b) => {
+            const dateA = new Date(a.classDate);
+            const dateB = new Date(b.classDate);
+            return dateB - dateA;
+          });
+          setMyJobs(myData);
+        }, (err) => console.error("Lỗi tải lớp đã nhận:", err));
+      }
+
+      return () => { 
+        unsubscribe(); 
+        unsubscribeProfile(); 
+        unsubscribeTrans(); 
+        unsubscribeOpenJobs();
+        unsubscribeMyJobs();
+      };
     }
-  }, [user]);
+  }, [user, userProfile?.role]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -601,6 +653,349 @@ function Dashboard() {
     }
   };
 
+  const handleGrabJob = async (job) => {
+    if (!confirm(`Bạn có chắc chắn muốn nhận lớp học hộ này không?`)) return;
+    try {
+      const helperName = userProfile?.name || userProfile?.displayName || user.displayName || user.email;
+      await updateDoc(doc(db, "schedules", job.id), {
+        helperId: user.uid,
+        assignedTo: helperName,
+        status: "accepted"
+      });
+      toast.success("Chúc mừng! Bạn đã nhận lớp thành công.");
+
+      // Gửi thông báo Telegram cho Admin
+      const grabText = `🔔 <b>CTV NHẬN LỚP THÀNH CÔNG!</b>\n\n` +
+        `• <b>CTV:</b> ${helperName} (${user.email})\n` +
+        `• <b>Lớp học:</b> ${job.className}\n` +
+        `• <b>Trường học:</b> ${job.school}\n` +
+        `• <b>Ngày học:</b> ${new Date(job.classDate).toLocaleDateString("vi-VN")}\n\n` +
+        `<i>Hệ thống đã tự động ghi nhận phân công công việc.</i>`;
+      await sendTelegramAlert(grabText);
+    } catch (err) {
+      console.error("Lỗi nhận lớp:", err);
+      toast.error("Không thể nhận lớp. Vui lòng thử lại!");
+    }
+  };
+
+  const handleProofFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      const img = new Image();
+      img.src = URL.createObjectURL(selectedFile);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 1280;
+        const MAX_HEIGHT = 1280;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64String = canvas.toDataURL("image/jpeg", 0.7);
+        setProofFile(base64String);
+      };
+    }
+  };
+
+  const handleUploadProof = async () => {
+    if (!proofFile) {
+      toast.error("Vui lòng tải lên ảnh chụp minh chứng!");
+      return;
+    }
+    setSubmittingProof(true);
+    toast.loading("Đang gửi minh chứng...", { id: "proof" });
+    try {
+      await updateDoc(doc(db, "schedules", selectedJobForProof.id), {
+        helperProofImage: proofFile,
+        helperProofTime: serverTimestamp(),
+        status: "proof_submitted"
+      });
+      toast.success("Báo cáo trực lớp thành công! Chờ Admin duyệt.", { id: "proof" });
+      setShowProofModal(false);
+      setProofFile(null);
+      setSelectedJobForProof(null);
+
+      // Gửi thông báo Telegram cho Admin
+      const proofText = `📸 <b>CTV BÁO CÁO HOÀN THÀNH LỚP!</b>\n\n` +
+        `• <b>CTV:</b> ${userProfile?.name || user.email}\n` +
+        `• <b>Môn học:</b> ${selectedJobForProof.className}\n` +
+        `• <b>Ngày học:</b> ${new Date(selectedJobForProof.classDate).toLocaleDateString("vi-VN")}\n\n` +
+        `<i>Vui lòng truy cập trang Admin để phê duyệt ảnh minh chứng và trả thù lao.</i>`;
+      await sendTelegramAlert(proofText);
+    } catch (err) {
+      console.error("Lỗi nộp minh chứng:", err);
+      toast.error("Không thể gửi báo cáo.", { id: "proof" });
+    } finally {
+      setSubmittingProof(false);
+    }
+  };
+
+  const handlePayoutRequest = async (e) => {
+    e.preventDefault();
+    const amountNum = Number(payoutAmount);
+    if (!amountNum || amountNum <= 0) {
+      toast.error("Vui lòng nhập số tiền rút hợp lệ!");
+      return;
+    }
+    if (amountNum > (userProfile?.helperBalance || 0)) {
+      toast.error("Số dư thù lao trong ví không đủ!");
+      return;
+    }
+    if (!payoutBankAccount.trim() || !payoutBankOwner.trim()) {
+      toast.error("Vui lòng điền đầy đủ số tài khoản và tên chủ tài khoản!");
+      return;
+    }
+
+    toast.loading("Đang gửi yêu cầu rút tiền...", { id: "payout" });
+    try {
+      // 1. Trừ tiền ví thù lao của CTV ngay lập tức để tránh double-spend
+      await updateDoc(doc(db, "users", user.uid), {
+        helperBalance: increment(-amountNum)
+      });
+
+      // 2. Tạo giao dịch rút tiền
+      await addDoc(collection(db, "transactions"), {
+        userId: user.uid,
+        userEmail: user.email,
+        amount: amountNum,
+        type: "payout_request",
+        status: "pending",
+        bankName: payoutBankName,
+        bankAccount: payoutBankAccount.trim(),
+        bankOwner: payoutBankOwner.trim().toUpperCase(),
+        message: `Rút thù lao CTV về ngân hàng ${payoutBankName}`,
+        createdAt: serverTimestamp()
+      });
+
+      toast.success("Đã gửi yêu cầu rút thù lao thành công!", { id: "payout" });
+      setShowPayoutModal(false);
+      setPayoutAmount("");
+
+      // Gửi thông báo Telegram cho Admin
+      const payoutText = `💰 <b>YÊU CẦU RÚT THÙ LAO CTV MỚI!</b>\n\n` +
+        `• <b>CTV:</b> ${userProfile?.name || user.email}\n` +
+        `• <b>Số tiền rút:</b> ${amountNum.toLocaleString("vi-VN")} VNĐ\n` +
+        `• <b>Ngân hàng:</b> ${payoutBankName}\n` +
+        `• <b>Số tài khoản:</b> <code>${payoutBankAccount.trim()}</code>\n` +
+        `• <b>Chủ tài khoản:</b> ${payoutBankOwner.trim().toUpperCase()}\n\n` +
+        `<i>Vui lòng duyệt giao dịch và chuyển khoản cho CTV!</i>`;
+      await sendTelegramAlert(payoutText);
+    } catch (err) {
+      console.error("Lỗi rút thù lao:", err);
+      toast.error("Yêu cầu thất bại! Vui lòng thử lại.", { id: "payout" });
+    }
+  };
+
+  const renderCTVWorkspace = () => {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        
+        {/* CTV Header & Ví thù lao */}
+        <div className="glass-panel" style={{ padding: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", background: "linear-gradient(135deg, rgba(79,70,229,0.03) 0%, rgba(255,255,255,1) 100%)", borderLeft: "5px solid #4F46E5", flexWrap: "wrap", gap: "15px" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.1rem", color: "var(--text-primary)" }}>💼 Không gian Cộng Tác Viên: <span style={{ color: "#4F46E5" }}>{userProfile?.name || user.displayName || user.email}</span></h3>
+            <p style={{ margin: "5px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              Số dư ví thù lao tích lũy: <strong style={{ color: "#16a34a", fontSize: "1.2rem" }}>{(userProfile?.helperBalance || 0).toLocaleString("vi-VN")} đ</strong>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPayoutAmount("");
+              setPayoutBankAccount("");
+              setPayoutBankOwner(userProfile?.name || "");
+              setShowPayoutModal(true);
+            }}
+            className="btn"
+            style={{ background: "#4F46E5", color: "white", padding: "0.6rem 1.2rem", borderRadius: "10px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.85rem", boxShadow: "0 4px 10px rgba(79, 70, 229, 0.2)" }}
+          >
+            💸 Yêu cầu rút thù lao
+          </button>
+        </div>
+
+        {/* CTV Tab buttons */}
+        <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", overflowX: "auto", className: "hide-scrollbar" }}>
+          <button
+            type="button"
+            onClick={() => setCtvActiveTab("job_board")}
+            style={{
+              flexShrink: 0,
+              background: ctvActiveTab === "job_board" ? "#4F46E5" : "white",
+              color: ctvActiveTab === "job_board" ? "white" : "var(--text-secondary)",
+              border: "1px solid #cbd5e1",
+              borderRadius: "10px",
+              padding: "8px 16px",
+              fontWeight: "750",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              boxShadow: ctvActiveTab === "job_board" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+            }}
+          >
+            🛒 Chợ nhận lớp ({openJobs.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setCtvActiveTab("my_jobs")}
+            style={{
+              flexShrink: 0,
+              background: ctvActiveTab === "my_jobs" ? "#4F46E5" : "white",
+              color: ctvActiveTab === "my_jobs" ? "white" : "var(--text-secondary)",
+              border: "1px solid #cbd5e1",
+              borderRadius: "10px",
+              padding: "8px 16px",
+              fontWeight: "750",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              boxShadow: ctvActiveTab === "my_jobs" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+            }}
+          >
+            📅 Lớp tôi nhận ({myJobs.length})
+          </button>
+        </div>
+
+        {/* CTV Tab Views */}
+        {ctvActiveTab === "job_board" ? (
+          <div>
+            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>🛒 Chợ đơn thuê học trực tuyến (Sắp học)</h4>
+            {openJobs.length === 0 ? (
+              <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                Hiện tại chưa có đơn thuê học mới nào cần cộng tác viên. Hãy quay lại sau!
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
+                {openJobs.map((job) => {
+                  const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                  const helperPayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
+                  return (
+                    <div key={job.id} className="glass-panel" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "10px", background: "white" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                        <strong style={{ fontSize: "1.05rem", color: "var(--text-primary)" }}>{job.className}</strong>
+                        <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.1)", color: "#4F46E5", padding: "4px 8px", borderRadius: "8px", fontWeight: "700" }}>{job.school}</span>
+                      </div>
+                      
+                      <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span>📅 Ngày học: <b>{job.weekday || ""} ({new Date(job.classDate).toLocaleDateString("vi-VN")})</b></span>
+                        <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
+                        {job.notes && <span>📝 Ghi chú: {job.notes}</span>}
+                      </div>
+
+                      <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", display: "block" }}>Thù lao nhận:</span>
+                          <strong style={{ fontSize: "1.1rem", color: "var(--success)" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleGrabJob(job)}
+                          className="btn"
+                          style={{ background: "var(--success)", color: "white", padding: "0.45rem 1.1rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem", boxShadow: "0 4px 8px rgba(16, 185, 129, 0.15)" }}
+                        >
+                          Nhận lớp 🤝
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
+            {myJobs.length === 0 ? (
+              <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                Bạn chưa nhận lịch học hộ nào. Hãy qua tab Chợ Nhận Lớp để ứng tuyển!
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
+                {myJobs.map((job) => {
+                  const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                  const helperPayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
+                  return (
+                    <div key={job.id} className="glass-panel" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "8px", background: "white", borderLeft: "5px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5") }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+                        <strong style={{ fontSize: "1rem" }}>{job.className}</strong>
+                        {job.status === "completed" ? (
+                          <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
+                        ) : job.status === "proof_submitted" ? (
+                          <span style={{ fontSize: "0.75rem", background: "rgba(217,119,6,0.12)", color: "#D97706", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đã nộp báo cáo</span>
+                        ) : (
+                          <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.12)", color: "#4F46E5", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đang trực lớp</span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                        <span>🏫 Trường: <b>{job.school}</b></span>
+                        <span>📅 Ngày học: <b>{job.weekday || ""} ({new Date(job.classDate).toLocaleDateString("vi-VN")})</b></span>
+                        <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
+                        <span>👤 Học viên: <b>{job.name} (MSSV: {job.studentId})</b></span>
+                        <span>📞 Liên hệ SĐT: <a href={`https://zalo.me/${job.phone}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)" }}>{job.phone}</a></span>
+                      </div>
+
+                      {/* Nút xem lịch chụp của học viên */}
+                      {job.file && (
+                        <div style={{ margin: "5px 0" }}>
+                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Lịch học:</span>
+                          <img 
+                            src={job.file} 
+                            alt="Ảnh lịch học" 
+                            style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "8px", marginTop: "4px", border: "1px solid #cbd5e1" }}
+                          />
+                        </div>
+                      )}
+
+                      <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao thợ:</span>
+                          <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                        </div>
+                        {job.status === "accepted" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedJobForProof(job);
+                              setProofFile(null);
+                              setShowProofModal(true);
+                            }}
+                            className="btn"
+                            style={{ background: "#D97706", color: "white", padding: "0.35rem 0.8rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.78rem" }}
+                          >
+                            📸 Báo cáo thù lao
+                          </button>
+                        )}
+                        {job.status === "proof_submitted" && (
+                          <span style={{ fontSize: "0.78rem", color: "#D97706", fontWeight: "700" }}>Chờ duyệt</span>
+                        )}
+                        {job.status === "completed" && (
+                          <span style={{ fontSize: "0.78rem", color: "var(--success)", fontWeight: "700" }}>Đã trả ví</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!reviewText.trim()) {
@@ -785,7 +1180,55 @@ function Dashboard() {
         </div>
       )}
 
-      {/* TABS SELECTOR */}
+      {/* GIAO DIỆN CHUYỂN CTV/HỌC VIÊN */}
+      {(userProfile?.role === "helper" || userProfile?.role === "admin") && (
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}>
+          <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "14px", border: "1px solid #cbd5e1" }}>
+            <button
+              type="button"
+              onClick={() => setIsCTVMode(false)}
+              style={{
+                padding: "8px 20px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "750",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                background: !isCTVMode ? "var(--primary)" : "transparent",
+                color: !isCTVMode ? "white" : "var(--text-secondary)",
+                boxShadow: !isCTVMode ? "0 4px 8px rgba(22, 163, 74, 0.2)" : "none",
+                transition: "all 0.25s"
+              }}
+            >
+              🎓 Giao diện Học viên
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCTVMode(true)}
+              style={{
+                padding: "8px 20px",
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: "750",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                background: isCTVMode ? "#4F46E5" : "transparent",
+                color: isCTVMode ? "white" : "var(--text-secondary)",
+                boxShadow: isCTVMode ? "0 4px 8px rgba(79, 70, 229, 0.2)" : "none",
+                transition: "all 0.25s"
+              }}
+            >
+              💼 Giao diện Cộng tác viên (CTV)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCTVMode ? (
+        renderCTVWorkspace()
+      ) : (
+        <>
+          {/* TABS SELECTOR */}
       <div 
         className="hide-scrollbar" 
         style={{ 
@@ -1819,6 +2262,171 @@ function Dashboard() {
               disabled={submittingTopup}
             >
               {submittingTopup ? "Đang xử lý..." : "Tôi đã chuyển tiền nạp ví"}
+            </button>
+          </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {/* POPUP YÊU CẦU RÚT TIỀN THÙ LAO CTV */}
+      {showPayoutModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1001, padding: "1.5rem"
+          }}
+          onClick={() => setShowPayoutModal(false)}
+        >
+          <form 
+            onSubmit={handlePayoutRequest}
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "450px", width: "100%", border: "1px solid #e2e8f0"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)" }}>Yêu cầu rút thù lao CTV</h3>
+              <button type="button" onClick={() => setShowPayoutModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <div style={{ background: "rgba(79,70,229,0.05)", padding: "10px 15px", borderRadius: "12px", marginBottom: "1.25rem", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              Số dư ví thù lao khả dụng: <strong style={{ color: "#16a34a" }}>{(userProfile?.helperBalance || 0).toLocaleString("vi-VN")} đ</strong>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Số tiền muốn rút (VNĐ)</label>
+              <input
+                type="number"
+                value={payoutAmount}
+                onChange={e => setPayoutAmount(e.target.value)}
+                placeholder="Ví dụ: 100000"
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Chọn Ngân hàng</label>
+              <select 
+                value={payoutBankName} 
+                onChange={e => setPayoutBankName(e.target.value)}
+                className="form-input"
+                style={{ background: "white" }}
+              >
+                <option value="MBBank">MBBank (Ngân hàng Quân Đội)</option>
+                <option value="Vietcombank">Vietcombank</option>
+                <option value="Agribank">Agribank</option>
+                <option value="BIDV">BIDV</option>
+                <option value="Techcombank">Techcombank</option>
+                <option value="Viettinbank">VietinBank</option>
+                <option value="Momo">Ví điện tử Momo</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Số tài khoản</label>
+              <input
+                type="text"
+                value={payoutBankAccount}
+                onChange={e => setPayoutBankAccount(e.target.value)}
+                placeholder="Nhập số tài khoản nhận tiền"
+                className="form-input"
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Họ tên chủ tài khoản (Viết hoa không dấu)</label>
+              <input
+                type="text"
+                value={payoutBankOwner}
+                onChange={e => setPayoutBankOwner(e.target.value)}
+                placeholder="Ví dụ: NGUYEN VAN A"
+                className="form-input"
+                required
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="btn"
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", background: "#4F46E5", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}
+            >
+              Gửi yêu cầu rút thù lao
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* POPUP NỘP MINH CHỨNG HOÀN THÀNH ĐƠN (CTV) */}
+      {showProofModal && selectedJobForProof && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1001, padding: "1.5rem"
+          }}
+          onClick={() => setShowProofModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "450px", width: "100%", border: "1px solid #e2e8f0"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)" }}>📸 Nộp ảnh thù lao/Minh chứng</h3>
+              <button type="button" onClick={() => setShowProofModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+              Vui lòng đính kèm ảnh chụp chứng thực tại phòng học (ảnh check-in phòng học hoặc bảng điểm danh) để gửi Admin phê duyệt hoàn thành đơn.
+            </p>
+
+            <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+              <label 
+                htmlFor="proof-file-input" 
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  border: "2px dashed #cbd5e1", borderRadius: "16px", padding: "2rem", cursor: "pointer",
+                  background: "#f8fafc", transition: "all 0.2s"
+                }}
+              >
+                {proofFile ? (
+                  <div style={{ position: "relative", width: "100%", height: "150px" }}>
+                    <img src={proofFile} alt="Minh chứng" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "12px" }} />
+                    <span style={{ position: "absolute", bottom: "5px", right: "5px", background: "rgba(0,0,0,0.5)", color: "white", padding: "2px 6px", borderRadius: "6px", fontSize: "0.7rem" }}>Thay đổi ảnh</span>
+                  </div>
+                ) : (
+                  <>
+                    <svg style={{ width: "40px", height: "40px", color: "#94a3b8", marginBottom: "8px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Chọn ảnh chụp thực tế ca học</span>
+                  </>
+                )}
+              </label>
+              <input 
+                type="file" 
+                id="proof-file-input" 
+                accept="image/*" 
+                onChange={handleProofFileChange} 
+                style={{ display: "none" }} 
+              />
+            </div>
+
+            <button 
+              type="button" 
+              onClick={handleUploadProof}
+              className="btn"
+              disabled={submittingProof || !proofFile}
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", background: "var(--success)", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}
+            >
+              {submittingProof ? "Đang gửi báo cáo..." : "Nộp báo cáo hoàn thành đơn"}
             </button>
           </div>
         </div>

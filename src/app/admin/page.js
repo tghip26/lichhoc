@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
 function AdminDashboard() {
-  const { systemSettings } = useAuth();
+  const { systemSettings, sendTelegramAlert } = useAuth();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
@@ -110,6 +110,50 @@ function AdminDashboard() {
       const schedule = schedules.find(s => s.id === id);
       await updateDoc(doc(db, "schedules", id), { status: newStatus });
       toast.success("Cập nhật trạng thái thành công");
+
+      // Tự động chuyển thù lao vào ví CTV khi đơn hoàn thành
+      if (newStatus === "completed" && schedule && schedule.helperId) {
+        const priceNum = schedule.price ? Number(String(schedule.price).replace(/\./g, "")) : 0;
+        const payoutVal = schedule.payoutAmount !== undefined ? Number(schedule.payoutAmount) : Math.floor(priceNum * 0.75);
+
+        // Cộng thù lao vào ví CTV (helperBalance)
+        await updateDoc(doc(db, "users", schedule.helperId), {
+          helperBalance: increment(payoutVal)
+        });
+
+        // Tạo lịch sử giao dịch payout_earn
+        await addDoc(collection(db, "transactions"), {
+          userId: schedule.helperId,
+          userEmail: schedule.assignedTo || "ctv",
+          amount: payoutVal,
+          type: "payout_earn",
+          status: "completed",
+          message: `Nhận thù lao trực lớp ${schedule.className} ngày ${new Date(schedule.classDate).toLocaleDateString("vi-VN")}`,
+          createdAt: serverTimestamp()
+        });
+
+        // Tạo thông báo cho CTV
+        await addDoc(collection(db, "notifications"), {
+          userId: schedule.helperId,
+          title: "Nhận thù lao trực lớp thành công 💰",
+          message: `Ví thù lao CTV của bạn đã được cộng +${payoutVal.toLocaleString("vi-VN")} đ cho ca trực môn ${schedule.className}.`,
+          read: false,
+          link: "/dashboard",
+          createdAt: serverTimestamp()
+        });
+
+        toast.info(`Đã tự động chuyển +${payoutVal.toLocaleString("vi-VN")} đ thù lao vào ví CTV ${schedule.assignedTo}!`);
+
+        // Gửi thông báo Telegram cho Admin
+        try {
+          await sendTelegramAlert(`✅ <b>ĐÃ DUYỆT HOÀN THÀNH & PHÁT THÙ LAO CTV!</b>\n\n` +
+            `• <b>Lớp học:</b> ${schedule.className}\n` +
+            `• <b>CTV phụ trách:</b> ${schedule.assignedTo}\n` +
+            `• <b>Thù lao đã cộng:</b> +${payoutVal.toLocaleString("vi-VN")} đ`);
+        } catch (tgErr) {
+          console.warn("Lỗi gửi thông báo Telegram:", tgErr);
+        }
+      }
 
       if (schedule && schedule.userId) {
         let statusText = "";
@@ -263,50 +307,91 @@ function AdminDashboard() {
   };
 
   const handleApproveTransaction = async (trans) => {
-    if (!confirm(`Bạn chắc chắn muốn DUYỆT nạp số tiền ${trans.amount.toLocaleString("vi-VN")} đ cho tài khoản ${trans.userEmail}?`)) {
+    const isPayout = trans.type === "payout_request";
+    const actionName = isPayout ? "duyệt RÚT THÙ LAO" : "DUYỆT nạp";
+    if (!confirm(`Bạn chắc chắn muốn ${actionName} số tiền ${trans.amount.toLocaleString("vi-VN")} đ cho tài khoản ${trans.userEmail}?`)) {
       return;
     }
     try {
       await updateDoc(doc(db, "transactions", trans.id), { status: "completed" });
-      await updateDoc(doc(db, "users", trans.userId), {
-        balance: increment(trans.amount)
-      });
+      
+      if (isPayout) {
+        await addDoc(collection(db, "notifications"), {
+          userId: trans.userId,
+          title: "Rút thù lao thành công 💰",
+          message: `Yêu cầu rút thù lao ${trans.amount.toLocaleString("vi-VN")} đ đã được chuyển khoản và duyệt thành công.`,
+          read: false,
+          link: "/dashboard",
+          createdAt: serverTimestamp()
+        });
+        toast.success("Đã duyệt yêu cầu rút thù lao!");
 
-      // Tạo thông báo cho khách hàng
-      await addDoc(collection(db, "notifications"), {
-        userId: trans.userId,
-        title: "Nạp tiền ví thành công",
-        message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ của bạn đã được duyệt thành công.`,
-        read: false,
-        link: "/dashboard?tab=wallet",
-        createdAt: serverTimestamp()
-      });
+        try {
+          await sendTelegramAlert(`✅ <b>ĐÃ DUYỆT RÚT THÙ LAO CTV!</b>\n\n• <b>Tài khoản:</b> ${trans.userEmail}\n• <b>Số tiền:</b> ${trans.amount.toLocaleString("vi-VN")} đ\n• <b>Trạng thái:</b> Thành công (Đã chuyển khoản)`);
+        } catch (tgErr) {
+          console.warn("Lỗi gửi thông báo Telegram:", tgErr);
+        }
+      } else {
+        await updateDoc(doc(db, "users", trans.userId), {
+          balance: increment(trans.amount)
+        });
 
-      toast.success("Đã phê duyệt và cộng tiền ví thành công!");
+        await addDoc(collection(db, "notifications"), {
+          userId: trans.userId,
+          title: "Nạp tiền ví thành công",
+          message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ của bạn đã được duyệt thành công.`,
+          read: false,
+          link: "/dashboard?tab=wallet",
+          createdAt: serverTimestamp()
+        });
+        toast.success("Đã phê duyệt và cộng tiền ví thành công!");
+      }
     } catch (err) {
-      console.error("Lỗi duyệt nạp tiền:", err);
+      console.error("Lỗi duyệt giao dịch:", err);
       toast.error("Không thể duyệt giao dịch.");
     }
   };
 
   const handleRejectTransaction = async (trans) => {
-    if (!confirm(`Bạn chắc chắn muốn TỪ CHỐI yêu cầu nạp số tiền ${trans.amount.toLocaleString("vi-VN")} đ của tài khoản ${trans.userEmail}?`)) {
+    const isPayout = trans.type === "payout_request";
+    const actionName = isPayout ? "từ chối RÚT THÙ LAO" : "TỪ CHỐI nạp";
+    if (!confirm(`Bạn chắc chắn muốn ${actionName} số tiền ${trans.amount.toLocaleString("vi-VN")} đ của tài khoản ${trans.userEmail}?`)) {
       return;
     }
     try {
       await updateDoc(doc(db, "transactions", trans.id), { status: "rejected" });
 
-      // Tạo thông báo cho khách hàng
-      await addDoc(collection(db, "notifications"), {
-        userId: trans.userId,
-        title: "Yêu cầu nạp ví bị từ chối",
-        message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ đã bị từ chối do không khớp sao kê ngân hàng.`,
-        read: false,
-        link: "/dashboard?tab=wallet",
-        createdAt: serverTimestamp()
-      });
+      if (isPayout) {
+        await updateDoc(doc(db, "users", trans.userId), {
+          helperBalance: increment(trans.amount)
+        });
 
-      toast.success("Đã từ chối giao dịch!");
+        await addDoc(collection(db, "notifications"), {
+          userId: trans.userId,
+          title: "Yêu cầu rút thù lao bị từ chối ❌",
+          message: `Yêu cầu rút thù lao ${trans.amount.toLocaleString("vi-VN")} đ đã bị từ chối. Số tiền đã hoàn lại ví thù lao của bạn.`,
+          read: false,
+          link: "/dashboard",
+          createdAt: serverTimestamp()
+        });
+        toast.success("Đã từ chối và hoàn tiền thù lao về ví CTV!");
+
+        try {
+          await sendTelegramAlert(`❌ <b>ĐÃ TỪ CHỐI RÚT THÙ LAO CTV!</b>\n\n• <b>Tài khoản:</b> ${trans.userEmail}\n• <b>Số tiền:</b> ${trans.amount.toLocaleString("vi-VN")} đ\n• <b>Trạng thái:</b> Đã từ chối & hoàn thù lao về ví`);
+        } catch (tgErr) {
+          console.warn("Lỗi gửi thông báo Telegram:", tgErr);
+        }
+      } else {
+        await addDoc(collection(db, "notifications"), {
+          userId: trans.userId,
+          title: "Yêu cầu nạp ví bị từ chối",
+          message: `Yêu cầu nạp ví ${trans.amount.toLocaleString("vi-VN")} đ đã bị từ chối do không khớp sao kê ngân hàng.`,
+          read: false,
+          link: "/dashboard?tab=wallet",
+          createdAt: serverTimestamp()
+        });
+        toast.success("Đã từ chối yêu cầu nạp tiền.");
+      }
     } catch (err) {
       console.error("Lỗi từ chối giao dịch:", err);
       toast.error("Không thể từ chối giao dịch.");
@@ -571,6 +656,17 @@ function AdminDashboard() {
             <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3" strokeWidth="2"></circle></svg>
             Cấu hình hệ thống
           </button>
+          
+          <Link 
+            href="/admin/thong-ke"
+            style={{ 
+              flexShrink: 0, padding: "0.6rem 1.5rem", border: "1px solid var(--primary)", background: "transparent", color: "var(--primary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px"
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = "var(--primary)"; e.currentTarget.style.color = "white"; }}
+            onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--primary)"; }}
+          >
+            📊 Thống kê tài chính
+          </Link>
         </div>
 
         {activeTab === "schedules" && (
@@ -649,6 +745,7 @@ function AdminDashboard() {
                 <option value="paid">Đã thanh toán</option>
                 <option value="accepted">Sắp học</option>
                 <option value="in_progress">Đang học</option>
+                <option value="proof_submitted">Chờ duyệt minh chứng</option>
                 <option value="completed">Hoàn thành</option>
                 <option value="rejected">Từ chối</option>
               </select>
@@ -725,8 +822,8 @@ function AdminDashboard() {
                     onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                     style={{
                       padding: "4px 10px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                      background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                      color: item.status === "completed" ? "#8B5CF6" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706",
+                      background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                      color: item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706",
                       boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
                     }}
                   >
@@ -734,6 +831,7 @@ function AdminDashboard() {
                     <option value="paid" style={{color: "black"}}>Đã thanh toán</option>
                     <option value="accepted" style={{color: "black"}}>Sắp học</option>
                     <option value="in_progress" style={{color: "black"}}>Đang học</option>
+                    <option value="proof_submitted" style={{color: "black"}}>Chờ duyệt minh chứng</option>
                     <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                     <option value="rejected" style={{color: "black"}}>Từ chối</option>
                   </select>
@@ -761,6 +859,28 @@ function AdminDashboard() {
                   {item.notes && <><span style={{color: "var(--primary)"}}>Ghi chú:</span> {item.notes}<br/></>}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                  
+                  {item.helperProofImage && (
+                    <div style={{ marginTop: "10px", background: "rgba(79,70,229,0.05)", padding: "8px", borderRadius: "10px", border: "1px solid rgba(79,70,229,0.1)", textAlign: "left" }}>
+                      <span style={{ fontSize: "0.72rem", color: "#4F46E5", fontWeight: "700", display: "block", marginBottom: "4px" }}>📸 Minh chứng hoàn thành từ CTV:</span>
+                      <img 
+                        src={item.helperProofImage} 
+                        alt="Ảnh minh chứng hoàn thành" 
+                        style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "8px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                        onClick={() => setLightboxImage(item.helperProofImage)}
+                      />
+                      {item.status === "proof_submitted" && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(item.id, "completed")}
+                          className="btn"
+                          style={{ width: "100%", padding: "4px 8px", fontSize: "0.72rem", borderRadius: "6px", background: "var(--success)", border: "none", color: "white", fontWeight: "700", marginTop: "6px", cursor: "pointer" }}
+                        >
+                          ✓ Duyệt & Trả Thù Lao
+                        </button>
+                      )}
+                    </div>
+                  )}
                   
                   <div style={{ marginTop: "10px", borderTop: "1px dashed rgba(0,0,0,0.05)", paddingTop: "8px" }}>
                     <label style={{ fontSize: "0.72rem", fontWeight: "700", color: "#8B5CF6", display: "block", marginBottom: "4px" }}>GIAO LỊCH HỌC HỘ:</label>
@@ -883,14 +1003,15 @@ function AdminDashboard() {
                         onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                         style={{
                           padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                          background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                          color: item.status === "completed" ? "#8B5CF6" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706"
+                          background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706"
                         }}
                       >
                         <option value="pending" style={{color: "black"}}>Chờ nhận</option>
                         <option value="paid" style={{color: "black"}}>Đã thanh toán</option>
                         <option value="accepted" style={{color: "black"}}>Sắp học</option>
                         <option value="in_progress" style={{color: "black"}}>Đang học</option>
+                        <option value="proof_submitted" style={{color: "black"}}>Chờ duyệt minh chứng</option>
                         <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                         <option value="rejected" style={{color: "black"}}>Từ chối</option>
                       </select>
