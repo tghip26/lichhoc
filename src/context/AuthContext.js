@@ -78,30 +78,37 @@ export function AuthProvider({ children }) {
         const adminStatus = allAdmins.includes(user.email.toLowerCase());
         setIsAdmin(adminStatus);
         
-        // Kiểm tra xem có phải đăng ký mới (chưa có tài liệu trên Firestore)
+        // Kiểm tra và đồng bộ thông tin tài khoản trên Firestore
         try {
           const userDocRef = doc(db, "users", user.uid);
           const userDocSnap = await getDoc(userDocRef);
+          
           if (!userDocSnap.exists()) {
             // Báo Telegram người dùng Google/Redirect mới
             sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Tên hiển thị:</b> ${user.displayName || user.email.split('@')[0]}\n• <b>Email:</b> ${user.email}\n• <b>Hình thức:</b> Liên kết ngoài (Google)\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
           }
-        } catch (err) {
-          console.error("Lỗi kiểm tra người dùng mới:", err);
-        }
 
-        // Lưu/Cập nhật thông tin người dùng vào CSDL để quản lý
-        try {
-          await setDoc(doc(db, "users", user.uid), {
+          let finalRole = "user";
+          if (userDocSnap.exists()) {
+            const currentRole = userDocSnap.data().role;
+            if (currentRole === "admin" || currentRole === "helper") {
+              finalRole = currentRole;
+            }
+          }
+          if (adminStatus) {
+            finalRole = "admin";
+          }
+
+          await setDoc(userDocRef, {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName || user.email.split('@')[0],
             photoURL: user.photoURL || "",
-            role: adminStatus ? "admin" : "user",
+            role: finalRole,
             lastLogin: serverTimestamp()
           }, { merge: true });
         } catch (err) {
-          console.error("Không thể lưu user info:", err);
+          console.error("Lỗi đồng bộ thông tin tài khoản:", err);
         }
       } else {
         setIsAdmin(false);

@@ -265,7 +265,19 @@ function AdminDashboard() {
         status: newStatus,
         isApproved: newStatus === "approved"
       });
-      toast.success("Đã cập nhật trạng thái CTV!");
+
+      // Tự động đồng bộ quyền người dùng trong collection 'users'
+      const helperDoc = helpers.find(h => h.id === id);
+      if (helperDoc && helperDoc.email) {
+        const matchedUser = users.find(u => u.email?.toLowerCase() === helperDoc.email.toLowerCase());
+        if (matchedUser) {
+          await updateDoc(doc(db, "users", matchedUser.id), {
+            role: newStatus === "approved" ? "helper" : "user"
+          });
+        }
+      }
+
+      toast.success("Đã cập nhật trạng thái CTV & Đồng bộ quyền!");
     } catch (err) {
       console.error("Lỗi cập nhật CTV:", err);
       toast.error("Không thể cập nhật CTV");
@@ -275,9 +287,19 @@ function AdminDashboard() {
   const handleDeleteHelper = async (id) => {
     if (confirm("Chắc chắn muốn xóa hồ sơ CTV này?")) {
       try {
+        const helperDoc = helpers.find(h => h.id === id);
+        if (helperDoc && helperDoc.email) {
+          const matchedUser = users.find(u => u.email?.toLowerCase() === helperDoc.email.toLowerCase());
+          if (matchedUser) {
+            await updateDoc(doc(db, "users", matchedUser.id), {
+              role: "user"
+            });
+          }
+        }
         await deleteDoc(doc(db, "helpers", id));
-        toast.success("Đã xóa hồ sơ CTV!");
+        toast.success("Đã xóa hồ sơ CTV và hoàn trả quyền!");
       } catch (err) {
+        console.error("Lỗi xóa hồ sơ CTV:", err);
         toast.error("Lỗi xóa hồ sơ CTV");
       }
     }

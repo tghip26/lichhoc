@@ -196,6 +196,20 @@ function Dashboard() {
     }
   }, [user, userProfile?.role]);
 
+  const [helperApplication, setHelperApplication] = useState(null);
+
+  useEffect(() => {
+    if (!user || !user.email) return;
+    const q = query(collection(db, "helpers"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const myApp = snapshot.docs
+        .map(d => d.data())
+        .find(h => h.email?.toLowerCase() === user.email.toLowerCase());
+      setHelperApplication(myApp || null);
+    }, (err) => console.error("Lỗi tải thông tin ứng tuyển CTV:", err));
+    return () => unsubscribe();
+  }, [user]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -1177,6 +1191,58 @@ function Dashboard() {
           boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
         }}>
           <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
+        </div>
+      )}
+
+      {/* KHU VỰC KÍCH HOẠT QUYỀN CTV CHO TÀI KHOẢN ĐÃ ĐƯỢC DUYỆT */}
+      {helperApplication?.isApproved && userProfile?.role === "user" && (
+        <div className="glass-panel" style={{
+          padding: "1.5rem",
+          background: "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255,255,255,1) 100%)",
+          borderLeft: "5px solid #10B981",
+          marginBottom: "0.5rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "15px"
+        }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#10B981", fontWeight: "800" }}>
+              🎉 Chúc mừng! Hồ sơ CTV của bạn đã được duyệt!
+            </h3>
+            <p style={{ margin: "5px 0 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              Hãy nhấn nút bên phải để kích hoạt giao diện Không gian CTV và Chợ nhận lớp của bạn.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                toast.loading("Đang kích hoạt...", { id: "activate-ctv" });
+                await updateDoc(doc(db, "users", user.uid), {
+                  role: "helper"
+                });
+                toast.success("Kích hoạt CTV thành công! Hãy tải lại trang.", { id: "activate-ctv" });
+              } catch (err) {
+                console.error(err);
+                toast.error("Lỗi kích hoạt: " + err.message, { id: "activate-ctv" });
+              }
+            }}
+            className="btn btn-primary"
+            style={{
+              background: "#10B981",
+              borderColor: "#10B981",
+              color: "white",
+              padding: "0.6rem 1.2rem",
+              borderRadius: "10px",
+              fontWeight: "750",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25)"
+            }}
+          >
+            🚀 Kích hoạt Giao diện CTV
+          </button>
         </div>
       )}
 
