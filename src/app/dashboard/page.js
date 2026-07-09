@@ -162,7 +162,7 @@ function Dashboard() {
       if (userProfile?.role === "helper" || userProfile?.role === "admin") {
         const qOpen = query(
           collection(db, "schedules"),
-          where("status", "in", ["paid", "accepted"])
+          where("status", "in", ["paid", "accepted", "in_progress"])
         );
         unsubscribeOpenJobs = onSnapshot(qOpen, (snapshot) => {
           const openData = snapshot.docs
@@ -964,7 +964,7 @@ function Dashboard() {
                           <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao thợ:</span>
                           <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
                         </div>
-                        {job.status === "accepted" && (
+                        {(job.status === "accepted" || job.status === "in_progress") && (
                           <button
                             type="button"
                             onClick={() => {
