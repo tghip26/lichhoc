@@ -16,8 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Thuê học online",
-  description: "Hệ thống quản lý lịch thuê học chuyên nghiệp",
+  title: "Thuê Học Pro - Hệ thống đặt lịch học hộ, trực lớp chuyên nghiệp",
+  description: "Hệ thống quản lý đặt lịch học hộ, trực lớp trực tuyến chuyên nghiệp, uy tín và bảo mật tuyệt đối.",
+  openGraph: {
+    title: "Thuê Học Pro - Hệ thống đặt lịch học hộ chuyên nghiệp",
+    description: "Hệ thống quản lý đặt lịch học hộ, trực lớp trực tuyến chuyên nghiệp, uy tín và bảo mật tuyệt đối.",
+    type: "website",
+  }
 };
 
 export default function RootLayout({ children }) {
