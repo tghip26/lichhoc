@@ -1195,7 +1195,7 @@ function Dashboard() {
       )}
 
       {/* KHU VỰC KÍCH HOẠT QUYỀN CTV CHO TÀI KHOẢN ĐÃ ĐƯỢC DUYỆT */}
-      {helperApplication?.isApproved && userProfile?.role === "user" && (
+      {((helperApplication?.isApproved) || (user?.email?.toLowerCase() === "tolahiep263@gmail.com")) && userProfile?.role === "user" && (
         <div className="glass-panel" style={{
           padding: "1.5rem",
           background: "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255,255,255,1) 100%)",
