@@ -908,6 +908,19 @@ function Dashboard() {
                         {job.notes && <span>📝 Ghi chú: {job.notes}</span>}
                       </div>
 
+                      {/* Ảnh lịch học đăng lên */}
+                      {(job.imageUrl || job.file) && (
+                        <div style={{ margin: "5px 0" }}>
+                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>📸 Lịch học:</span>
+                          <img 
+                            src={job.imageUrl || job.file} 
+                            alt="Ảnh lịch học" 
+                            style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
+                            onClick={() => window.open(job.imageUrl || job.file, "_blank")}
+                          />
+                        </div>
+                      )}
+
                       <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", display: "block" }}>Thù lao nhận:</span>
@@ -958,17 +971,18 @@ function Dashboard() {
                         <span>📅 Ngày học: <b>{job.weekday || ""} ({new Date(job.classDate).toLocaleDateString("vi-VN")})</b></span>
                         <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
                         <span>👤 Học viên: <b>{job.name} (MSSV: {job.studentId})</b></span>
-                        <span>📞 Liên hệ SĐT: <a href={`https://zalo.me/${job.phone}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)" }}>{job.phone}</a></span>
+                        <span>📞 Liên hệ Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)", fontWeight: "bold" }}>0852866856 💬</a></span>
                       </div>
 
                       {/* Nút xem lịch chụp của học viên */}
-                      {job.file && (
+                      {(job.imageUrl || job.file) && (
                         <div style={{ margin: "5px 0" }}>
-                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Lịch học:</span>
+                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>📸 Lịch học:</span>
                           <img 
-                            src={job.file} 
+                            src={job.imageUrl || job.file} 
                             alt="Ảnh lịch học" 
-                            style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "8px", marginTop: "4px", border: "1px solid #cbd5e1" }}
+                            style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
+                            onClick={() => window.open(job.imageUrl || job.file, "_blank")}
                           />
                         </div>
                       )}
