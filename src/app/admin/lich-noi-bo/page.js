@@ -274,6 +274,41 @@ function InternalSchedulesManager() {
     }
   };
 
+  const handleDuplicateToNextWeek = async () => {
+    if (!formData.classDate) {
+      toast.error("Không có ngày học để nhân bản!");
+      return;
+    }
+    try {
+      const currentDate = new Date(formData.classDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+      
+      const newDateStr = currentDate.toISOString().split("T")[0];
+      const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+      const newWeekday = days[currentDate.getDay()];
+
+      const duplicatedData = {
+        ...formData,
+        classDate: newDateStr,
+        weekday: newWeekday,
+        rentAmount: formData.rentAmount ? Number(formData.rentAmount) : 0,
+        tipAmount: formData.tipAmount ? Number(formData.tipAmount) : 0,
+        salaryAmount: formData.salaryAmount ? Number(formData.salaryAmount) : 0,
+        staffTipAmount: formData.staffTipAmount ? Number(formData.staffTipAmount) : 0,
+        checkinStatus: "not_checked_in", // Reset checkin for next week
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, "internal_schedules"), duplicatedData);
+      toast.success(`Đã nhân bản ca học sang tuần sau (${newWeekday} ngày ${currentDate.toLocaleDateString("vi-VN")})!`);
+      setShowModal(false);
+    } catch (err) {
+      console.error("Lỗi nhân bản:", err);
+      toast.error("Không thể nhân bản lịch học!");
+    }
+  };
+
   // CSV Export helper
   const handleExportCSV = () => {
     if (schedules.length === 0) {
@@ -329,6 +364,25 @@ function InternalSchedulesManager() {
     return matchText && matchStudy && matchPay;
   });
 
+  // Extract unique past values for autocomplete datalists
+  const uniqueSubjects = Array.from(new Set(schedules.map(s => s.subject).filter(Boolean)));
+  const uniqueClassrooms = Array.from(new Set(schedules.map(s => s.classroom).filter(Boolean)));
+  const uniqueLecturers = Array.from(new Set(schedules.map(s => s.lecturer).filter(Boolean)));
+
+  // Financial summary computation
+  const startStr = currentWeekStart.toISOString().split("T")[0];
+  const endStr = getDateOfWeekday(6).toISOString().split("T")[0];
+  const weeklySchedules = schedules.filter(s => s.classDate >= startStr && s.classDate <= endStr);
+  const selectedSchedules = viewMode === "grid" ? weeklySchedules : filteredTableList;
+
+  const totalTenantIncome = selectedSchedules.reduce((acc, s) => acc + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0);
+  const totalHelperPayout = selectedSchedules.reduce((acc, s) => acc + Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0), 0);
+  const netProfit = totalTenantIncome - totalHelperPayout;
+  const totalClassesCount = selectedSchedules.length;
+  const checkedInCount = selectedSchedules.filter(s => s.checkinStatus === "checked_in").length;
+  const completedCount = selectedSchedules.filter(s => s.studyStatus === "da_hoc" || s.studyStatus === "online").length;
+  const issueCount = selectedSchedules.filter(s => s.studyStatus === "truc_trac" || s.studyStatus === "huy" || s.studyStatus === "zero_hoc").length;
+
   // Static weekday layout configuration (Monday to Sunday)
   const weekdaysConfig = [
     { name: "Thứ Hai", offset: 0 },
@@ -375,6 +429,46 @@ function InternalSchedulesManager() {
           >
              Quay lại Admin
           </button>
+        </div>
+      </div>
+
+      {/* BẢNG TỔNG HỢP TÀI CHÍNH TỰ ĐỘNG */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "1rem",
+        marginBottom: "1.5rem"
+      }}>
+        <div style={{ padding: "1rem", background: "linear-gradient(135deg, #eff6ff, #dbeafe)", border: "1px solid #bfdbfe", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "0.72rem", color: "#1e3a8a", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>💵 Tổng Thu Khách</span>
+          <span style={{ fontSize: "1.3rem", fontWeight: "900", color: "#1d4ed8" }}>{totalTenantIncome.toLocaleString("vi-VN")} đ</span>
+          <span style={{ fontSize: "0.68rem", opacity: 0.8, color: "#1e3a8a" }}>{viewMode === "grid" ? "Tuần đang xem" : "Bộ lọc hiện tại"} ({totalClassesCount} ca)</span>
+        </div>
+
+        <div style={{ padding: "1rem", background: "linear-gradient(135deg, #fffbeb, #fef3c7)", border: "1px solid #fde68a", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "0.72rem", color: "#78350f", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>💸 Tổng Chi CTV</span>
+          <span style={{ fontSize: "1.3rem", fontWeight: "900", color: "#b45309" }}>{totalHelperPayout.toLocaleString("vi-VN")} đ</span>
+          <span style={{ fontSize: "0.68rem", opacity: 0.8, color: "#78350f" }}>Gồm Lương và Tip cộng tác viên</span>
+        </div>
+
+        <div style={{ padding: "1rem", background: netProfit >= 0 ? "linear-gradient(135deg, #f0fdf4, #dcfce7)" : "linear-gradient(135deg, #fdf2f2, #fee2e2)", border: netProfit >= 0 ? "1px solid #bbf7d0" : "1px solid #fecaca", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "0.72rem", color: netProfit >= 0 ? "#14532d" : "#7f1d1d", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>📈 Lợi Nhuận Ròng</span>
+          <span style={{ fontSize: "1.3rem", fontWeight: "900", color: netProfit >= 0 ? "#15803d" : "#b91c1c" }}>{netProfit.toLocaleString("vi-VN")} đ</span>
+          <span style={{ fontSize: "0.68rem", opacity: 0.8, color: netProfit >= 0 ? "#14532d" : "#7f1d1d" }}>Tỷ suất lợi nhuận: {totalTenantIncome > 0 ? Math.round((netProfit / totalTenantIncome) * 100) : 0}%</span>
+        </div>
+
+        <div style={{ padding: "1rem", background: "white", border: "1px solid #e2e8f0", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+          <span style={{ fontSize: "0.72rem", color: "#475569", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>📊 Chỉ Số Trực Lớp</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px" }}>
+            <div>
+              <div style={{ fontSize: "0.9rem", fontWeight: "800", color: "#334155" }}>Checkin: {checkedInCount}/{totalClassesCount}</div>
+              <div style={{ fontSize: "0.68rem", opacity: 0.6 }}>Tỷ lệ: {totalClassesCount > 0 ? Math.round((checkedInCount / totalClassesCount) * 100) : 0}%</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.9rem", fontWeight: "800", color: "#16a34a" }}>Đã học: {completedCount} ca</div>
+              {issueCount > 0 && <div style={{ fontSize: "0.68rem", color: "#ef4444", fontWeight: "700" }}>Trục trặc/Hủy: {issueCount}</div>}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -827,6 +921,7 @@ function InternalSchedulesManager() {
                     required
                     placeholder="Toán cao cấp 3"
                     className="form-input"
+                    list="subjects-list"
                   />
                 </div>
 
@@ -885,6 +980,7 @@ function InternalSchedulesManager() {
                     onChange={e => setFormData({ ...formData, classroom: e.target.value })}
                     placeholder="E201"
                     className="form-input"
+                    list="classrooms-list"
                   />
                 </div>
 
@@ -896,6 +992,7 @@ function InternalSchedulesManager() {
                     onChange={e => setFormData({ ...formData, lecturer: e.target.value })}
                     placeholder="Đặng Thành Trung"
                     className="form-input"
+                    list="lecturers-list"
                   />
                 </div>
               </div>
@@ -1035,14 +1132,24 @@ function InternalSchedulesManager() {
                 Hủy bỏ
               </button>
               {isEditing && (
-                <button 
-                  type="button"
-                  onClick={() => handleDelete(editingId)}
-                  className="btn btn-danger"
-                  style={{ background: "#ef4444", color: "white" }}
-                >
-                  Xóa Lịch Học
-                </button>
+                <>
+                  <button 
+                    type="button"
+                    onClick={handleDuplicateToNextWeek}
+                    className="btn"
+                    style={{ background: "#4f46e5", color: "white", fontWeight: "700" }}
+                  >
+                    👯 Nhân bản ca tuần sau
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => handleDelete(editingId)}
+                    className="btn btn-danger"
+                    style={{ background: "#ef4444", color: "white" }}
+                  >
+                    Xóa Lịch Học
+                  </button>
+                </>
               )}
               <button 
                 type="submit"
@@ -1054,6 +1161,17 @@ function InternalSchedulesManager() {
           </form>
         </div>
       )}
+
+      {/* Autocomplete Datalists gợi ý nhập liệu */}
+      <datalist id="subjects-list">
+        {uniqueSubjects.map((s, idx) => <option key={idx} value={s} />)}
+      </datalist>
+      <datalist id="classrooms-list">
+        {uniqueClassrooms.map((c, idx) => <option key={idx} value={c} />)}
+      </datalist>
+      <datalist id="lecturers-list">
+        {uniqueLecturers.map((l, idx) => <option key={idx} value={l} />)}
+      </datalist>
     </div>
   );
 }
