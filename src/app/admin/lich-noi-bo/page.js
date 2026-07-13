@@ -67,6 +67,19 @@ function InternalSchedulesManager() {
     timeSlot: ""
   });
 
+  // Responsive states
+  const [isMobile, setIsMobile] = useState(false);
+  const [selectedMobileDayOffset, setSelectedMobileDayOffset] = useState(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Load Firestore Data
   useEffect(() => {
     if (!user || !isAdmin) return;
@@ -309,6 +322,121 @@ function InternalSchedulesManager() {
     }
   };
 
+  const renderMobileGridView = () => {
+    const activeDateStr = getDateOfWeekday(selectedMobileDayOffset).toISOString().split("T")[0];
+    const morningJobs = getSchedulesForCell(activeDateStr, "sang");
+    const afternoonJobs = getSchedulesForCell(activeDateStr, "chieu");
+    const eveningJobs = getSchedulesForCell(activeDateStr, "toi");
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* Horizontal scrollable Day selector tabs */}
+        <div 
+          className="hide-scrollbar" 
+          style={{ 
+            display: "flex", 
+            gap: "8px", 
+            overflowX: "auto", 
+            paddingBottom: "8px", 
+            marginBottom: "8px",
+            WebkitOverflowScrolling: "touch"
+          }}
+        >
+          {weekdaysConfig.map((day, idx) => {
+            const dayDate = getDateOfWeekday(day.offset);
+            const isSelected = selectedMobileDayOffset === day.offset;
+            const isToday = new Date().toDateString() === dayDate.toDateString();
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedMobileDayOffset(day.offset)}
+                style={{
+                  flexShrink: 0, 
+                  padding: "8px 12px", 
+                  borderRadius: "10px", 
+                  border: "1px solid",
+                  borderColor: isSelected ? "var(--primary)" : isToday ? "rgba(79,70,229,0.3)" : "#cbd5e1",
+                  background: isSelected ? "var(--primary)" : "white",
+                  color: isSelected ? "white" : isToday ? "var(--primary)" : "var(--text-primary)",
+                  fontWeight: "750", 
+                  cursor: "pointer", 
+                  fontSize: "0.78rem",
+                  textAlign: "center"
+                }}
+              >
+                <div>{day.name}</div>
+                <div style={{ fontSize: "0.65rem", opacity: isSelected ? "0.9" : "0.55", fontWeight: "600", marginTop: "2px" }}>
+                  {dayDate.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" })}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Ca Sáng */}
+        <div style={{ background: "white", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+          <h4 style={{ margin: "0 0 10px 0", color: "#475569", fontWeight: "800", fontSize: "0.85rem" }}>
+            🌅 CA SÁNG ({morningJobs.length})
+          </h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {morningJobs.map(job => renderGridCard(job))}
+            <button
+              type="button"
+              onClick={() => openAddModal(activeDateStr, "sang")}
+              style={{
+                width: "100%", padding: "8px", border: "2px dashed #cbd5e1", borderRadius: "8px",
+                background: "none", color: "#94a3b8", fontSize: "0.72rem", cursor: "pointer", fontWeight: "700"
+              }}
+            >
+              + Thêm ca sáng
+            </button>
+          </div>
+        </div>
+
+        {/* Ca Chiều */}
+        <div style={{ background: "white", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+          <h4 style={{ margin: "0 0 10px 0", color: "#475569", fontWeight: "800", fontSize: "0.85rem" }}>
+            ☀️ CA CHIỀU ({afternoonJobs.length})
+          </h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {afternoonJobs.map(job => renderGridCard(job))}
+            <button
+              type="button"
+              onClick={() => openAddModal(activeDateStr, "chieu")}
+              style={{
+                width: "100%", padding: "8px", border: "2px dashed #cbd5e1", borderRadius: "8px",
+                background: "none", color: "#94a3b8", fontSize: "0.72rem", cursor: "pointer", fontWeight: "700"
+              }}
+            >
+              + Thêm ca chiều
+            </button>
+          </div>
+        </div>
+
+        {/* Ca Tối */}
+        <div style={{ background: "white", borderRadius: "14px", padding: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+          <h4 style={{ margin: "0 0 10px 0", color: "#475569", fontWeight: "800", fontSize: "0.85rem" }}>
+            🌙 CA TỐI ({eveningJobs.length})
+          </h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {eveningJobs.map(job => renderGridCard(job))}
+            <button
+              type="button"
+              onClick={() => openAddModal(activeDateStr, "toi")}
+              style={{
+                width: "100%", padding: "8px", border: "2px dashed #cbd5e1", borderRadius: "8px",
+                background: "none", color: "#94a3b8", fontSize: "0.72rem", cursor: "pointer", fontWeight: "700"
+              }}
+            >
+              + Thêm ca tối
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // CSV Export helper
   const handleExportCSV = () => {
     if (schedules.length === 0) {
@@ -549,7 +677,8 @@ function InternalSchedulesManager() {
 
       {/* RENDER GRID VIEW (Weekly Timetable) */}
       {viewMode === "grid" && (
-        <div style={{ overflowX: "auto" }}>
+        isMobile ? renderMobileGridView() : (
+          <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "6px", minWidth: "1000px" }}>
             <thead>
               <tr>
@@ -674,6 +803,7 @@ function InternalSchedulesManager() {
             </tbody>
           </table>
         </div>
+        )
       )}
 
       {/* RENDER TABLE VIEW (Spreadsheet style) */}
@@ -882,7 +1012,7 @@ function InternalSchedulesManager() {
           <form 
             onSubmit={handleSave}
             style={{
-              background: "white", borderRadius: "24px", padding: "2rem",
+              background: "white", borderRadius: isMobile ? "16px" : "24px", padding: isMobile ? "1.25rem" : "2rem",
               maxWidth: "680px", width: "100%", maxHeight: "90vh", overflowY: "auto",
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)"
             }}
@@ -895,8 +1025,8 @@ function InternalSchedulesManager() {
               <button type="button" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
             </div>
 
-            {/* FORM CONTAINER WITH 2 COLUMNS */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginBottom: "1.5rem" }}>
+            {/* FORM CONTAINER WITH 2 COLUMNS - RESPONSIVE */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "15px", marginBottom: "1.5rem" }}>
               
               {/* Column 1 */}
               <div>
