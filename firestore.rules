@@ -79,5 +79,10 @@ service cloud.firestore {
       // Chỉ Admin mới được xóa hồ sơ đăng ký CTV
       allow delete: if isAdmin();
     }
+
+    // 8. Quy tắc cho bộ sưu tập 'internal_schedules' (Lịch nội bộ Admin tự quản lý)
+    match /internal_schedules/{scheduleId} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
   }
 }
