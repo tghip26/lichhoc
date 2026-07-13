@@ -1313,16 +1313,17 @@ function AdminDashboard() {
                   <tr>
                     <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Cộng tác viên</th>
                     <th>Trường / Lớp</th>
+                    <th>Tài khoản & Ví</th>
                     <th>Liên hệ</th>
-                    <th>Năng lực & Giờ rảnh</th>
-                    <th>Ảnh chân dung/Thẻ SV</th>
+                    <th>Lịch rảnh & Giới thiệu</th>
+                    <th>Thẻ SV</th>
                     <th>Trạng thái</th>
                     <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredHelpers.length === 0 ? (
-                    <tr><td colSpan="7" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy hồ sơ cộng tác viên nào.</td></tr>
+                    <tr><td colSpan="8" style={{textAlign:"center", padding:"2rem", color:"var(--text-secondary)"}}>Không tìm thấy hồ sơ cộng tác viên nào.</td></tr>
                   ) : filteredHelpers.map((h) => (
                     <tr key={h.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 1.5rem" }}>
@@ -1346,6 +1347,47 @@ function AdminDashboard() {
                       <td>
                         <div style={{ fontWeight: 600 }}>{h.school}</div>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Lớp: {h.className}</div>
+                      </td>
+                      <td>
+                        {(() => {
+                          const matchedUser = users.find(u => u.email?.toLowerCase() === h.email?.toLowerCase());
+                          if (!matchedUser) {
+                            return <span style={{ color: "var(--text-secondary)", fontStyle: "italic", fontSize: "0.85rem" }}>Chưa liên kết tài khoản</span>;
+                          }
+                          return (
+                            <div style={{ fontSize: "0.85rem", lineHeight: "1.4" }}>
+                              <div>Tên TK: <b>{matchedUser.displayName || "Chưa đặt"}</b></div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                                <span>Quyền:</span>
+                                <span style={{
+                                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+                                  background: matchedUser.role === "helper" ? "#dcfce7" : matchedUser.role === "admin" ? "#fee2e2" : "#f1f5f9",
+                                  color: matchedUser.role === "helper" ? "#166534" : matchedUser.role === "admin" ? "#991b1b" : "#475569"
+                                }}>
+                                  {matchedUser.role || "user"}
+                                </span>
+                              </div>
+                              <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span>Ví: <strong style={{ color: "var(--success)" }}>{(matchedUser.balance || 0).toLocaleString("vi-VN")} đ</strong></span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const amount = prompt(`Nhập số tiền muốn nạp/trừ cho CTV ${h.name} (Ví dụ: 100000 để cộng, -50000 để trừ):`);
+                                    if (amount && !isNaN(amount)) {
+                                      handleAdjustBalance(matchedUser.id, Number(amount));
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "2px 6px", background: "var(--primary)", color: "white",
+                                    border: "none", borderRadius: "4px", fontSize: "0.68rem", fontWeight: "700", cursor: "pointer"
+                                  }}
+                                >
+                                  ✏️ Nạp/Trừ
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{h.email}</div>
