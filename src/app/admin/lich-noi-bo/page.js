@@ -251,20 +251,33 @@ function InternalSchedulesManager() {
     e.preventDefault();
     const formattedData = {
       ...formData,
-      rentAmount: formData.rentAmount ? Number(formData.rentAmount) : 0,
-      tipAmount: formData.tipAmount ? Number(formData.tipAmount) : 0,
-      salaryAmount: formData.salaryAmount ? Number(formData.salaryAmount) : 0,
-      staffTipAmount: formData.staffTipAmount ? Number(formData.staffTipAmount) : 0,
+      rentAmount: formData.rentAmount ? Number(String(formData.rentAmount).replace(/\D/g, "")) : 0,
+      tipAmount: formData.tipAmount ? Number(String(formData.tipAmount).replace(/\D/g, "")) : 0,
+      salaryAmount: formData.salaryAmount ? Number(String(formData.salaryAmount).replace(/\D/g, "")) : 0,
+      staffTipAmount: formData.staffTipAmount ? Number(String(formData.staffTipAmount).replace(/\D/g, "")) : 0,
       updatedAt: serverTimestamp()
     };
 
+    // Sanitize to avoid Firestore crash
+    const sanitizedData = {};
+    Object.keys(formattedData).forEach(key => {
+      const val = formattedData[key];
+      if (val === undefined) {
+        sanitizedData[key] = "";
+      } else if (typeof val === "number" && isNaN(val)) {
+        sanitizedData[key] = 0;
+      } else {
+        sanitizedData[key] = val;
+      }
+    });
+
     try {
       if (isEditing) {
-        await updateDoc(doc(db, "internal_schedules", editingId), formattedData);
+        await updateDoc(doc(db, "internal_schedules", editingId), sanitizedData);
         toast.success("Đã cập nhật lịch học nội bộ!");
       } else {
-        formattedData.createdAt = serverTimestamp();
-        await addDoc(collection(db, "internal_schedules"), formattedData);
+        sanitizedData.createdAt = serverTimestamp();
+        await addDoc(collection(db, "internal_schedules"), sanitizedData);
         toast.success("Đã thêm lịch học nội bộ mới!");
       }
       setShowModal(false);
@@ -304,16 +317,29 @@ function InternalSchedulesManager() {
         ...formData,
         classDate: newDateStr,
         weekday: newWeekday,
-        rentAmount: formData.rentAmount ? Number(formData.rentAmount) : 0,
-        tipAmount: formData.tipAmount ? Number(formData.tipAmount) : 0,
-        salaryAmount: formData.salaryAmount ? Number(formData.salaryAmount) : 0,
-        staffTipAmount: formData.staffTipAmount ? Number(formData.staffTipAmount) : 0,
+        rentAmount: formData.rentAmount ? Number(String(formData.rentAmount).replace(/\D/g, "")) : 0,
+        tipAmount: formData.tipAmount ? Number(String(formData.tipAmount).replace(/\D/g, "")) : 0,
+        salaryAmount: formData.salaryAmount ? Number(String(formData.salaryAmount).replace(/\D/g, "")) : 0,
+        staffTipAmount: formData.staffTipAmount ? Number(String(formData.staffTipAmount).replace(/\D/g, "")) : 0,
         checkinStatus: "not_checked_in", // Reset checkin for next week
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, "internal_schedules"), duplicatedData);
+      // Sanitize
+      const sanitizedData = {};
+      Object.keys(duplicatedData).forEach(key => {
+        const val = duplicatedData[key];
+        if (val === undefined) {
+          sanitizedData[key] = "";
+        } else if (typeof val === "number" && isNaN(val)) {
+          sanitizedData[key] = 0;
+        } else {
+          sanitizedData[key] = val;
+        }
+      });
+
+      await addDoc(collection(db, "internal_schedules"), sanitizedData);
       toast.success(`Đã nhân bản ca học sang tuần sau (${newWeekday} ngày ${currentDate.toLocaleDateString("vi-VN")})!`);
       setShowModal(false);
     } catch (err) {
@@ -521,6 +547,105 @@ function InternalSchedulesManager() {
     { name: "Thứ Bảy", offset: 5 },
     { name: "Chủ Nhật", offset: 6 }
   ];
+
+  // RENDER COLORFUL STUDY STATUS PILL
+  const renderStatusPill = (statusKey) => {
+    const config = studyStatuses[statusKey] || studyStatuses.chua_hoc;
+    return (
+      <span style={{
+        fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "750",
+        background: config.bg, color: config.text, border: `1px solid ${config.border}`
+      }}>
+        {config.label}
+      </span>
+    );
+  };
+
+  // RENDER THE GRID CARD COMPONENT
+  const renderGridCard = (item) => {
+    const borderLeftColor = studyStatuses[item.studyStatus]?.border || "#cbd5e1";
+    
+    return (
+      <div 
+        key={item.id}
+        onClick={() => openEditModal(item)}
+        style={{
+          background: "white", borderRadius: "10px", padding: "10px",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.03)", border: "1px solid #e2e8f0",
+          borderLeft: `5px solid ${borderLeftColor}`, cursor: "pointer",
+          transition: "transform 0.15s, box-shadow 0.15s",
+          display: "flex", flexDirection: "column", gap: "5px",
+          textAlign: "left", fontSize: "0.78rem"
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.06)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.03)";
+        }}
+      >
+        {/* Header / Subject */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "4px" }}>
+          <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {item.studentName}
+          </span>
+          <span style={{ fontSize: "0.68rem", opacity: 0.6, fontWeight: "600" }}>{item.timeSlot || ""}</span>
+        </div>
+        
+        <div style={{ opacity: 0.85, color: "#334155", lineHeight: "1.4" }}>
+          <b>Môn:</b> {item.subject}<br/>
+          {item.classroom && <><b>Phòng:</b> {item.classroom}<br/></>}
+          {item.lecturer && <><b>GV:</b> {item.lecturer}<br/></>}
+          <span style={{ color: "#4f46e5", fontWeight: "700" }}>
+            👤 {item.helperName || "(Chưa giao CTV)"}
+          </span>
+        </div>
+
+        {/* Render sub-info badges matching the spreadsheet view */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px", borderTop: "1px dashed #f1f5f9", paddingTop: "5px" }}>
+          {/* Study Status */}
+          {renderStatusPill(item.studyStatus)}
+
+          {/* Checkin Status */}
+          <span style={{
+            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+            background: item.checkinStatus === "checked_in" ? "#dcfce7" : "#fee2e2",
+            color: item.checkinStatus === "checked_in" ? "#166534" : "#b91c1c"
+          }}>
+            {item.checkinStatus === "checked_in" ? "Checkin" : "Chưa CK"}
+          </span>
+
+          {/* Payment Status (Tenant) */}
+          <span style={{
+            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+            background: "#dbeafe", color: "#1d4ed8"
+          }}>
+            {item.paymentStatus}{item.rentAmount > 0 ? ` | +${Number(item.rentAmount).toLocaleString("vi-VN")}đ` : ""}
+          </span>
+
+          {/* Salary Status */}
+          <span style={{
+            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+            background: "#fef3c7", color: "#b45309"
+          }}>
+            {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
+          </span>
+
+          {/* Tip / Extra tip for Staff if present */}
+          {item.staffTipAmount > 0 && (
+            <span style={{
+              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+              background: "#e0f2fe", color: "#0369a1"
+            }}>
+              +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip Staff
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ padding: "2rem", minHeight: "100vh", background: "#f8fafc" }}>
@@ -899,104 +1024,7 @@ function InternalSchedulesManager() {
         </div>
       )}
 
-      {/* RENDER THE GRID CARD COMPONENT */}
-      {function renderGridCard(item) {
-        const borderLeftColor = studyStatuses[item.studyStatus]?.border || "#cbd5e1";
-        
-        return (
-          <div 
-            key={item.id}
-            onClick={() => openEditModal(item)}
-            style={{
-              background: "white", borderRadius: "10px", padding: "10px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.03)", border: "1px solid #e2e8f0",
-              borderLeft: `5px solid ${borderLeftColor}`, cursor: "pointer",
-              transition: "transform 0.15s, box-shadow 0.15s",
-              display: "flex", flexDirection: "column", gap: "5px",
-              textAlign: "left", fontSize: "0.78rem"
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.06)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = "none";
-              e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.03)";
-            }}
-          >
-            {/* Header / Subject */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "4px" }}>
-              <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {item.studentName}
-              </span>
-              <span style={{ fontSize: "0.68rem", opacity: 0.6, fontWeight: "600" }}>{item.timeSlot || ""}</span>
-            </div>
-            
-            <div style={{ opacity: 0.85, color: "#334155", lineHeight: "1.4" }}>
-              <b>Môn:</b> {item.subject}<br/>
-              {item.classroom && <><b>Phòng:</b> {item.classroom}<br/></>}
-              {item.lecturer && <><b>GV:</b> {item.lecturer}<br/></>}
-              <span style={{ color: "#4f46e5", fontWeight: "700" }}>
-                👤 {item.helperName || "(Chưa giao CTV)"}
-              </span>
-            </div>
-
-            {/* Render sub-info badges matching the spreadsheet view (image 1) */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "3px", borderTop: "1px dashed #f1f5f9", paddingTop: "5px" }}>
-              {/* Study Status */}
-              {renderStatusPill(item.studyStatus)}
-
-              {/* Checkin Status */}
-              <span style={{
-                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-                background: item.checkinStatus === "checked_in" ? "#dcfce7" : "#fee2e2",
-                color: item.checkinStatus === "checked_in" ? "#166534" : "#b91c1c"
-              }}>
-                {item.checkinStatus === "checked_in" ? "Checkin" : "Chưa CK"}
-              </span>
-
-              {/* Payment Status (Tenant) */}
-              <span style={{
-                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-                background: "#dbeafe", color: "#1d4ed8"
-              }}>
-                {item.paymentStatus}{item.rentAmount > 0 ? ` | +${Number(item.rentAmount).toLocaleString("vi-VN")}đ` : ""}{item.tipAmount > 0 ? ` (+${Number(item.tipAmount).toLocaleString("vi-VN")}đ)` : ""}
-              </span>
-
-              {/* Salary Status */}
-              <span style={{
-                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-                background: "#fef3c7", color: "#b45309"
-              }}>
-                {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
-              </span>
-
-              {/* Tip / Extra tip for Staff if present */}
-              {item.staffTipAmount > 0 && (
-                <span style={{
-                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-                  background: "#e0f2fe", color: "#0369a1"
-                }}>
-                  +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip Staff
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      }}
-
-      {/* RENDER COLORFUL STUDY STATUS PILL */}
-      {function renderStatusPill(statusKey) {
-        const config = studyStatuses[statusKey] || studyStatuses.chua_hoc;
-        return (
-          <span style={{
-            fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "750",
-            background: config.bg, color: config.text, border: `1px solid ${config.border}`
-          }}>
-            {config.label}
-          </span>
-        );
-      }}
+      {/* Helper functions are now declared above the return block */}
 
       {/* FORM MODAL (Add / Edit) */}
       {showModal && (
@@ -1185,67 +1213,91 @@ function InternalSchedulesManager() {
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Tiền thuê học (rentAmount)</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.rentAmount}
-                    onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
-                    placeholder="Ví dụ: 120.000"
+                    onChange={e => setFormData({ ...formData, rentAmount: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Ví dụ: 100000"
                     className="form-input"
                   />
+                  {formData.rentAmount && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
+                      Hiển thị: {Number(formData.rentAmount).toLocaleString("vi-VN")}đ
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip kiểm tra/thuyết trình (tipAmount)</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.tipAmount}
-                    onChange={e => setFormData({ ...formData, tipAmount: e.target.value })}
-                    placeholder="Ví dụ: 30.000"
+                    onChange={e => setFormData({ ...formData, tipAmount: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Ví dụ: 30000"
                     className="form-input"
                   />
+                  {formData.tipAmount && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
+                      Hiển thị: {Number(formData.tipAmount).toLocaleString("vi-VN")}đ
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền người thuê</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.paymentStatus}
                     onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
-                    placeholder="Ví dụ: ChưaTT, +120.000 (4T)"
                     className="form-input"
-                  />
+                    style={{ background: "white" }}
+                  >
+                    <option value="ChưaTT">Chưa thanh toán (ChưaTT)</option>
+                    <option value="Đã thanh toán">Đã thanh toán ✓</option>
+                  </select>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Tiền trả lương CTV (salaryAmount)</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.salaryAmount}
-                    onChange={e => setFormData({ ...formData, salaryAmount: e.target.value })}
-                    placeholder="Ví dụ: 75.000"
+                    onChange={e => setFormData({ ...formData, salaryAmount: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Ví dụ: 75000"
                     className="form-input"
                   />
+                  {formData.salaryAmount && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
+                      Hiển thị: {Number(formData.salaryAmount).toLocaleString("vi-VN")}đ
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái trả lương CTV</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.salaryStatus}
                     onChange={e => setFormData({ ...formData, salaryStatus: e.target.value })}
-                    placeholder="Ví dụ: ChưaTL, ĐãTL, -75.000"
                     className="form-input"
-                  />
+                    style={{ background: "white" }}
+                  >
+                    <option value="ChưaTL">Chưa trả lương (ChưaTL)</option>
+                    <option value="Đã trả lương">Đã trả lương ✓</option>
+                  </select>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip cho nhân viên/CTV (staffTipAmount)</label>
                   <input
-                    type="number"
+                    type="text"
                     value={formData.staffTipAmount}
-                    onChange={e => setFormData({ ...formData, staffTipAmount: e.target.value })}
-                    placeholder="Ví dụ: 15.000"
+                    onChange={e => setFormData({ ...formData, staffTipAmount: e.target.value.replace(/\D/g, "") })}
+                    placeholder="Ví dụ: 15000"
                     className="form-input"
                   />
+                  {formData.staffTipAmount && (
+                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
+                      Hiển thị: {Number(formData.staffTipAmount).toLocaleString("vi-VN")}đ
+                    </div>
+                  )}
                 </div>
               </div>
 

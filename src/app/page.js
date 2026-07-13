@@ -21,11 +21,16 @@ export default function Home() {
   const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    // Lấy 6 đánh giá mới nhất
-    const qReviews = query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(6));
+    // Lấy tối đa 50 đánh giá mới nhất rồi sắp xếp ở phía máy khách
+    const qReviews = query(collection(db, "reviews"), limit(50));
     const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
       const rData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setReviews(rData);
+      rData.sort((a, b) => {
+        const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+        const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+        return timeB - timeA;
+      });
+      setReviews(rData.slice(0, 6));
     }, (err) => console.error("Lỗi tải reviews:", err));
 
     return () => unsubscribeReviews();

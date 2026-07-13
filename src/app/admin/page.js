@@ -24,10 +24,11 @@ function AdminDashboard() {
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [sortBy, setSortBy] = useState("newest"); // "newest", "oldest", "dateNearest", "priceHigh", "priceLow"
 
-  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users" or "helpers"
+  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "users" or "helpers" or "reviews"
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [helpers, setHelpers] = useState([]);
+  const [reviews, setReviews] = useState([]);
 
   const [settingsForm, setSettingsForm] = useState({
     bankName: "MBBank",
@@ -92,7 +93,19 @@ function AdminDashboard() {
       setTransactions(tData);
     }, (err) => console.error("Lỗi lấy transactions:", err));
 
-    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); unsubscribeTrans(); };
+    // Lấy dữ liệu đánh giá học viên (reviews)
+    const qReviews = query(collection(db, "reviews"));
+    const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
+      const rData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      rData.sort((a, b) => {
+        const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+      setReviews(rData);
+    }, (err) => console.error("Lỗi lấy reviews:", err));
+
+    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); unsubscribeTrans(); unsubscribeReviews(); };
   }, []);
 
   const handleUpdateStatus = async (id, newStatus) => {
@@ -301,6 +314,18 @@ function AdminDashboard() {
       } catch (err) {
         console.error("Lỗi xóa hồ sơ CTV:", err);
         toast.error("Lỗi xóa hồ sơ CTV");
+      }
+    }
+  };
+
+  const handleDeleteReview = async (id) => {
+    if (confirm("Bạn có chắc chắn muốn xóa đánh giá này không?")) {
+      try {
+        await deleteDoc(doc(db, "reviews", id));
+        toast.success("Đã xóa đánh giá thành công!");
+      } catch (err) {
+        console.error("Lỗi xóa đánh giá:", err);
+        toast.error("Không thể xóa đánh giá!");
       }
     }
   };
@@ -645,53 +670,59 @@ function AdminDashboard() {
         >
           <button 
             onClick={() => setActiveTab("schedules")}
-            style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "schedules" ? "var(--primary)" : "transparent", color: activeTab === "schedules" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "schedules" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "schedules" ? "var(--primary)" : "transparent", color: activeTab === "schedules" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "schedules" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             Quản lý Đơn Thuê Học
           </button>
           <button 
             onClick={() => setActiveTab("users")}
-            style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "users" ? "var(--primary)" : "transparent", color: activeTab === "users" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "users" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "users" ? "var(--primary)" : "transparent", color: activeTab === "users" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "users" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Quản lý Tài Khoản
           </button>
           <button 
             onClick={() => setActiveTab("helpers")}
-            style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "helpers" ? "var(--primary)" : "transparent", color: activeTab === "helpers" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "helpers" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "helpers" ? "var(--primary)" : "transparent", color: activeTab === "helpers" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "helpers" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
             Quản lý CTV
           </button>
           <button 
             onClick={() => setActiveTab("transactions")}
-            style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "transactions" ? "var(--primary)" : "transparent", color: activeTab === "transactions" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "transactions" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "transactions" ? "var(--primary)" : "transparent", color: activeTab === "transactions" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "transactions" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m4 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 012 2z"></path></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 16v1m4 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 012 2z"></path></svg>
             Duyệt Nạp Ví
           </button>
           <button 
-            onClick={() => setActiveTab("settings")}
-            style={{ flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: activeTab === "settings" ? "var(--primary)" : "transparent", color: activeTab === "settings" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "settings" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none" }}
+            onClick={() => setActiveTab("reviews")}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "reviews" ? "var(--primary)" : "transparent", color: activeTab === "reviews" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "reviews" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3" strokeWidth="2"></circle></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.242.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.175 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.98 12.1c-.773-.569-.375-1.81.588-1.81h4.906a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+            Quản lý Đánh Giá
+          </button>
+          <button 
+            onClick={() => setActiveTab("settings")}
+            style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "settings" ? "var(--primary)" : "transparent", color: activeTab === "settings" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "settings" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
+          >
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3" strokeWidth="2"></circle></svg>
             Cấu hình hệ thống
           </button>
           <Link 
             href="/admin/lich-noi-bo"
             style={{ 
-              flexShrink: 0, padding: "0.6rem 1.5rem", border: "none", background: "transparent", color: "var(--text-secondary)", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s", textDecoration: "none", display: "inline-flex", alignItems: "center"
+              flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: "transparent", color: "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", textDecoration: "none", display: "inline-flex", alignItems: "center", fontSize: "0.82rem"
             }}
           >
-            <svg style={{ width: "18px", height: "18px", inlineSize: "18px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
             Quản lý Lịch Nội Bộ 📅
           </Link>
-          
           <Link 
             href="/admin/thong-ke"
             style={{ 
-              flexShrink: 0, padding: "0.6rem 1.5rem", border: "1px solid var(--primary)", background: "transparent", color: "var(--primary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px"
+              flexShrink: 0, padding: "0.6rem 1.2rem", border: "1px solid var(--primary)", background: "transparent", color: "var(--primary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.82rem"
             }}
             onMouseOver={e => { e.currentTarget.style.background = "var(--primary)"; e.currentTarget.style.color = "white"; }}
             onMouseOut={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--primary)"; }}
@@ -1703,6 +1734,71 @@ function AdminDashboard() {
               </button>
             </form>
           </div>
+        )}
+
+        {/* BẢNG QUẢN LÝ ĐÁNH GIÁ */}
+        {activeTab === "reviews" && (
+          <>
+            <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+              <h2 style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)", margin: 0 }}>
+                ⭐ Quản Lý Đánh Giá Học Viên
+              </h2>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: "5px 0 0 0" }}>
+                Xem và kiểm duyệt các đánh giá của học viên được hiển thị ngoài trang chủ.
+              </p>
+            </div>
+
+            <div className="table-container glass-panel" style={{ padding: "0" }}>
+              <table style={{ width: "100%" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                    <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Học Viên</th>
+                    <th>Email</th>
+                    <th>Số sao</th>
+                    <th>Nội dung đánh giá</th>
+                    <th>Ngày đánh giá</th>
+                    <th style={{ padding: "1.5rem", borderTopRightRadius: "16px", textAlign: "center" }}>Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reviews.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)" }}>
+                        Chưa có đánh giá nào từ học viên.
+                      </td>
+                    </tr>
+                  ) : (
+                    reviews.map((r) => (
+                      <tr key={r.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "1rem 1.5rem", fontWeight: "700" }}>{r.userName}</td>
+                        <td>{r.userEmail}</td>
+                        <td>
+                          <span style={{ color: "#d97706", fontWeight: "800" }}>
+                            {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)} ({r.rating}/5)
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: "350px", wordBreak: "break-all", fontStyle: "italic" }}>
+                          "{r.comment}"
+                        </td>
+                        <td>
+                          {r.createdAt ? new Date(r.createdAt.toDate()).toLocaleString("vi-VN") : "N/A"}
+                        </td>
+                        <td style={{ padding: "1rem 1.5rem", textAlign: "center" }}>
+                          <button
+                            onClick={() => handleDeleteReview(r.id)}
+                            className="btn"
+                            style={{ padding: "4px 8px", background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", fontSize: "0.75rem", borderRadius: "6px", border: "none", cursor: "pointer" }}
+                          >
+                            Xóa Đánh Giá
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
