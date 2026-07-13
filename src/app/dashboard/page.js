@@ -56,6 +56,8 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "wallet"
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
   const [submittingTopup, setSubmittingTopup] = useState(false);
 
   // Cộng tác viên (CTV) state
@@ -156,6 +158,22 @@ function Dashboard() {
         setLoadingTransactions(false);
       });
 
+      // Lắng nghe tất cả reviews để CTV có thể lọc các nhận xét thuộc về mình
+      const qReviews = query(collection(db, "reviews"));
+      const unsubscribeReviews = onSnapshot(qReviews, (snapshot) => {
+        const rData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        rData.sort((a, b) => {
+          const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+          return timeB - timeA;
+        });
+        setReviews(rData);
+        setLoadingReviews(false);
+      }, (err) => {
+        console.error("Lỗi tải reviews:", err);
+        setLoadingReviews(false);
+      });
+
       // Lấy danh sách chợ đơn cho CTV
       let unsubscribeOpenJobs = () => {};
       let unsubscribeMyJobs = () => {};
@@ -191,6 +209,7 @@ function Dashboard() {
         unsubscribe(); 
         unsubscribeProfile(); 
         unsubscribeTrans(); 
+        unsubscribeReviews();
         unsubscribeOpenJobs();
         unsubscribeMyJobs();
       };
@@ -841,6 +860,34 @@ function Dashboard() {
           </button>
         </div>
 
+        {/* Analytics calculations */}
+        {(() => {
+          const completedJobs = myJobs.filter(job => job.status === "completed");
+          const inProgressJobs = myJobs.filter(job => job.status === "accepted" || job.status === "in_progress" || job.status === "proof_submitted");
+          
+          // Sum up base payout + staffTipAmount
+          const totalEarned = completedJobs.reduce((sum, job) => {
+            const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+            const basePayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
+            const extraTip = job.staffTipAmount ? Number(job.staffTipAmount) : 0;
+            return sum + basePayout + extraTip;
+          }, 0);
+
+          // Filter reviews belonging to this helper's completed jobs
+          const myReviews = reviews.filter(r => myJobs.some(job => job.id === r.scheduleId));
+          const averageStars = myReviews.length > 0 
+            ? (myReviews.reduce((sum, r) => sum + r.rating, 0) / myReviews.length).toFixed(1) 
+            : "N/A";
+
+          // Save calculations on component scope dynamically for rendering
+          renderCTVWorkspace.totalEarned = totalEarned;
+          renderCTVWorkspace.completedJobs = completedJobs;
+          renderCTVWorkspace.inProgressJobs = inProgressJobs;
+          renderCTVWorkspace.myReviews = myReviews;
+          renderCTVWorkspace.averageStars = averageStars;
+          return null;
+        })()}
+
         {/* CTV Tab buttons */}
         <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", overflowX: "auto", className: "hide-scrollbar" }}>
           <button
@@ -881,10 +928,29 @@ function Dashboard() {
           >
             📅 Lớp tôi nhận ({myJobs.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setCtvActiveTab("analytics")}
+            style={{
+              flexShrink: 0,
+              background: ctvActiveTab === "analytics" ? "#4F46E5" : "white",
+              color: ctvActiveTab === "analytics" ? "white" : "var(--text-secondary)",
+              border: "1px solid #cbd5e1",
+              borderRadius: "10px",
+              padding: "8px 16px",
+              fontWeight: "750",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              boxShadow: ctvActiveTab === "analytics" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+            }}
+          >
+            📊 Thống kê & Thu nhập
+          </button>
         </div>
 
         {/* CTV Tab Views */}
-        {ctvActiveTab === "job_board" ? (
+        {ctvActiveTab === "job_board" && (
           <div>
             <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>🛒 Chợ đơn thuê học trực tuyến (Sắp học)</h4>
             {openJobs.length === 0 ? (
@@ -942,7 +1008,9 @@ function Dashboard() {
               </div>
             )}
           </div>
-        ) : (
+        )}
+
+        {ctvActiveTab === "my_jobs" && (
           <div>
             <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
             {myJobs.length === 0 ? (
@@ -1019,6 +1087,112 @@ function Dashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {ctvActiveTab === "analytics" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {/* KPI CARDS */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1.25rem",
+              marginTop: "0.5rem"
+            }}>
+              <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "4px solid #10B981", background: "white", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "0.78rem", color: "#065f46", fontWeight: "750", textTransform: "uppercase" }}>💰 Tổng thù lao tích lũy</span>
+                <span style={{ fontSize: "1.45rem", fontWeight: "900", color: "#047857" }}>{renderCTVWorkspace.totalEarned.toLocaleString("vi-VN")} đ</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Đã hoàn thành {renderCTVWorkspace.completedJobs.length} ca trực</span>
+              </div>
+
+              <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "4px solid #4F46E5", background: "white", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "0.78rem", color: "#3730a3", fontWeight: "750", textTransform: "uppercase" }}>📅 Ca đang thực hiện</span>
+                <span style={{ fontSize: "1.45rem", fontWeight: "900", color: "#4338ca" }}>{renderCTVWorkspace.inProgressJobs.length} ca</span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Chờ đi học hoặc chờ duyệt thù lao</span>
+              </div>
+
+              <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "4px solid #F59E0B", background: "white", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "0.78rem", color: "#92400e", fontWeight: "750", textTransform: "uppercase" }}>★ Đánh giá của bạn</span>
+                <span style={{ fontSize: "1.45rem", fontWeight: "900", color: "#d97706" }}>
+                  {renderCTVWorkspace.averageStars === "N/A" ? "Chưa có" : `${renderCTVWorkspace.averageStars} / 5 ★`}
+                </span>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Dựa trên {renderCTVWorkspace.myReviews.length} lượt phản hồi</span>
+              </div>
+            </div>
+
+            {/* Chi tiết ca học đã hoàn thành */}
+            <div className="glass-panel" style={{ padding: "1.5rem", background: "white" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "1rem" }}>📋 Bảng kê chi tiết thu nhập</h3>
+              {renderCTVWorkspace.completedJobs.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)", fontSize: "0.85rem", fontStyle: "italic" }}>
+                  Bạn chưa có ca học nào được hoàn thành và thanh toán.
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #f1f5f9", textAlign: "left" }}>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tên môn / Lớp</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Ngày học</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Thù lao chính</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tiền Tip thêm</th>
+                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tổng nhận</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {renderCTVWorkspace.completedJobs.map(job => {
+                        const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                        const basePayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
+                        const extraTip = job.staffTipAmount ? Number(job.staffTipAmount) : 0;
+                        return (
+                          <tr key={job.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "10px 12px", fontWeight: "700", fontSize: "0.85rem" }}>{job.className}</td>
+                            <td style={{ padding: "10px 12px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{new Date(job.classDate).toLocaleDateString("vi-VN")}</td>
+                            <td style={{ padding: "10px 12px", fontSize: "0.85rem", fontWeight: "600" }}>{basePayout.toLocaleString("vi-VN")} đ</td>
+                            <td style={{ padding: "10px 12px", fontSize: "0.85rem", color: extraTip > 0 ? "var(--success)" : "var(--text-secondary)" }}>{extraTip > 0 ? `+${extraTip.toLocaleString("vi-VN")} đ` : "0đ"}</td>
+                            <td style={{ padding: "10px 12px", fontSize: "0.88rem", fontWeight: "800", color: "var(--success)" }}>{(basePayout + extraTip).toLocaleString("vi-VN")} đ</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Nhận xét & Đánh giá từ khách hàng */}
+            <div className="glass-panel" style={{ padding: "1.5rem", background: "white" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "800", color: "var(--text-primary)", marginBottom: "1rem" }}>💬 Nhận xét từ khách hàng ({renderCTVWorkspace.myReviews.length})</h3>
+              {renderCTVWorkspace.myReviews.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)", fontSize: "0.85rem", fontStyle: "italic" }}>
+                  Chưa có nhận xét nào dành cho bạn. Hãy làm tốt các ca học để nhận được phản hồi tốt nhé!
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {renderCTVWorkspace.myReviews.map(rev => {
+                    const matchedJob = myJobs.find(j => j.id === rev.scheduleId);
+                    return (
+                      <div key={rev.id} style={{ padding: "12px 1rem", border: "1px solid #e2e8f0", borderRadius: "12px", background: "#f8fafc", textAlign: "left" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                          <span style={{ fontWeight: "750", fontSize: "0.85rem" }}>👤 {rev.userName || "Khách"}</span>
+                          <span style={{ fontSize: "0.78rem", color: "#d97706", fontWeight: "800" }}>
+                            {"★".repeat(rev.rating)}{"☆".repeat(5 - rev.rating)} ({rev.rating}/5)
+                          </span>
+                        </div>
+                        {matchedJob && (
+                          <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                            Môn học: <b>{matchedJob.className}</b> ngày {new Date(matchedJob.classDate).toLocaleDateString("vi-VN")}
+                          </div>
+                        )}
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-primary)", fontStyle: "italic", lineHeight: "1.4" }}>
+                          "{rev.comment}"
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
