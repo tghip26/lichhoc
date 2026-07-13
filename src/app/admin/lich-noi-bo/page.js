@@ -736,7 +736,7 @@ function InternalSchedulesManager() {
                 fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
                 background: "#dbeafe", color: "#1d4ed8"
               }}>
-                {item.paymentStatus}
+                {item.paymentStatus}{item.rentAmount > 0 ? ` | +${Number(item.rentAmount).toLocaleString("vi-VN")}đ` : ""}{item.tipAmount > 0 ? ` (+${Number(item.tipAmount).toLocaleString("vi-VN")}đ)` : ""}
               </span>
 
               {/* Salary Status */}
@@ -744,7 +744,7 @@ function InternalSchedulesManager() {
                 fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
                 background: "#fef3c7", color: "#b45309"
               }}>
-                {item.salaryStatus}
+                {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
               </span>
 
               {/* Tip / Extra tip for Staff if present */}
@@ -753,7 +753,7 @@ function InternalSchedulesManager() {
                   fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
                   background: "#e0f2fe", color: "#0369a1"
                 }}>
-                  +{item.staffTipAmount / 1000}K Staff
+                  +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip Staff
                 </span>
               )}
             </div>
@@ -961,7 +961,7 @@ function InternalSchedulesManager() {
                     type="number"
                     value={formData.rentAmount}
                     onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
-                    placeholder="Ví dụ: 120000"
+                    placeholder="Ví dụ: 120.000"
                     className="form-input"
                   />
                 </div>
@@ -972,7 +972,7 @@ function InternalSchedulesManager() {
                     type="number"
                     value={formData.tipAmount}
                     onChange={e => setFormData({ ...formData, tipAmount: e.target.value })}
-                    placeholder="Ví dụ: 30000"
+                    placeholder="Ví dụ: 30.000"
                     className="form-input"
                   />
                 </div>
@@ -983,7 +983,7 @@ function InternalSchedulesManager() {
                     type="text"
                     value={formData.paymentStatus}
                     onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
-                    placeholder="Ví dụ: ChưaTT, +120K (4T)"
+                    placeholder="Ví dụ: ChưaTT, +120.000 (4T)"
                     className="form-input"
                   />
                 </div>
@@ -994,7 +994,7 @@ function InternalSchedulesManager() {
                     type="number"
                     value={formData.salaryAmount}
                     onChange={e => setFormData({ ...formData, salaryAmount: e.target.value })}
-                    placeholder="Ví dụ: 75000"
+                    placeholder="Ví dụ: 75.000"
                     className="form-input"
                   />
                 </div>
@@ -1005,7 +1005,7 @@ function InternalSchedulesManager() {
                     type="text"
                     value={formData.salaryStatus}
                     onChange={e => setFormData({ ...formData, salaryStatus: e.target.value })}
-                    placeholder="Ví dụ: ChưaTL, ĐãTL, -75K"
+                    placeholder="Ví dụ: ChưaTL, ĐãTL, -75.000"
                     className="form-input"
                   />
                 </div>
@@ -1016,7 +1016,7 @@ function InternalSchedulesManager() {
                     type="number"
                     value={formData.staffTipAmount}
                     onChange={e => setFormData({ ...formData, staffTipAmount: e.target.value })}
-                    placeholder="Ví dụ: 15000"
+                    placeholder="Ví dụ: 15.000"
                     className="form-input"
                   />
                 </div>
