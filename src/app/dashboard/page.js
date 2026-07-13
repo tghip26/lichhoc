@@ -72,6 +72,7 @@ function Dashboard() {
   const [selectedJobForProof, setSelectedJobForProof] = useState(null);
   const [proofFile, setProofFile] = useState(null);
   const [submittingProof, setSubmittingProof] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -916,7 +917,7 @@ function Dashboard() {
                             src={job.imageUrl || job.file} 
                             alt="Ảnh lịch học" 
                             style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
-                            onClick={() => window.open(job.imageUrl || job.file, "_blank")}
+                            onClick={() => setLightboxImage(job.imageUrl || job.file)}
                           />
                         </div>
                       )}
@@ -982,7 +983,7 @@ function Dashboard() {
                             src={job.imageUrl || job.file} 
                             alt="Ảnh lịch học" 
                             style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
-                            onClick={() => window.open(job.imageUrl || job.file, "_blank")}
+                            onClick={() => setLightboxImage(job.imageUrl || job.file)}
                           />
                         </div>
                       )}
@@ -2574,6 +2575,37 @@ function Dashboard() {
               {submittingReview ? "Đang gửi nhận xét..." : "Gửi Đánh Giá Ngay"}
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Lightbox Modal phóng to ảnh */}
+      {lightboxImage && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.85)", zIndex: 9999,
+            display: "flex", justifyContent: "center", alignItems: "center",
+            padding: "1rem"
+          }}
+          onClick={() => setLightboxImage(null)}
+        >
+          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setLightboxImage(null)} 
+              style={{
+                position: "absolute", top: "-45px", right: "0",
+                background: "none", border: "none", color: "white",
+                fontSize: "2.5rem", cursor: "pointer", lineHeight: "1"
+              }}
+            >
+              &times;
+            </button>
+            <img 
+              src={lightboxImage} 
+              alt="Ảnh phóng to" 
+              style={{ maxWidth: "100%", maxHeight: "80vh", borderRadius: "12px", border: "2px solid white", boxShadow: "0 10px 25px rgba(0,0,0,0.5)" }} 
+            />
+          </div>
         </div>
       )}
 
