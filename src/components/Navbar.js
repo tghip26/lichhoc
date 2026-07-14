@@ -166,6 +166,22 @@ export default function Navbar() {
                 )}
 
                 <Link 
+                  href="/doi-ngu" 
+                  style={{ 
+                    fontWeight: pathname === "/doi-ngu" ? "700" : "500", 
+                    color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)",
+                    textDecoration: "none",
+                    transition: "all 0.2s",
+                    position: "relative"
+                  }}
+                >
+                  Đội ngũ CTV 👥
+                  {pathname === "/doi-ngu" && (
+                    <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                  )}
+                </Link>
+
+                <Link 
                   href="/tai-khoan" 
                   style={{ 
                     fontWeight: pathname === "/tai-khoan" ? "700" : "500", 
@@ -320,7 +336,55 @@ export default function Navbar() {
                 </button>
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="nav-menu-links" style={{ display: "flex", gap: "20px" }}>
+              <Link 
+                href="/doi-ngu" 
+                style={{ 
+                  fontWeight: pathname === "/doi-ngu" ? "700" : "500", 
+                  color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)",
+                  textDecoration: "none",
+                  transition: "all 0.2s",
+                  position: "relative"
+                }}
+              >
+                Đội ngũ CTV 👥
+                {pathname === "/doi-ngu" && (
+                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                )}
+              </Link>
+              <Link 
+                href="/huong-dan" 
+                style={{ 
+                  fontWeight: pathname === "/huong-dan" ? "700" : "500", 
+                  color: pathname === "/huong-dan" ? "var(--primary)" : "var(--text-secondary)",
+                  textDecoration: "none",
+                  transition: "all 0.2s",
+                  position: "relative"
+                }}
+              >
+                Hướng dẫn 📖
+                {pathname === "/huong-dan" && (
+                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                )}
+              </Link>
+              <Link 
+                href="/dieu-khoan" 
+                style={{ 
+                  fontWeight: pathname === "/dieu-khoan" ? "700" : "500", 
+                  color: pathname === "/dieu-khoan" ? "var(--primary)" : "var(--text-secondary)",
+                  textDecoration: "none",
+                  transition: "all 0.2s",
+                  position: "relative"
+                }}
+              >
+                Điều khoản ⚖️
+                {pathname === "/dieu-khoan" && (
+                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                )}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </nav>
