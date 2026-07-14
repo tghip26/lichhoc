@@ -12,9 +12,11 @@ export default function ThongKePage() {
   const router = useRouter();
 
   const [schedules, setSchedules] = useState([]);
+  const [internalSchedules, setInternalSchedules] = useState([]);
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [reportType, setReportType] = useState("customer"); // "customer" or "internal"
 
   // Phân quyền bảo vệ trang Admin
   useEffect(() => {
@@ -42,12 +44,18 @@ export default function ThongKePage() {
       setTransactions(tData);
     });
 
+    const unsubscribeInternalSchedules = onSnapshot(collection(db, "internal_schedules"), (snapshot) => {
+      const isData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setInternalSchedules(isData);
+    });
+
     setLoadingData(false);
 
     return () => {
       unsubscribeSchedules();
       unsubscribeUsers();
       unsubscribeTrans();
+      unsubscribeInternalSchedules();
     };
   }, [user, isAdmin]);
 
@@ -64,20 +72,32 @@ export default function ThongKePage() {
   }
 
   // 1. TÍNH TOÁN CÁC CHỈ SỐ TÀI CHÍNH
-  const completedSchedules = schedules.filter(s => s.status === "completed");
-  
-  // Doanh thu gộp (Tổng tiền khách đặt của các đơn đã hoàn thành)
-  const totalRevenue = completedSchedules.reduce((acc, curr) => {
-    const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-    return acc + priceNum;
-  }, 0);
+  const isCustomer = reportType === "customer";
 
-  // Chi phí thù lao CTV thực tế (Dựa trên payoutAmount của đơn đã hoàn thành, nếu chưa gán thì mặc định 75%)
-  const totalPayout = completedSchedules.reduce((acc, curr) => {
-    if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
-    const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-    return acc + Math.floor(priceNum * 0.75);
-  }, 0);
+  const completedSchedules = isCustomer
+    ? schedules.filter(s => s.status === "completed")
+    : internalSchedules.filter(s => s.studyStatus === "da_hoc" || s.studyStatus === "online");
+  
+  // Doanh thu gộp (Tổng tiền khách đặt hoặc tiền thuê học + tip)
+  const totalRevenue = isCustomer
+    ? completedSchedules.reduce((acc, curr) => {
+        const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
+        return acc + priceNum;
+      }, 0)
+    : completedSchedules.reduce((acc, curr) => {
+        return acc + Number(curr.rentAmount || 0) + Number(curr.tipAmount || 0);
+      }, 0);
+
+  // Chi phí thù lao CTV thực tế
+  const totalPayout = isCustomer
+    ? completedSchedules.reduce((acc, curr) => {
+        if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
+        const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
+        return acc + Math.floor(priceNum * 0.75);
+      }, 0)
+    : completedSchedules.reduce((acc, curr) => {
+        return acc + Number(curr.salaryAmount || 0) + Number(curr.staffTipAmount || 0);
+      }, 0);
 
   // Lợi nhuận thực tế của Admin (Doanh thu - Chi phí CTV)
   const netProfit = totalRevenue - totalPayout;
@@ -88,14 +108,22 @@ export default function ThongKePage() {
     .reduce((acc, curr) => acc + (curr.helperBalance || 0), 0);
 
   // 2. PHÂN TÍCH ĐƠN HÀNG
-  const totalOrdersCount = schedules.length;
-  const statusCounts = {
+  const totalOrdersCount = isCustomer ? schedules.length : internalSchedules.length;
+  
+  const statusCounts = isCustomer ? {
     pending: schedules.filter(s => s.status === "pending").length,
     accepted: schedules.filter(s => s.status === "accepted").length,
     in_progress: schedules.filter(s => s.status === "in_progress").length,
     proof_submitted: schedules.filter(s => s.status === "proof_submitted").length,
     completed: completedSchedules.length,
     rejected: schedules.filter(s => s.status === "rejected").length,
+  } : {
+    pending: internalSchedules.filter(s => s.studyStatus === "chua_hoc" || s.studyStatus === "dang_chot").length,
+    accepted: internalSchedules.filter(s => s.studyStatus === "sp_thi").length,
+    in_progress: internalSchedules.filter(s => s.studyStatus === "online" || s.studyStatus === "da_hoc").length,
+    proof_submitted: internalSchedules.filter(s => s.checkinStatus === "checked_in").length,
+    completed: completedSchedules.length,
+    rejected: internalSchedules.filter(s => s.studyStatus === "huy" || s.studyStatus === "zero_hoc" || s.studyStatus === "truc_trac").length,
   };
 
   // 3. THỐNG KÊ DOANH THU 7 NGÀY GẦN NHẤT (Vẽ biểu đồ SVG)
@@ -113,13 +141,23 @@ export default function ThongKePage() {
       // Tính doanh thu ngày đó
       const revForDay = completedSchedules
         .filter(s => {
-          if (!s.createdAt) return false;
-          const sTime = s.createdAt.toMillis ? s.createdAt.toMillis() : new Date(s.createdAt).getTime();
-          return sTime >= dStart && sTime <= dEnd;
+          if (isCustomer) {
+            if (!s.createdAt) return false;
+            const sTime = s.createdAt.toMillis ? s.createdAt.toMillis() : new Date(s.createdAt).getTime();
+            return sTime >= dStart && sTime <= dEnd;
+          } else {
+            if (!s.classDate) return false;
+            const sTime = new Date(s.classDate).getTime();
+            return sTime >= dStart && sTime <= dEnd;
+          }
         })
         .reduce((acc, curr) => {
-          const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-          return acc + priceNum;
+          if (isCustomer) {
+            const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
+            return acc + priceNum;
+          } else {
+            return acc + Number(curr.rentAmount || 0) + Number(curr.tipAmount || 0);
+          }
         }, 0);
 
       daysData.push({ label: dateStr, value: revForDay });
@@ -135,15 +173,24 @@ export default function ThongKePage() {
     .filter(u => u.role === "helper")
     .map(helper => {
       // Số đơn hoàn thành của helper này
-      const completedCount = completedSchedules.filter(s => s.assignedTo === helper.name).length;
+      const completedCount = isCustomer
+        ? completedSchedules.filter(s => s.assignedTo === helper.name).length
+        : completedSchedules.filter(s => s.helperName === helper.name || s.helperName === helper.alias).length;
+
       // Tổng thù lao đã kiếm
-      const totalEarned = completedSchedules
-        .filter(s => s.assignedTo === helper.name)
-        .reduce((acc, curr) => {
-          if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
-          const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-          return acc + Math.floor(priceNum * 0.75);
-        }, 0);
+      const totalEarned = isCustomer
+        ? completedSchedules
+            .filter(s => s.assignedTo === helper.name)
+            .reduce((acc, curr) => {
+              if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
+              const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
+              return acc + Math.floor(priceNum * 0.75);
+            }, 0)
+        : completedSchedules
+            .filter(s => s.helperName === helper.name || s.helperName === helper.alias)
+            .reduce((acc, curr) => {
+              return acc + Number(curr.salaryAmount || 0) + Number(curr.staffTipAmount || 0);
+            }, 0);
 
       return {
         name: helper.name,
@@ -153,6 +200,7 @@ export default function ThongKePage() {
         totalEarned
       };
     })
+    .filter(h => h.completedCount > 0)
     .sort((a, b) => b.completedCount - a.completedCount)
     .slice(0, 5); // Lấy top 5
 
@@ -160,7 +208,7 @@ export default function ThongKePage() {
     <div style={{ padding: "2rem 0", maxWidth: "1200px", margin: "0 auto" }}>
       
       {/* Header điều hướng */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
         <div>
           <h1 className="page-title" style={{ fontSize: "2rem", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
             📊 Thống Kê Doanh Thu & Tài Chính
@@ -172,6 +220,38 @@ export default function ThongKePage() {
         </Link>
       </div>
 
+      {/* Tab chuyển đổi loại báo cáo */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "2rem" }}>
+        <button
+          onClick={() => setReportType("customer")}
+          style={{
+            padding: "0.6rem 1.5rem", borderRadius: "10px",
+            background: reportType === "customer" ? "var(--primary)" : "white",
+            color: reportType === "customer" ? "white" : "var(--text-secondary)",
+            fontWeight: "700", cursor: "pointer", fontSize: "0.85rem",
+            boxShadow: reportType === "customer" ? "0 4px 12px rgba(22, 163, 74, 0.2)" : "0 2px 4px rgba(0,0,0,0.03)",
+            border: reportType === "customer" ? "none" : "1px solid #cbd5e1",
+            transition: "all 0.2s"
+          }}
+        >
+          👥 Thống kê Đơn Khách Đặt
+        </button>
+        <button
+          onClick={() => setReportType("internal")}
+          style={{
+            padding: "0.6rem 1.5rem", borderRadius: "10px",
+            background: reportType === "internal" ? "var(--primary)" : "white",
+            color: reportType === "internal" ? "white" : "var(--text-secondary)",
+            fontWeight: "700", cursor: "pointer", fontSize: "0.85rem",
+            boxShadow: reportType === "internal" ? "0 4px 12px rgba(22, 163, 74, 0.2)" : "0 2px 4px rgba(0,0,0,0.03)",
+            border: reportType === "internal" ? "none" : "1px solid #cbd5e1",
+            transition: "all 0.2s"
+          }}
+        >
+          🏢 Thống kê Lịch Nội Bộ
+        </button>
+      </div>
+
       {/* Grid thẻ thông số tài chính */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
         
@@ -179,7 +259,7 @@ export default function ThongKePage() {
         <div className="glass-panel" style={{ padding: "1.5rem", background: "linear-gradient(135deg, rgba(22,163,74,0.03) 0%, rgba(255,255,255,1) 100%)", borderLeft: "5px solid var(--primary)" }}>
           <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>TỔNG DOANH THU GỘP</span>
           <h2 style={{ fontSize: "1.8rem", color: "var(--primary)", fontWeight: "850", margin: "8px 0 0 0" }}>{totalRevenue.toLocaleString("vi-VN")} đ</h2>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "block", marginTop: "8px" }}>Từ {completedSchedules.length} đơn đã hoàn thành</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "block", marginTop: "8px" }}>Từ {completedSchedules.length} ca đã hoàn thành</span>
         </div>
 
         {/* Thù lao CTV */}
@@ -254,7 +334,7 @@ export default function ThongKePage() {
         {/* Thống kê chi tiết trạng thái đơn */}
         <div className="glass-panel" style={{ padding: "2rem" }}>
           <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem", fontWeight: "800", color: "var(--text-primary)" }}>
-            📋 Phân tích trạng thái đơn thuê học ({totalOrdersCount} đơn)
+            📋 {isCustomer ? `Phân tích trạng thái đơn thuê học (${totalOrdersCount} đơn)` : `Phân tích trạng thái lịch nội bộ (${totalOrdersCount} ca)`}
           </h3>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -262,7 +342,7 @@ export default function ThongKePage() {
             {/* Hoàn thành */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
-                <span>Hoàn thành đơn học</span>
+                <span>{isCustomer ? "Hoàn thành đơn học" : "Ca học hoàn thành (Đã học / Online)"}</span>
                 <span style={{ color: "var(--success)" }}>{statusCounts.completed} ({totalOrdersCount > 0 ? ((statusCounts.completed / totalOrdersCount) * 100).toFixed(0) : 0}%)</span>
               </div>
               <div style={{ width: "100%", height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
@@ -273,18 +353,18 @@ export default function ThongKePage() {
             {/* Đang học / Đã nhận */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
-                <span>Đang xử lý / Sắp học</span>
-                <span style={{ color: "#4F46E5" }}>{statusCounts.accepted + statusCounts.in_progress} ({totalOrdersCount > 0 ? (((statusCounts.accepted + statusCounts.in_progress) / totalOrdersCount) * 100).toFixed(0) : 0}%)</span>
+                <span>{isCustomer ? "Đang xử lý / Sắp học" : "Ca học đặc biệt (SP Thi)"}</span>
+                <span style={{ color: "#4F46E5" }}>{isCustomer ? (statusCounts.accepted + statusCounts.in_progress) : statusCounts.accepted} ({totalOrdersCount > 0 ? (((isCustomer ? (statusCounts.accepted + statusCounts.in_progress) : statusCounts.accepted) / totalOrdersCount) * 100).toFixed(0) : 0}%)</span>
               </div>
               <div style={{ width: "100%", height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: `${totalOrdersCount > 0 ? ((statusCounts.accepted + statusCounts.in_progress) / totalOrdersCount) * 100 : 0}%`, height: "100%", background: "#4F46E5" }}></div>
+                <div style={{ width: `${totalOrdersCount > 0 ? ((isCustomer ? (statusCounts.accepted + statusCounts.in_progress) : statusCounts.accepted) / totalOrdersCount) * 100 : 0}%`, height: "100%", background: "#4F46E5" }}></div>
               </div>
             </div>
 
             {/* Chờ duyệt minh chứng */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
-                <span>Chờ duyệt báo cáo (Proof submitted)</span>
+                <span>{isCustomer ? "Chờ duyệt báo cáo (Proof submitted)" : "Ca đã check-in thực tế"}</span>
                 <span style={{ color: "#D97706" }}>{statusCounts.proof_submitted} ({totalOrdersCount > 0 ? ((statusCounts.proof_submitted / totalOrdersCount) * 100).toFixed(0) : 0}%)</span>
               </div>
               <div style={{ width: "100%", height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
@@ -295,7 +375,7 @@ export default function ThongKePage() {
             {/* Chờ học viên thanh toán */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "4px" }}>
-                <span>Chờ thanh toán (Mới nộp)</span>
+                <span>{isCustomer ? "Chờ thanh toán (Mới nộp)" : "Ca đang chốt / Chưa học"}</span>
                 <span style={{ color: "#64748B" }}>{statusCounts.pending} ({totalOrdersCount > 0 ? ((statusCounts.pending / totalOrdersCount) * 100).toFixed(0) : 0}%)</span>
               </div>
               <div style={{ width: "100%", height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
