@@ -123,29 +123,38 @@ h1, h2, h3, h4, h5, h6 {
 
 .form-label {
   display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: #334155;
+  letter-spacing: 0.2px;
 }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.9);
+  padding: 0.72rem 1.1rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 12px;
+  background: #ffffff;
   font-family: inherit;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-  transition: all 0.2s;
+  font-size: 0.92rem;
+  color: var(--foreground);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--primary);
   background: white;
-  box-shadow: 0 0 0 3px var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
+}
+
+.form-input:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .file-input {
