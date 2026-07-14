@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
 
 export default function DoiNguPage() {
   const [helpers, setHelpers] = useState([]);
@@ -89,8 +88,6 @@ export default function DoiNguPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Navbar />
-
       <div style={{ maxWidth: "1200px", margin: "3rem auto", padding: "0 1.5rem", flex: 1, width: "100%" }}>
         {/* Tiêu đề đầu trang */}
         <div style={{ textAlign: "center", marginBottom: "3rem" }}>
