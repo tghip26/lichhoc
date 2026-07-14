@@ -74,8 +74,11 @@ service cloud.firestore {
     match /helpers/{helperId} {
       // Cho phép tạo khi đã đăng nhập
       allow create: if request.auth != null;
-      // Chỉ người nộp hồ sơ hoặc Admin mới được đọc hoặc cập nhật hồ sơ
-      allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      // Cho phép mọi người đọc nếu hồ sơ đã được duyệt. Hồ sơ chưa duyệt chỉ người nộp hoặc Admin được đọc.
+      allow read: if (resource.data.status == 'approved' || resource.data.isApproved == true) || 
+                    (request.auth != null && (resource.data.userId == request.auth.uid || isAdmin()));
+      // Chỉ người nộp hồ sơ hoặc Admin mới được cập nhật
+      allow update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
       // Chỉ Admin mới được xóa hồ sơ đăng ký CTV
       allow delete: if isAdmin();
     }

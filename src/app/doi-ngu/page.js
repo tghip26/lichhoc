@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { collection, query, onSnapshot, where } from "firebase/firestore";
 import Link from "next/link";
 
 export default function DoiNguPage() {
@@ -14,11 +14,12 @@ export default function DoiNguPage() {
 
   useEffect(() => {
     // 1. Tải danh sách CTV đã duyệt
-    const qHelpers = query(collection(db, "helpers"));
+    const qHelpers = query(
+      collection(db, "helpers"),
+      where("status", "==", "approved")
+    );
     const unsubscribeHelpers = onSnapshot(qHelpers, (snapshot) => {
-      const data = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(h => h.status === "approved" || h.isApproved);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setHelpers(data);
       setLoading(false);
     }, (err) => {
