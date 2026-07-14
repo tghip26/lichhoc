@@ -353,6 +353,29 @@ function AdminDashboard() {
     }
   };
 
+  const handleAdjustHelperBalance = async (uid, amount) => {
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        helperBalance: increment(amount)
+      });
+      toast.success("Đã điều chỉnh ví thù lao CTV thành công!");
+
+      await addDoc(collection(db, "notifications"), {
+        userId: uid,
+        title: amount > 0 ? "Ví thù lao CTV được cộng" : "Biến động ví thù lao CTV",
+        message: amount > 0 
+          ? `Ví thù lao CTV của bạn đã được cộng ${amount.toLocaleString("vi-VN")} đ.` 
+          : `Ví thù lao CTV của bạn đã thay đổi ${amount.toLocaleString("vi-VN")} đ.`,
+        read: false,
+        link: "/dashboard",
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error("Lỗi điều chỉnh ví CTV:", err);
+      toast.error("Không thể điều chỉnh ví CTV.");
+    }
+  };
+
   const handleApproveTransaction = async (trans) => {
     const isPayout = trans.type === "payout_request";
     const actionName = isPayout ? "duyệt RÚT THÙ LAO" : "DUYỆT nạp";
@@ -1143,7 +1166,7 @@ function AdminDashboard() {
               </div>
             </div>
 
-            {/* Thống kê Users */}
+             {/* Thống kê Users */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
               <div className="glass-panel" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.5rem", borderLeft: "4px solid var(--primary)", background: "white", borderRadius: "16px" }}>
                 <div style={{ fontSize: "2rem", color: "var(--primary)" }}>👥</div>
@@ -1157,9 +1180,18 @@ function AdminDashboard() {
               <div className="glass-panel" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.5rem", borderLeft: "4px solid #10B981", background: "white", borderRadius: "16px" }}>
                 <div style={{ fontSize: "2rem", color: "#10B981" }}>💰</div>
                 <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng số dư ví</div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng ví học viên</div>
                   <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "#10B981", marginTop: "4px" }}>
                     {users.reduce((sum, u) => sum + (u.balance || 0), 0).toLocaleString("vi-VN")} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "var(--text-secondary)" }}>VNĐ</span>
+                  </div>
+                </div>
+              </div>
+              <div className="glass-panel" style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1.5rem", borderLeft: "4px solid #8B5CF6", background: "white", borderRadius: "16px" }}>
+                <div style={{ fontSize: "2rem", color: "#8B5CF6" }}>💼</div>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>Tổng ví thù lao CTV</div>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "#8B5CF6", marginTop: "4px" }}>
+                    {users.reduce((sum, u) => sum + (u.helperBalance || 0), 0).toLocaleString("vi-VN")} <span style={{ fontSize: "0.9rem", fontWeight: "500", color: "var(--text-secondary)" }}>VNĐ</span>
                   </div>
                 </div>
               </div>
@@ -1173,7 +1205,7 @@ function AdminDashboard() {
                     <th>Email</th>
                     <th>Số điện thoại</th>
                     <th>Ngày hoạt động cuối</th>
-                    <th>Số dư Ví</th>
+                    <th>Số dư Ví (Học viên / CTV)</th>
                     <th>Quyền (Role)</th>
                     <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
                   </tr>
@@ -1228,20 +1260,40 @@ function AdminDashboard() {
                           {u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString("vi-VN") : "Chưa rõ"}
                         </div>
                       </td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <strong style={{ color: "var(--primary)", fontSize: "0.95rem" }}>{(u.balance || 0).toLocaleString("vi-VN")} đ</strong>
-                          <button 
-                            onClick={() => {
-                              const amount = prompt(`Nhập số tiền muốn nạp cho ${u.displayName || u.email} (Ví dụ: 100000 để cộng, -50000 để trừ):`);
-                              if (amount && !isNaN(amount)) {
-                                handleAdjustBalance(u.id, Number(amount));
-                              }
-                            }}
-                            style={{ padding: "4px 8px", background: "var(--primary)", color: "white", border: "none", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
-                          >
-                            ± Nạp ví
-                          </button>
+                      <td style={{ padding: "0.8rem" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {/* Student Balance */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontWeight: "600", width: "70px", textAlign: "left" }}>Học viên:</span>
+                            <strong style={{ color: "var(--primary)", fontSize: "0.88rem", minWidth: "75px", display: "inline-block", textAlign: "left" }}>{(u.balance || 0).toLocaleString("vi-VN")} đ</strong>
+                            <button 
+                              onClick={() => {
+                                const amount = prompt(`Nhập số tiền học viên muốn nạp/trừ cho ${u.displayName || u.email} (Ví dụ: 100000 để nạp, -50000 để trừ):`);
+                                if (amount && !isNaN(amount)) {
+                                  handleAdjustBalance(u.id, Number(amount));
+                                }
+                              }}
+                              style={{ padding: "3px 6px", background: "var(--primary)", color: "white", border: "none", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}
+                            >
+                              ± Nạp
+                            </button>
+                          </div>
+                          {/* CTV Payout Wallet Balance */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontWeight: "600", width: "70px", textAlign: "left" }}>CTV:</span>
+                            <strong style={{ color: "#D97706", fontSize: "0.88rem", minWidth: "75px", display: "inline-block", textAlign: "left" }}>{(u.helperBalance || 0).toLocaleString("vi-VN")} đ</strong>
+                            <button 
+                              onClick={() => {
+                                const amount = prompt(`Nhập số tiền thù lao CTV muốn điều chỉnh cho ${u.displayName || u.email} (Ví dụ: 150000 để cộng, -100000 để trừ):`);
+                                if (amount && !isNaN(amount)) {
+                                  handleAdjustHelperBalance(u.id, Number(amount));
+                                }
+                              }}
+                              style={{ padding: "3px 6px", background: "#D97706", color: "white", border: "none", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}
+                            >
+                              ± Sửa
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td>
@@ -1250,11 +1302,12 @@ function AdminDashboard() {
                           onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
                           style={{
                             padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                            background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : "rgba(100, 116, 139, 0.15)",
-                            color: u.role === "admin" ? "var(--primary)" : "var(--text-secondary)"
+                            background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : u.role === "helper" ? "rgba(139, 92, 246, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                            color: u.role === "admin" ? "var(--primary)" : u.role === "helper" ? "#8B5CF6" : "var(--text-secondary)"
                           }}
                         >
                           <option value="user" style={{color: "black"}}>Khách hàng</option>
+                          <option value="helper" style={{color: "black"}}>Cộng tác viên</option>
                           <option value="admin" style={{color: "black"}}>Quản trị viên</option>
                         </select>
                       </td>
