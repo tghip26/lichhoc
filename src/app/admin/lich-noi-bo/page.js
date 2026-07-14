@@ -593,12 +593,14 @@ function InternalSchedulesManager() {
           e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.03)";
         }}
       >
-        {/* Header / Subject */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "4px" }}>
-          <span style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {item.studentName}
-          </span>
-          <span style={{ fontSize: "0.68rem", opacity: 0.6, fontWeight: "600" }}>{item.timeSlot || ""}</span>
+        {/* Header / Student Name (Occupies entire line) */}
+        <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.85rem", wordBreak: "break-word", lineHeight: "1.3" }}>
+          {item.studentName}
+        </div>
+        
+        {/* Time Slot (Below the name) */}
+        <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", margin: "1px 0" }}>
+          ⏱️ {item.timeSlot || ""}
         </div>
         
         <div style={{ opacity: 0.85, color: "#334155", lineHeight: "1.4" }}>
