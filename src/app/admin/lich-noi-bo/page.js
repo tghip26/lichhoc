@@ -24,6 +24,7 @@ function InternalSchedulesManager() {
   // Data state
   const [schedules, setSchedules] = useState([]);
   const [helpers, setHelpers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Filter & Navigation states
@@ -51,6 +52,12 @@ function InternalSchedulesManager() {
       return { background: "#dcfce7", color: "#166534" };
     }
     return { background: "#f1f5f9", color: "#475569" };
+  };
+
+  const getHelperShiftStatus = (helperEmail) => {
+    if (!helperEmail) return false;
+    const matchedUser = users.find(u => u.email?.toLowerCase() === helperEmail.toLowerCase());
+    return matchedUser?.shiftStatus === "online";
   };
 
   // Form Modal states
@@ -121,9 +128,19 @@ function InternalSchedulesManager() {
       console.error("Lỗi tải CTV:", err);
     });
 
+    // Load Users (to get shift status)
+    const qUsers = query(collection(db, "users"));
+    const unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(data);
+    }, (err) => {
+      console.error("Lỗi tải thành viên:", err);
+    });
+
     return () => {
       unsubscribeSchedules();
       unsubscribeHelpers();
+      unsubscribeUsers();
     };
   }, [user, isAdmin]);
 
@@ -1193,11 +1210,14 @@ function InternalSchedulesManager() {
                     style={{ background: "white" }}
                   >
                     <option value="">-- Tự nhập / Chọn CTV --</option>
-                    {helpers.map(h => (
-                      <option key={h.id} value={h.alias ? `${h.alias}` : h.name}>
-                        {h.alias ? `${h.alias} (${h.name})` : h.name}
-                      </option>
-                    ))}
+                    {helpers.map(h => {
+                      const isOnline = getHelperShiftStatus(h.email);
+                      return (
+                        <option key={h.id} value={h.alias ? `${h.alias}` : h.name}>
+                          {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                   {/* Text Input backup if they want to enter a custom helper name */}
                   <input

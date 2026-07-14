@@ -227,6 +227,12 @@ function AdminDashboard() {
     }
   };
 
+  const getHelperShiftStatus = (helperEmail) => {
+    if (!helperEmail) return false;
+    const matchedUser = users.find(u => u.email?.toLowerCase() === helperEmail.toLowerCase());
+    return matchedUser?.shiftStatus === "online";
+  };
+
   const handleDeleteUser = async (uid) => {
     if (confirm("Xác nhận xóa hồ sơ người dùng này khỏi hệ thống?")) {
       try {
@@ -976,9 +982,14 @@ function AdminDashboard() {
                       style={{ padding: "4px 8px", fontSize: "0.8rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                     >
                       <option value="">-- Chưa giao việc --</option>
-                      {helpers.filter(h => h.status === 'approved').map(h => (
-                        <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name} ({h.school})</option>
-                      ))}
+                      {helpers.filter(h => h.status === 'approved').map(h => {
+                        const isOnline = getHelperShiftStatus(h.email);
+                        return (
+                          <option key={h.id} value={h.name}>
+                            {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : "(Nghỉ)"}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -1065,9 +1076,14 @@ function AdminDashboard() {
                             style={{ padding: "2px 4px", fontSize: "0.75rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "6px", width: "100%", marginTop: "2px", border: "1px solid #cbd5e1" }}
                           >
                             <option value="">-- Chưa giao --</option>
-                             {helpers.filter(h => h.isApproved).map(h => (
-                               <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name}</option>
-                             ))}
+                             {helpers.filter(h => h.isApproved || h.status === 'approved').map(h => {
+                               const isOnline = getHelperShiftStatus(h.email);
+                               return (
+                                 <option key={h.id} value={h.name}>
+                                   {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
+                                 </option>
+                               );
+                             })}
                           </select>
                         </div>
                       </div>
@@ -2183,9 +2199,14 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                   style={{ background: "white", cursor: "pointer" }}
                 >
                   <option value="">-- Chưa giao --</option>
-                  {helpers.filter(h => h.isApproved).map(h => (
-                    <option key={h.id} value={h.name}>{h.alias ? `${h.alias} (${h.name})` : h.name}</option>
-                  ))}
+                  {helpers.filter(h => h.isApproved || h.status === 'approved').map(h => {
+                    const isOnline = getHelperShiftStatus(h.email);
+                    return (
+                      <option key={h.id} value={h.name}>
+                        {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>

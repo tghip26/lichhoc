@@ -924,65 +924,102 @@ function Dashboard() {
           return null;
         })()}
 
-        {/* CTV Tab buttons */}
-        <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", overflowX: "auto", className: "hide-scrollbar" }}>
-          <button
-            type="button"
-            onClick={() => setCtvActiveTab("job_board")}
-            style={{
-              flexShrink: 0,
-              background: ctvActiveTab === "job_board" ? "#4F46E5" : "white",
-              color: ctvActiveTab === "job_board" ? "white" : "var(--text-secondary)",
-              border: "1px solid #cbd5e1",
-              borderRadius: "10px",
-              padding: "8px 16px",
-              fontWeight: "750",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              boxShadow: ctvActiveTab === "job_board" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
-            }}
-          >
-            🛒 Chợ nhận lớp ({openJobs.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setCtvActiveTab("my_jobs")}
-            style={{
-              flexShrink: 0,
-              background: ctvActiveTab === "my_jobs" ? "#4F46E5" : "white",
-              color: ctvActiveTab === "my_jobs" ? "white" : "var(--text-secondary)",
-              border: "1px solid #cbd5e1",
-              borderRadius: "10px",
-              padding: "8px 16px",
-              fontWeight: "750",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              boxShadow: ctvActiveTab === "my_jobs" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
-            }}
-          >
-            📅 Lớp tôi nhận ({myJobs.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setCtvActiveTab("analytics")}
-            style={{
-              flexShrink: 0,
-              background: ctvActiveTab === "analytics" ? "#4F46E5" : "white",
-              color: ctvActiveTab === "analytics" ? "white" : "var(--text-secondary)",
-              border: "1px solid #cbd5e1",
-              borderRadius: "10px",
-              padding: "8px 16px",
-              fontWeight: "750",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              boxShadow: ctvActiveTab === "analytics" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
-            }}
-          >
-            📊 Thống kê & Thu nhập
-          </button>
+        {/* CTV Tab buttons & Shift Status Switch */}
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "15px", borderBottom: "1px solid #e2e8f0", paddingBottom: "15px", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", gap: "10px", overflowX: "auto" }}>
+            <button
+              type="button"
+              onClick={() => setCtvActiveTab("job_board")}
+              style={{
+                flexShrink: 0,
+                background: ctvActiveTab === "job_board" ? "#4F46E5" : "white",
+                color: ctvActiveTab === "job_board" ? "white" : "var(--text-secondary)",
+                border: "1px solid #cbd5e1",
+                borderRadius: "10px",
+                padding: "8px 16px",
+                fontWeight: "750",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: ctvActiveTab === "job_board" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+              }}
+            >
+              🛒 Chợ nhận lớp ({openJobs.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setCtvActiveTab("my_jobs")}
+              style={{
+                flexShrink: 0,
+                background: ctvActiveTab === "my_jobs" ? "#4F46E5" : "white",
+                color: ctvActiveTab === "my_jobs" ? "white" : "var(--text-secondary)",
+                border: "1px solid #cbd5e1",
+                borderRadius: "10px",
+                padding: "8px 16px",
+                fontWeight: "750",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: ctvActiveTab === "my_jobs" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+              }}
+            >
+              📅 Lớp tôi nhận ({myJobs.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setCtvActiveTab("analytics")}
+              style={{
+                flexShrink: 0,
+                background: ctvActiveTab === "analytics" ? "#4F46E5" : "white",
+                color: ctvActiveTab === "analytics" ? "white" : "var(--text-secondary)",
+                border: "1px solid #cbd5e1",
+                borderRadius: "10px",
+                padding: "8px 16px",
+                fontWeight: "750",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: ctvActiveTab === "analytics" ? "0 4px 8px rgba(79, 70, 229, 0.15)" : "none"
+              }}
+            >
+              📊 Thống kê & Thu nhập
+            </button>
+          </div>
+
+          {/* Shift Status Switch */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "white", padding: "6px 12px", borderRadius: "12px", border: "1px solid #cbd5e1" }}>
+            <span style={{ fontSize: "0.82rem", fontWeight: "750", color: "var(--text-secondary)" }}>Trực ca:</span>
+            <button
+              type="button"
+              onClick={async () => {
+                const newStatus = userProfile?.shiftStatus === "online" ? "offline" : "online";
+                try {
+                  await updateDoc(doc(db, "users", user.uid), {
+                    shiftStatus: newStatus
+                  });
+                  toast.success(`Đã chuyển trạng thái sang: ${newStatus === "online" ? "Đang trực ca 🟢" : "Nghỉ ca ⚪"}`);
+                } catch (err) {
+                  toast.error("Lỗi cập nhật trạng thái trực ca!");
+                }
+              }}
+              style={{
+                background: userProfile?.shiftStatus === "online" ? "#dcfce7" : "#f1f5f9",
+                color: userProfile?.shiftStatus === "online" ? "#166534" : "#475569",
+                border: "none",
+                borderRadius: "8px",
+                padding: "4px 10px",
+                fontSize: "0.78rem",
+                fontWeight: "750",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                transition: "all 0.2s"
+              }}
+            >
+              <span>{userProfile?.shiftStatus === "online" ? "Đang trực ca 🟢" : "Nghỉ ca ⚪"}</span>
+            </button>
+          </div>
         </div>
 
         {/* CTV Tab Views */}

@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
 export default function TuyenCTV() {
-  const { user, sendTelegramAlert } = useAuth();
+  const { sendTelegramAlert } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
@@ -25,27 +25,6 @@ export default function TuyenCTV() {
     bio: "",
     availability: ""
   });
-
-  // Tự động điền thông tin nếu đã đăng nhập và có dữ liệu hồ sơ
-  useEffect(() => {
-    if (!user) return;
-    const docRef = doc(db, "users", user.uid);
-    const unsub = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setFormData(prev => ({
-          ...prev,
-          name: prev.name || data.studentName || data.displayName || "",
-          studentId: prev.studentId || data.studentId || "",
-          className: prev.className || data.className || "",
-          school: prev.school || data.school || "",
-          phone: prev.phone || data.phone || "",
-          email: prev.email || user.email || ""
-        }));
-      }
-    });
-    return () => unsub();
-  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
