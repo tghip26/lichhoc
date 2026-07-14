@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export default function HuongDanPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [activeTab, setActiveTab] = useState("student"); // "student" or "helper"
 
   const faqs = [
     {
@@ -29,48 +30,135 @@ export default function HuongDanPage() {
   ];
 
   return (
-    <div className="glass-panel" style={{ maxWidth: "800px", margin: "3rem auto" }}>
-      <h1 className="page-title" style={{ fontSize: "2rem", marginBottom: "2rem", textAlign: "center" }}>Hướng Dẫn Sử Dụng</h1>
+    <div className="glass-panel" style={{ maxWidth: "850px", margin: "3rem auto", padding: "2.5rem" }}>
+      <h1 className="page-title" style={{ fontSize: "2.2rem", marginBottom: "1.5rem", textAlign: "center", fontWeight: "850" }}>
+        📖 Trung Tâm Hướng Dẫn Sử Dụng
+      </h1>
+      <p style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: "0.95rem", marginBottom: "2.5rem" }}>
+        Chào mừng bạn đến với hệ thống hỗ trợ Thuê Học Pro. Hãy chọn vai trò của bạn dưới đây để xem quy trình hướng dẫn cụ thể.
+      </p>
+
+      {/* Tab Selector */}
+      <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginBottom: "3rem" }}>
+        <button
+          onClick={() => setActiveTab("student")}
+          style={{
+            padding: "0.8rem 1.8rem",
+            borderRadius: "14px",
+            border: "none",
+            background: activeTab === "student" ? "var(--primary)" : "white",
+            color: activeTab === "student" ? "white" : "var(--text-secondary)",
+            fontWeight: "700",
+            fontSize: "0.92rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "student" ? "0 4px 15px rgba(22, 163, 74, 0.25)" : "0 2px 5px rgba(0,0,0,0.03)",
+            border: activeTab === "student" ? "none" : "1px solid #e2e8f0",
+            transition: "all 0.2s ease"
+          }}
+        >
+          👥 Dành cho Học Viên (Đặt Lịch)
+        </button>
+        <button
+          onClick={() => setActiveTab("helper")}
+          style={{
+            padding: "0.8rem 1.8rem",
+            borderRadius: "14px",
+            border: "none",
+            background: activeTab === "helper" ? "var(--primary)" : "white",
+            color: activeTab === "helper" ? "white" : "var(--text-secondary)",
+            fontWeight: "700",
+            fontSize: "0.92rem",
+            cursor: "pointer",
+            boxShadow: activeTab === "helper" ? "0 4px 15px rgba(22, 163, 74, 0.25)" : "0 2px 5px rgba(0,0,0,0.03)",
+            border: activeTab === "helper" ? "none" : "1px solid #e2e8f0",
+            transition: "all 0.2s ease"
+          }}
+        >
+          🎓 Dành cho Cộng Tác Viên (Nhận Ca)
+        </button>
+      </div>
       
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginBottom: "3rem" }}>
-        <h2 style={{ fontSize: "1.25rem", color: "var(--primary)", borderBottom: "2px solid var(--primary-light)", paddingBottom: "6px", textAlign: "left" }}>
-          🏁 Quy Trình Đặt Lịch Trong 4 Bước
-        </h2>
-        
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.25rem" }}>
-          <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>1️⃣</div>
-            <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)" }}>Đăng ký tài khoản</h4>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Đăng nhập qua Google hoặc tạo tài khoản mới bằng Email/SĐT ở trang chủ.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>2️⃣</div>
-            <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)" }}>Nạp số dư ví</h4>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Nạp tiền qua VietQR ngân hàng của Admin để có số dư ví thanh toán học phí.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>3️⃣</div>
-            <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)" }}>Tải ảnh lịch học</h4>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Chọn tải ảnh lịch học, điền thông tin chi tiết môn học, thời gian rảnh.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
-            <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>4️⃣</div>
-            <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)" }}>Nhận kết quả</h4>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Theo dõi trạng thái duyệt đơn và quản lý Cộng tác viên trực tiếp trên bảng điều khiển.
-            </p>
+      {/* Student workflow */}
+      {activeTab === "student" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginBottom: "3rem" }}>
+          <h2 style={{ fontSize: "1.25rem", color: "var(--primary)", borderBottom: "2px solid var(--primary-light)", paddingBottom: "6px", textAlign: "left", fontWeight: "800" }}>
+            🏁 Quy Trình Đặt Lịch Trong 4 Bước
+          </h2>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.25rem" }}>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>1️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Đăng ký tài khoản</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Đăng nhập nhanh qua Google hoặc đăng ký bằng Email & SĐT trực tiếp tại trang chủ.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>2️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Nạp số dư ví</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Quét mã VietQR chuyển khoản Admin để nạp tiền tài khoản thanh toán tiền đặt ca học.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>3️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Tải ảnh lịch học</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Điền thông tin lớp học (Môn học, Giờ, Phòng học, Địa điểm) kèm tải ảnh thời khóa biểu.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>4️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Nhận kết quả</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Duyệt CTV và theo dõi tiến trình trực ca, điểm danh đầy đủ từ CTV của bạn.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Helper workflow */
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginBottom: "3rem" }}>
+          <h2 style={{ fontSize: "1.25rem", color: "var(--primary)", borderBottom: "2px solid var(--primary-light)", paddingBottom: "6px", textAlign: "left", fontWeight: "800" }}>
+            🏁 Quy Trình Trực Lớp Cho Cộng Tác Viên
+          </h2>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.25rem" }}>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>1️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Nộp hồ sơ ứng tuyển</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Điền đơn đăng ký tuyển CTV kèm ảnh thẻ sinh viên để Admin xác minh học lực và kích hoạt.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>2️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Nhận lớp tại Chợ ca</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Vào 'Chợ nhận lớp', duyệt tìm ca học thích hợp theo thời gian biểu của bạn để ứng tuyển.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>3️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Check-in lớp học</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Đến lớp học hộ đúng giờ, chụp ảnh làm minh chứng tải lên trang quản lý cá nhân.
+              </p>
+            </div>
+            <div className="glass-panel" style={{ padding: "1.25rem", background: "white", borderRadius: "16px", border: "1px solid #f1f5f9", textAlign: "left" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "8px" }}>4️⃣</div>
+              <h4 style={{ margin: "0 0 6px 0", color: "var(--text-primary)", fontWeight: "700" }}>Nhận thù lao về ví</h4>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
+                Tiền công cơ bản và tiền tip sẽ được chuyển trực tiếp vào ví CTV để rút về tài khoản ngân hàng.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* FAQ section */}
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
-        <h2 style={{ fontSize: "1.25rem", color: "var(--primary)", borderBottom: "2px solid var(--primary-light)", paddingBottom: "6px" }}>
+        <h2 style={{ fontSize: "1.25rem", color: "var(--primary)", borderBottom: "2px solid var(--primary-light)", paddingBottom: "6px", fontWeight: "800" }}>
           ❓ Câu Hỏi Thường Gặp (FAQs)
         </h2>
         
