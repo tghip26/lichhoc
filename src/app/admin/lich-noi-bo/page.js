@@ -42,6 +42,17 @@ function InternalSchedulesManager() {
   const [filterStudyStatus, setFilterStudyStatus] = useState("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
 
+  const getStatusBadgeStyle = (statusText) => {
+    const text = (statusText || "").toLowerCase();
+    if (text.includes("chưa") || text.includes("chua")) {
+      return { background: "#fee2e2", color: "#b91c1c" };
+    }
+    if (text.includes("đã") || text.includes("da")) {
+      return { background: "#dcfce7", color: "#166534" };
+    }
+    return { background: "#f1f5f9", color: "#475569" };
+  };
+
   // Form Modal states
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -629,7 +640,7 @@ function InternalSchedulesManager() {
           {/* Payment Status (Tenant) */}
           <span style={{
             fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-            background: "#dbeafe", color: "#1d4ed8"
+            ...getStatusBadgeStyle(item.paymentStatus)
           }}>
             {item.paymentStatus}{item.rentAmount > 0 ? ` | +${Number(item.rentAmount).toLocaleString("vi-VN")}đ` : ""}
           </span>
@@ -637,7 +648,7 @@ function InternalSchedulesManager() {
           {/* Salary Status */}
           <span style={{
             fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-            background: "#fef3c7", color: "#b45309"
+            ...getStatusBadgeStyle(item.salaryStatus)
           }}>
             {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
           </span>
@@ -999,15 +1010,22 @@ function InternalSchedulesManager() {
                     <td style={{ padding: "1rem" }}>
                       <span style={{
                         fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
-                        background: s.paymentStatus?.includes("chưa") || s.paymentStatus?.toLowerCase() === "chưatt" ? "#fef3c7" : "#dbeafe",
-                        color: s.paymentStatus?.includes("chưa") || s.paymentStatus?.toLowerCase() === "chưatt" ? "#d97706" : "#2563eb"
+                        ...getStatusBadgeStyle(s.paymentStatus)
                       }}>
                         {s.paymentStatus}
                       </span>
                     </td>
                     <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                      <div>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ ({s.salaryStatus})</div>
-                      {s.staffTipAmount > 0 && <div style={{ color: "#059669", fontSize: "0.75rem" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</div>}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ</span>
+                        <span style={{
+                          fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", fontWeight: "700",
+                          ...getStatusBadgeStyle(s.salaryStatus)
+                        }}>
+                          {s.salaryStatus}
+                        </span>
+                      </div>
+                      {s.staffTipAmount > 0 && <div style={{ color: "#059669", fontSize: "0.75rem", marginTop: "4px" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</div>}
                     </td>
                     <td style={{ padding: "1rem", textAlign: "center" }}>
                       <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
