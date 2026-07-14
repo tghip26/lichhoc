@@ -230,6 +230,20 @@ function Dashboard() {
     return () => unsubscribe();
   }, [user]);
 
+  // Tự động điền thông tin học viên đã lưu từ hồ sơ người dùng
+  useEffect(() => {
+    if (userProfile) {
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name || userProfile.studentName || userProfile.displayName || "",
+        studentId: prev.studentId || userProfile.studentId || "",
+        className: prev.className || userProfile.className || "",
+        school: prev.school || userProfile.school || "",
+        phone: prev.phone || userProfile.phone || ""
+      }));
+    }
+  }, [userProfile]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -427,6 +441,19 @@ function Dashboard() {
         createdAt: serverTimestamp()
       });
 
+      // Lưu thông tin học sinh vào hồ sơ người dùng để tự điền lần sau
+      try {
+        await updateDoc(doc(db, "users", user.uid), {
+          studentName: formData.name,
+          studentId: formData.studentId,
+          className: formData.className,
+          school: formData.school,
+          phone: formData.phone
+        });
+      } catch (profileErr) {
+        console.error("Lỗi cập nhật hồ sơ người dùng:", profileErr);
+      }
+
       // Báo Telegram đơn hàng mới cho Admin
       const orderIdSub = docRef.id.substring(0, 8).toUpperCase();
       const formatPrice = Number(formData.price ? formData.price.replace(/\./g, "") : 0).toLocaleString("vi-VN");
@@ -491,8 +518,17 @@ function Dashboard() {
       const todayStr = `${year}-${month}-${day}`;
 
       setFormData({ 
-        name: "", className: "", studentId: "", school: "", 
-        classDate: todayStr, startTime: "", endTime: "", dob: "", notes: "", phone: "", price: "" 
+        name: userProfile?.studentName || userProfile?.displayName || "",
+        studentId: userProfile?.studentId || "",
+        className: "",
+        school: userProfile?.school || "",
+        classDate: todayStr,
+        startTime: "",
+        endTime: "",
+        dob: "",
+        notes: "",
+        phone: userProfile?.phone || "",
+        price: "" 
       });
       
       const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
