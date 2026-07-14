@@ -185,6 +185,13 @@ function InternalSchedulesManager() {
     return d;
   };
 
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Get active schedule cards for a weekday and slot period (sang, chieu, toi)
   const getSchedulesForCell = (dateString, period) => {
     return schedules.filter(s => s.classDate === dateString && s.period === period);
@@ -309,7 +316,7 @@ function InternalSchedulesManager() {
       const currentDate = new Date(formData.classDate);
       currentDate.setDate(currentDate.getDate() + 7);
       
-      const newDateStr = currentDate.toISOString().split("T")[0];
+      const newDateStr = formatLocalDate(currentDate);
       const days = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
       const newWeekday = days[currentDate.getDay()];
 
@@ -349,7 +356,7 @@ function InternalSchedulesManager() {
   };
 
   const renderMobileGridView = () => {
-    const activeDateStr = getDateOfWeekday(selectedMobileDayOffset).toISOString().split("T")[0];
+    const activeDateStr = formatLocalDate(getDateOfWeekday(selectedMobileDayOffset));
     const morningJobs = getSchedulesForCell(activeDateStr, "sang");
     const afternoonJobs = getSchedulesForCell(activeDateStr, "chieu");
     const eveningJobs = getSchedulesForCell(activeDateStr, "toi");
@@ -524,8 +531,8 @@ function InternalSchedulesManager() {
   const uniqueLecturers = Array.from(new Set(schedules.map(s => s.lecturer).filter(Boolean)));
 
   // Financial summary computation
-  const startStr = currentWeekStart.toISOString().split("T")[0];
-  const endStr = getDateOfWeekday(6).toISOString().split("T")[0];
+  const startStr = formatLocalDate(currentWeekStart);
+  const endStr = formatLocalDate(getDateOfWeekday(6));
   const weeklySchedules = schedules.filter(s => s.classDate >= startStr && s.classDate <= endStr);
   const selectedSchedules = viewMode === "grid" ? weeklySchedules : filteredTableList;
 
@@ -842,7 +849,7 @@ function InternalSchedulesManager() {
                   SÁNG
                 </td>
                 {weekdaysConfig.map((day, idx) => {
-                  const dateStr = getDateOfWeekday(day.offset).toISOString().split("T")[0];
+                  const dateStr = formatLocalDate(getDateOfWeekday(day.offset));
                   const cellJobs = getSchedulesForCell(dateStr, "sang");
                   return (
                     <td key={idx} style={{ verticalAlign: "top", background: "#f8fafc", borderRadius: "8px", padding: "4px" }}>
@@ -872,7 +879,7 @@ function InternalSchedulesManager() {
                   CHIỀU
                 </td>
                 {weekdaysConfig.map((day, idx) => {
-                  const dateStr = getDateOfWeekday(day.offset).toISOString().split("T")[0];
+                  const dateStr = formatLocalDate(getDateOfWeekday(day.offset));
                   const cellJobs = getSchedulesForCell(dateStr, "chieu");
                   return (
                     <td key={idx} style={{ verticalAlign: "top", background: "#f8fafc", borderRadius: "8px", padding: "4px" }}>
@@ -902,7 +909,7 @@ function InternalSchedulesManager() {
                   TỐI
                 </td>
                 {weekdaysConfig.map((day, idx) => {
-                  const dateStr = getDateOfWeekday(day.offset).toISOString().split("T")[0];
+                  const dateStr = formatLocalDate(getDateOfWeekday(day.offset));
                   const cellJobs = getSchedulesForCell(dateStr, "toi");
                   return (
                     <td key={idx} style={{ verticalAlign: "top", background: "#f8fafc", borderRadius: "8px", padding: "4px" }}>
