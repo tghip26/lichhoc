@@ -82,6 +82,17 @@ export default function TuyenCTV() {
       return;
     }
 
+    if (!user) {
+      const confirmSubmit = confirm(
+        "Bạn đang nộp hồ sơ ứng tuyển dưới tư cách Khách (Chưa đăng nhập).\n\n" +
+        "Nếu bạn đã tạo tài khoản học viên/CTV trước đó bằng email này, vui lòng ấn 'Hủy' và đăng nhập đúng tài khoản để được tích hợp đồng bộ ví & tài khoản CTV.\n\n" +
+        "Bạn có chắc chắn muốn tiếp tục gửi không?"
+      );
+      if (!confirmSubmit) {
+        return;
+      }
+    }
+
     setUploading(true);
     toast.loading("Đang gửi hồ sơ ứng tuyển...", { id: "ctv-submit" });
 
@@ -174,6 +185,29 @@ export default function TuyenCTV() {
       </div>
 
       <div className="glass-panel" style={{ borderTop: "5px solid var(--primary)" }}>
+        {!user && (
+          <div style={{
+            background: "#fffbeb",
+            border: "1px solid #fef3c7",
+            borderRadius: "12px",
+            padding: "1rem",
+            marginBottom: "1.5rem",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "10px",
+            textAlign: "left"
+          }}>
+            <span style={{ fontSize: "1.2rem", marginTop: "-2px" }}>💡</span>
+            <div>
+              <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "750", color: "#b45309" }}>
+                Lưu ý dành cho ứng viên chưa đăng nhập
+              </p>
+              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "#d97706", lineHeight: "1.5" }}>
+                Hệ thống phát hiện bạn chưa đăng nhập tài khoản. Nếu bạn đã tạo tài khoản trước đó, vui lòng <Link href="/" style={{ color: "var(--primary)", fontWeight: "700", textDecoration: "underline" }}>Đăng nhập ngay</Link> bằng đúng email đó để đồng bộ hồ sơ CTV và tránh bị tạo trùng lặp.
+              </p>
+            </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="form-grid" style={{ marginBottom: "1.25rem" }}>
             <div className="form-group" style={{ display: "flex", flexDirection: "column" }}>
@@ -204,6 +238,11 @@ export default function TuyenCTV() {
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gridColumn: "1 / -1" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "6px", color: "var(--text-primary)" }}>Địa chỉ Email</label>
               <input type="email" name="email" required value={formData.email} onChange={handleChange} className="form-input" placeholder="email@gmail.com" style={{ background: "white" }} />
+              {!user && (
+                <p style={{ color: "#d97706", fontSize: "0.78rem", marginTop: "6px", fontWeight: "600", textAlign: "left", lineHeight: "1.4" }}>
+                  ⚠️ Nhắc nhở: Nếu email này đã được tạo tài khoản trước đó, hãy <Link href="/" style={{ color: "var(--primary)", textDecoration: "underline", fontWeight: "700" }}>đăng nhập</Link> bằng đúng email đó trước khi gửi để đồng bộ.
+                </p>
+              )}
             </div>
 
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gridColumn: "1 / -1" }}>
