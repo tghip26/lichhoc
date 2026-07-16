@@ -72,8 +72,8 @@ service cloud.firestore {
 
     // 7. Quy tắc cho bộ sưu tập 'helpers' (Hồ sơ đăng ký CTV)
     match /helpers/{helperId} {
-      // Cho phép tạo khi đã đăng nhập
-      allow create: if request.auth != null;
+      // Cho phép mọi người tạo đơn đăng ký CTV
+      allow create: if true;
       // Cho phép mọi người đọc nếu hồ sơ đã được duyệt. Hồ sơ chưa duyệt chỉ người nộp hoặc Admin được đọc.
       allow read: if (resource.data.status == 'approved' || resource.data.isApproved == true) || 
                     (request.auth != null && (resource.data.userId == request.auth.uid || isAdmin()));

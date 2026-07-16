@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 
 export default function TuyenCTV() {
-  const { sendTelegramAlert } = useAuth();
+  const { user, sendTelegramAlert } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
@@ -87,6 +87,7 @@ export default function TuyenCTV() {
 
     try {
       await addDoc(collection(db, "helpers"), {
+        userId: user ? user.uid : "",
         name: formData.name,
         studentId: formData.studentId,
         className: formData.className,
@@ -174,7 +175,7 @@ export default function TuyenCTV() {
 
       <div className="glass-panel" style={{ borderTop: "5px solid var(--primary)" }}>
         <form onSubmit={handleSubmit}>
-          <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", marginBottom: "1.25rem" }}>
+          <div className="form-grid" style={{ marginBottom: "1.25rem" }}>
             <div className="form-group" style={{ display: "flex", flexDirection: "column" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "6px", color: "var(--text-primary)" }}>Họ và Tên</label>
               <input type="text" name="name" required value={formData.name} onChange={handleChange} className="form-input" placeholder="Nguyễn Văn A" style={{ background: "white" }} />
