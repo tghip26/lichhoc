@@ -214,7 +214,12 @@ export default function Navbar() {
                     )}
                   </Link>
                 )}
+              </div>
+              
+              <div className="nav-divider" />
 
+              {/* User Profile */}
+              <div className="nav-user-area">
                 {user && (
                   <div ref={dropdownRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
                     <button 
@@ -279,12 +284,6 @@ export default function Navbar() {
                     )}
                   </div>
                 )}
-              </div>
-              
-              <div className="nav-divider" />
-
-              {/* User Profile */}
-              <div className="nav-user-area">
                 <div className="nav-user-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
                   <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "var(--text-primary)" }}>
                     {user.displayName || user.email.split('@')[0]}
