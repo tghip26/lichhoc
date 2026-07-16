@@ -146,16 +146,18 @@ export default function DoiNguPage() {
                 <div key={h.id} className="glass-panel" style={{ 
                   background: "white", padding: "2rem 1.5rem", borderRadius: "24px", 
                   display: "flex", flexDirection: "column", justifyContent: "space-between",
-                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.02)", border: "1px solid #e2e8f0",
-                  transition: "transform 0.2s, box-shadow 0.2s"
+                  boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(255, 255, 255, 0.8) inset", border: "1px solid #e2e8f0",
+                  transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "0 15px 35px rgba(0, 0, 0, 0.05)";
+                  e.currentTarget.style.boxShadow = "0 20px 40px -10px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(255, 255, 255, 0.9) inset";
+                  e.currentTarget.style.borderColor = "var(--primary)";
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.transform = "none";
-                  e.currentTarget.style.boxShadow = "0 10px 30px rgba(0, 0, 0, 0.02)";
+                  e.currentTarget.style.boxShadow = "0 10px 30px -10px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(255, 255, 255, 0.8) inset";
+                  e.currentTarget.style.borderColor = "#e2e8f0";
                 }}
                 >
                   <div>
