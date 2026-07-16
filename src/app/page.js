@@ -229,17 +229,76 @@ export default function Home() {
           <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
         </div>
       )}
-      <div style={{ maxWidth: "800px", margin: "4rem auto", padding: "0 1rem", flex: 1 }}>
-      <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-        <h1 className="page-title" style={{ fontSize: "2.2rem", color: "var(--primary)" }}>Hệ Thống Thuê Học Pro</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "1.1rem", maxWidth: "600px", margin: "0 auto", lineHeight: "1.6" }}>
-          Giải pháp kết nối sinh viên và người học hộ nhanh chóng, an toàn và bảo mật tuyệt đối. Gửi đơn thuê học chỉ trong 1 phút!
-        </p>
-      </div>
+      <div style={{ maxWidth: "1200px", margin: "4rem auto", padding: "0 1.5rem", flex: 1 }}>
+        
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
+          gap: "3rem", 
+          alignItems: "center", 
+          marginBottom: "4rem" 
+        }}>
+          {/* Left Column: Premium SaaS Intro */}
+          <div style={{ textAlign: "left" }}>
+            <span style={{ 
+              background: "rgba(22, 163, 74, 0.08)", 
+              color: "var(--primary)", 
+              fontSize: "0.8rem", 
+              padding: "6px 12px", 
+              borderRadius: "20px", 
+              fontWeight: "750",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase"
+            }}>
+              ⚡ THUÊ HỌC PRO CHÍNH THỨC
+            </span>
+            <h1 className="page-title" style={{ fontSize: "2.8rem", color: "var(--foreground)", marginTop: "1rem", lineHeight: "1.2", fontWeight: "850" }}>
+              Giải pháp học tập & Trực lớp <span style={{ color: "var(--primary)", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Chuyên Nghiệp</span>
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "1.05rem", marginTop: "1rem", marginBottom: "2rem", lineHeight: "1.7" }}>
+              Kết nối sinh viên có nhu cầu và đội ngũ Cộng tác viên uy tín từ các trường đại học hàng đầu. Đặt lịch nhanh chóng, bảo mật tuyệt đối và tự động hóa toàn diện.
+            </p>
 
-      {!user && (
-        <div style={{ maxWidth: "450px", margin: "0 auto" }}>
-          <div className="glass-panel" style={{ padding: "2.5rem 2rem", borderTop: isLoginMode ? "5px solid var(--primary)" : "5px solid #F59E0B" }}>
+            {/* Feature List */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "2rem" }}>
+              {[
+                { icon: "🛡️", text: "<b>Bảo mật 100%:</b> Không tiết lộ danh tính của học viên." },
+                { icon: "⚡", text: "<b>Đăng lịch 1 phút:</b> Thao tác tối giản, tự động điền hồ sơ." },
+                { icon: "🎓", text: "<b>Đội ngũ CTV tuyển chọn:</b> Sinh viên khá giỏi từ Bách Khoa, Công Nghệ..." },
+                { icon: "💳", text: "<b>Ví số dư tiện lợi:</b> Nạp tiền quét QR tự động, trừ tiền khi hoàn thành." }
+              ].map((f, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ fontSize: "1.2rem", lineHeight: "1" }}>{f.icon}</span>
+                  <span style={{ fontSize: "0.95rem", color: "var(--text-primary)" }} dangerouslySetInnerHTML={{ __html: f.text }} />
+                </div>
+              ))}
+            </div>
+
+            {/* Trust Statistics */}
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(3, 1fr)", 
+              gap: "10px", 
+              borderTop: "1px dashed #cbd5e1", 
+              paddingTop: "1.5rem" 
+            }}>
+              {[
+                { number: "10K+", label: "Ca học hoàn thành" },
+                { number: "99.8%", label: "Học viên hài lòng" },
+                { number: "500+", label: "Cộng tác viên" }
+              ].map((s, idx) => (
+                <div key={idx} style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "var(--primary)" }}>{s.number}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600" }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column: Card Authentication */}
+          {!user && (
+            <div style={{ maxWidth: "450px", width: "100%", justifySelf: "center" }}>
+              <div className="glass-panel" style={{ padding: "2.5rem 2rem", borderTop: isLoginMode ? "5px solid var(--primary)" : "5px solid #F59E0B", borderRadius: "24px", background: "white", boxShadow: "0 20px 40px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "1.5rem" }}>
               {isLoginMode ? (
                 <>
@@ -315,6 +374,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      </div>
 
       {/* REVIEWS SECTION */}
       <div style={{ marginTop: "4rem", borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: "3rem", width: "100%" }}>
