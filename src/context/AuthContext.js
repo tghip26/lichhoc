@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, getDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, onSnapshot, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -88,12 +88,36 @@ export function AuthProvider({ children }) {
             sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Tên hiển thị:</b> ${user.displayName || user.email.split('@')[0]}\n• <b>Email:</b> ${user.email}\n• <b>Hình thức:</b> Liên kết ngoài (Google)\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
           }
 
+          // Kiểm tra và đồng bộ nếu email khớp với hồ sơ CTV đã duyệt
+          let helperApproved = false;
+          try {
+            const helpersRef = collection(db, "helpers");
+            const qHelpersEmail = query(helpersRef, where("email", "==", user.email));
+            const querySnap = await getDocs(qHelpersEmail);
+            if (!querySnap.empty) {
+              const helperDoc = querySnap.docs[0];
+              const helperData = helperDoc.data();
+              // Liên kết uid người dùng vào hồ sơ CTV
+              if (!helperData.userId || helperData.userId !== user.uid) {
+                await updateDoc(doc(db, "helpers", helperDoc.id), { userId: user.uid });
+              }
+              if (helperData.status === "approved" || helperData.isApproved) {
+                helperApproved = true;
+              }
+            }
+          } catch (helpersQueryErr) {
+            console.warn("Lỗi kiểm tra hồ sơ CTV đồng bộ:", helpersQueryErr);
+          }
+
           let finalRole = "user";
           if (userDocSnap.exists()) {
             const currentRole = userDocSnap.data().role;
             if (currentRole === "admin" || currentRole === "helper") {
               finalRole = currentRole;
             }
+          }
+          if (helperApproved) {
+            finalRole = "helper";
           }
           if (adminStatus) {
             finalRole = "admin";
