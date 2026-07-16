@@ -106,7 +106,7 @@ export default function Navbar() {
             </svg>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ 
+            <span className="brand-title" style={{ 
               fontSize: "1.15rem", 
               fontWeight: "800", 
               background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", 
@@ -117,7 +117,7 @@ export default function Navbar() {
             }}>
               Thuê Học Pro
             </span>
-            <span style={{ fontSize: "0.6rem", color: "var(--text-secondary)", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase" }}>
+            <span className="brand-sublabel" style={{ fontSize: "0.6rem", color: "var(--text-secondary)", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase" }}>
               Hệ thống quản lý
             </span>
           </div>

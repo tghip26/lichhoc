@@ -1514,9 +1514,9 @@ function Dashboard() {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div className="dashboard-main-container" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {systemSettings?.announcement && (
-        <div style={{
+        <div className="announcement-box" style={{
           background: "linear-gradient(90deg, #d97706, #f59e0b)",
           color: "white",
           padding: "8px 15px",
@@ -1583,7 +1583,7 @@ function Dashboard() {
 
       {/* GIAO DIỆN CHUYỂN CTV/HỌC VIÊN */}
       {(userProfile?.role === "helper" || userProfile?.role === "admin") && (
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}>
+        <div className="ctv-mode-selector" style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}>
           <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "14px", border: "1px solid #cbd5e1" }}>
             <button
               type="button"
@@ -1631,7 +1631,7 @@ function Dashboard() {
         <>
           {/* TABS SELECTOR */}
       <div 
-        className="hide-scrollbar" 
+        className="hide-scrollbar main-tab-selector" 
         style={{ 
           display: "flex", 
           gap: "10px", 

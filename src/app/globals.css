@@ -401,9 +401,15 @@ tbody tr:hover {
   .navbar-container {
     display: grid;
     grid-template-columns: 1fr auto;
-    row-gap: 0.6rem;
+    row-gap: 0.4rem;
     column-gap: 0.5rem;
-    padding: 0.6rem 1rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .navbar-container > a {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: center;
   }
   
   .nav-links-wrapper {
@@ -411,12 +417,13 @@ tbody tr:hover {
   }
   
   .nav-menu-links {
+    grid-row: 2;
     grid-column: 1 / -1;
     display: flex;
-    gap: 1.25rem;
+    gap: 1rem;
     overflow-x: auto;
     white-space: nowrap;
-    padding: 0.4rem 0;
+    padding: 0.25rem 0;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     -webkit-overflow-scrolling: touch;
   }
@@ -426,10 +433,12 @@ tbody tr:hover {
   }
 
   .nav-user-area {
+    grid-row: 1;
     grid-column: 2;
+    align-self: center;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     margin-left: auto;
     border-left: none;
     padding-left: 0;
@@ -439,14 +448,46 @@ tbody tr:hover {
     display: none !important; /* Hide names on mobile to save space */
   }
 
-  /* Form Layout */
-  .form-grid {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
+  .brand-sublabel {
+    display: none !important; /* Hide sublabel on mobile to save vertical space */
+  }
+
+  /* Compact Dashboard Elements on Mobile to bring main content up */
+  .dashboard-main-container {
+    gap: 0.75rem !important;
+  }
+
+  .announcement-box {
+    padding: 4px 10px !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
+  }
+
+  .ctv-mode-selector {
+    margin-bottom: 0.25rem !important;
+  }
+  .ctv-mode-selector > div {
+    padding: 2px !important;
+    border-radius: 10px !important;
+  }
+  .ctv-mode-selector button {
+    padding: 5px 12px !important;
+    font-size: 0.78rem !important;
+    border-radius: 8px !important;
+  }
+
+  .main-tab-selector {
+    gap: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .main-tab-selector button {
+    padding: 6px 12px !important;
+    font-size: 0.78rem !important;
+    border-radius: 8px !important;
   }
 
   .dashboard-panel {
-    padding: 1.25rem !important;
+    padding: 1rem !important;
   }
 
   /* Admin Toolbar Adjustments */
