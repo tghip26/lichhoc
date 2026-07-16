@@ -17,9 +17,9 @@
   --text-secondary: #64748b;
   
   /* Glassmorphism Variables */
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.8);
-  --glass-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(255, 255, 255, 0.8) inset;
   
   --radius-sm: 8px;
   --radius-md: 16px;
@@ -51,9 +51,10 @@ body {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
+  font-family: var(--font-plus-jakarta), var(--font-geist-sans), sans-serif;
+  font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* Layout */
@@ -81,32 +82,32 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 0.95rem;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.92rem;
   cursor: pointer;
   border: none;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
 }
 
 .btn:active {
-  transform: translateY(0);
+  transform: scale(0.97);
 }
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
-  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.25);
 }
 
 .btn:disabled {

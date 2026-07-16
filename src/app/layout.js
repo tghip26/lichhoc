@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+});
+
 export const metadata = {
   title: "Thuê Học Pro - Hệ thống đặt lịch học hộ, trực lớp chuyên nghiệp",
   description: "Hệ thống quản lý đặt lịch học hộ, trực lớp trực tuyến chuyên nghiệp, uy tín và bảo mật tuyệt đối.",
@@ -27,7 +32,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="vi" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="vi" className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable}`}>
       <body>
         <AuthProvider>
           <ToastProvider />
