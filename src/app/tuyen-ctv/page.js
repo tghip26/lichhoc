@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -14,6 +14,8 @@ export default function TuyenCTV() {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState("");
   const [filePreview, setFilePreview] = useState(null);
+  const [emailExists, setEmailExists] = useState(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,6 +31,33 @@ export default function TuyenCTV() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (name === "email") {
+      setEmailExists(null);
+    }
+  };
+
+  const handleEmailBlur = async (e) => {
+    const emailVal = e.target.value.trim().toLowerCase();
+    if (!emailVal || !emailVal.includes("@")) {
+      setEmailExists(null);
+      return;
+    }
+    
+    setCheckingEmail(true);
+    try {
+      const docRef = doc(db, "user_emails_index", emailVal);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setEmailExists(true);
+      } else {
+        setEmailExists(false);
+      }
+    } catch (err) {
+      console.error("Lỗi đối chiếu email:", err);
+      setEmailExists(null);
+    } finally {
+      setCheckingEmail(false);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -237,10 +266,30 @@ export default function TuyenCTV() {
 
             <div className="form-group" style={{ display: "flex", flexDirection: "column", gridColumn: "1 / -1" }}>
               <label style={{ fontSize: "0.85rem", fontWeight: "700", marginBottom: "6px", color: "var(--text-primary)" }}>Địa chỉ Email</label>
-              <input type="email" name="email" required value={formData.email} onChange={handleChange} className="form-input" placeholder="email@gmail.com" style={{ background: "white" }} />
-              {!user && (
+              <input 
+                type="email" 
+                name="email" 
+                required 
+                value={formData.email} 
+                onChange={handleChange} 
+                onBlur={handleEmailBlur}
+                className="form-input" 
+                placeholder="email@gmail.com" 
+                style={{ background: "white" }} 
+              />
+              {!user && checkingEmail && (
+                <p style={{ color: "#4F46E5", fontSize: "0.78rem", marginTop: "6px", fontWeight: "600", textAlign: "left" }}>
+                  ⏳ Đang đối chiếu dữ liệu email...
+                </p>
+              )}
+              {!user && !checkingEmail && emailExists === true && (
                 <p style={{ color: "#d97706", fontSize: "0.78rem", marginTop: "6px", fontWeight: "600", textAlign: "left", lineHeight: "1.4" }}>
-                  ⚠️ Nhắc nhở: Nếu email này đã được tạo tài khoản trước đó, hãy <Link href="/" style={{ color: "var(--primary)", textDecoration: "underline", fontWeight: "700" }}>đăng nhập</Link> bằng đúng email đó trước khi gửi để đồng bộ.
+                  ⚠️ Nhắc nhở: Email này đã được tạo tài khoản trước đó. Hãy <Link href="/" style={{ color: "var(--primary)", textDecoration: "underline", fontWeight: "700" }}>đăng nhập</Link> bằng đúng email đó trước khi gửi để đồng bộ.
+                </p>
+              )}
+              {!user && !checkingEmail && emailExists === false && (
+                <p style={{ color: "#16a34a", fontSize: "0.78rem", marginTop: "6px", fontWeight: "600", textAlign: "left", lineHeight: "1.4" }}>
+                  ℹ️ Email này chưa có tài khoản. Bạn vẫn có thể gửi đơn, nhưng sau khi gửi hãy tiến hành đăng ký tài khoản mới bằng đúng email này để kích hoạt giao diện CTV.
                 </p>
               )}
             </div>

@@ -131,6 +131,16 @@ export function AuthProvider({ children }) {
             role: finalRole,
             lastLogin: serverTimestamp()
           }, { merge: true });
+
+          // Lưu email vào chỉ mục công khai phục vụ tra cứu
+          try {
+            await setDoc(doc(db, "user_emails_index", user.email.toLowerCase()), {
+              uid: user.uid,
+              createdAt: serverTimestamp()
+            }, { merge: true });
+          } catch (indexErr) {
+            console.warn("Lỗi ghi chỉ mục email:", indexErr);
+          }
         } catch (err) {
           console.error("Lỗi đồng bộ thông tin tài khoản:", err);
         }

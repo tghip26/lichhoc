@@ -70,6 +70,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Quy tắc cho bộ sưu tập chỉ mục email công khai (Không cho phép list/scrape dữ liệu)
+    match /user_emails_index/{emailId} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if request.auth != null;
+    }
+
     // 7. Quy tắc cho bộ sưu tập 'helpers' (Hồ sơ đăng ký CTV)
     match /helpers/{helperId} {
       // Cho phép mọi người tạo đơn đăng ký CTV
