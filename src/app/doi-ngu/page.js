@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot, where } from "firebase/firestore";
+import { doc, collection, query, onSnapshot } from "firebase/firestore";
 import Link from "next/link";
 
 export default function DoiNguPage() {
@@ -13,17 +13,16 @@ export default function DoiNguPage() {
   const [searchSpeciality, setSearchSpeciality] = useState("");
 
   useEffect(() => {
-    // 1. Tải danh sách CTV đã duyệt
-    const qHelpers = query(
-      collection(db, "helpers"),
-      where("status", "==", "approved")
-    );
-    const unsubscribeHelpers = onSnapshot(qHelpers, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setHelpers(data);
+    // 1. Tải danh sách CTV đã duyệt từ cấu hình công khai settings/public_helpers
+    const unsubscribeHelpers = onSnapshot(doc(db, "settings", "public_helpers"), (docSnap) => {
+      if (docSnap.exists()) {
+        setHelpers(docSnap.data().list || []);
+      } else {
+        setHelpers([]);
+      }
       setLoading(false);
     }, (err) => {
-      console.error("Lỗi tải CTV:", err);
+      console.error("Lỗi tải CTV từ settings:", err);
       setLoading(false);
     });
 

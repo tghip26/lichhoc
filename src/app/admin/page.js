@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
 function AdminDashboard() {
-  const { systemSettings, sendTelegramAlert } = useAuth();
+  const { systemSettings, sendTelegramAlert, isAdmin } = useAuth();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
 
@@ -105,10 +105,41 @@ function AdminDashboard() {
       setReviews(rData);
     }, (err) => console.error("Lỗi lấy reviews:", err));
 
-    return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); unsubscribeTrans(); unsubscribeReviews(); };
-  }, []);
+     return () => { unsubscribeSchedules(); unsubscribeUsers(); unsubscribeHelpers(); unsubscribeTrans(); unsubscribeReviews(); };
+   }, []);
 
-  const handleUpdateStatus = async (id, newStatus) => {
+   useEffect(() => {
+     if (!isAdmin || helpers.length === 0) return;
+     
+     const approvedHelpers = helpers
+       .filter(h => h.status === "approved" || h.isApproved)
+       .map(h => ({
+         id: h.id,
+         name: h.name || "",
+         alias: h.alias || "",
+         school: h.school || "",
+         bio: h.bio || "",
+         imageUrl: h.imageUrl || "",
+         status: h.status || "",
+         isApproved: h.isApproved || false,
+         email: h.email || ""
+       }));
+       
+     const syncPublicHelpers = async () => {
+       try {
+         await setDoc(doc(db, "settings", "public_helpers"), {
+           list: approvedHelpers,
+           updatedAt: new Date().toISOString()
+         });
+       } catch (err) {
+         console.error("Lỗi đồng bộ danh sách CTV công khai:", err);
+       }
+     };
+     
+     syncPublicHelpers();
+   }, [helpers, isAdmin]);
+
+   const handleUpdateStatus = async (id, newStatus) => {
     let statusText = "thay đổi trạng thái";
     if (newStatus === "accepted") statusText = "DUYỆT lịch học (Sắp học)";
     if (newStatus === "completed") statusText = "đánh dấu HOÀN THÀNH lịch học";
