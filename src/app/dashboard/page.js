@@ -1053,6 +1053,28 @@ function Dashboard() {
         {/* CTV Tab Views */}
         {ctvActiveTab === "job_board" && (
           <div>
+            <div style={{
+              background: "#eff6ff",
+              border: "1px solid #dbeafe",
+              borderRadius: "14px",
+              padding: "1rem 1.25rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              textAlign: "left",
+              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.05)"
+            }}>
+              <span style={{ fontSize: "1.3rem", lineHeight: "1" }}>💡</span>
+              <div>
+                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "750", color: "#1d4ed8" }}>
+                  Hướng dẫn nhận ca trực lớp học hộ
+                </p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.78rem", color: "#1e40af", lineHeight: "1.5" }}>
+                  Bạn hãy kiểm tra kỹ Trường, Ca học (ngày/giờ) và Lịch chụp đính kèm. Sau khi bấm <b>"Nhận Lớp Học Này"</b>, ca trực sẽ lưu vào tab <b>"Lớp tôi nhận"</b>. Bạn cần đi học đầy đủ đúng giờ và tải lên ảnh minh chứng hoàn thành để hệ thống thanh toán tự động thù lao.
+                </p>
+              </div>
+            </div>
             <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>🛒 Chợ đơn thuê học trực tuyến (Sắp học)</h4>
             {openJobs.length === 0 ? (
               <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
@@ -1113,6 +1135,28 @@ function Dashboard() {
 
         {ctvActiveTab === "my_jobs" && (
           <div>
+            <div style={{
+              background: "#eff6ff",
+              border: "1px solid #dbeafe",
+              borderRadius: "14px",
+              padding: "1rem 1.25rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              textAlign: "left",
+              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.05)"
+            }}>
+              <span style={{ fontSize: "1.3rem", lineHeight: "1" }}>💡</span>
+              <div>
+                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "750", color: "#1d4ed8" }}>
+                  Hướng dẫn nộp minh chứng hoàn thành ca trực
+                </p>
+                <p style={{ margin: "4px 0 0 0", fontSize: "0.78rem", color: "#1e40af", lineHeight: "1.5" }}>
+                  Đến giờ học, bạn cần có mặt tại giảng đường và chụp ảnh minh chứng thực tế (ví dụ: ảnh bảng viết, slide bài giảng hoặc bài tập trên lớp) rồi nhấn nút <b>"Nộp báo cáo hoàn thành"</b> để tải ảnh lên. Sau khi được duyệt, thù lao ca học sẽ tự động cộng vào Ví của bạn.
+                </p>
+              </div>
+            </div>
             <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
             {myJobs.length === 0 ? (
               <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
@@ -1661,21 +1705,25 @@ function Dashboard() {
             <div className="form-group">
               <label className="form-label">Mã sinh viên</label>
               <input type="text" name="studentId" value={formData.studentId} onChange={handleChange} required className="form-input" placeholder="SV123456" />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Mã SV dùng để CTV điểm danh hoặc làm bài kiểm tra giúp bạn.</span>
             </div>
 
             <div className="form-group">
               <label className="form-label">Lớp (chính khóa)</label>
               <input type="text" name="classRegular" value={formData.classRegular} onChange={handleChange} required className="form-input" placeholder="Ví dụ: D15CNPM5" />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Lớp sinh hoạt chính của bạn trên trường.</span>
             </div>
 
             <div className="form-group">
               <label className="form-label">Lớp cần học hộ</label>
               <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402" />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Mã lớp học phần hoặc phòng học cụ thể cần người đi học hộ.</span>
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Trường</label>
               <input type="text" name="school" value={formData.school} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Đại học Công nghệ" />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Tên trường Đại học/Cao đẳng nơi có lớp học.</span>
             </div>
 
             {/* Người đi học (CTV Chỉ định) */}
@@ -1715,6 +1763,7 @@ function Dashboard() {
                 {weekday && <span style={{ marginLeft: "10px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: "bold" }}>({weekday})</span>}
               </label>
               <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" min={minDate} />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Lựa chọn ngày cụ thể của buổi trực lớp cần đặt lịch.</span>
             </div>
 
             <div className="form-group">
@@ -1741,6 +1790,7 @@ function Dashboard() {
                 className="form-input" 
                 placeholder="Ví dụ: 14:30" 
               />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Định dạng 24h (ví dụ: 12:30 hoặc 07:45).</span>
             </div>
 
             <div className="form-group">
@@ -1767,11 +1817,13 @@ function Dashboard() {
                 className="form-input" 
                 placeholder="Ví dụ: 17:00" 
               />
+              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Định dạng 24h (ví dụ: 14:00 hoặc 21:00).</span>
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Mức giá đề xuất (VNĐ)</label>
               <input type="text" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50.000" />
+              <span style={{ fontSize: "0.72rem", color: "#d97706", marginTop: "4px", display: "block", fontWeight: "600" }}>* Số tiền này sẽ được tạm giữ từ ví số dư của bạn khi đăng đơn và chỉ thực tế khấu trừ sau khi ca học hoàn tất thành công.</span>
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
