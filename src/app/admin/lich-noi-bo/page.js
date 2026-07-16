@@ -293,6 +293,32 @@ function InternalSchedulesManager() {
       updatedAt: serverTimestamp()
     };
 
+    // Tự động kiểm tra và lưu người đi học (CTV) mới vào danh sách helpers
+    const helperNameEntered = (formData.helperName || "").trim();
+    if (helperNameEntered) {
+      const helperExists = helpers.some(h => 
+        (h.alias || "").trim().toLowerCase() === helperNameEntered.toLowerCase() ||
+        (h.name || "").trim().toLowerCase() === helperNameEntered.toLowerCase()
+      );
+      if (!helperExists) {
+        try {
+          await addDoc(collection(db, "helpers"), {
+            name: helperNameEntered,
+            alias: helperNameEntered,
+            school: "Tự thêm bởi Admin",
+            status: "approved",
+            isApproved: true,
+            isManual: true, // Phân biệt: CTV do admin tự thêm
+            bio: "Cộng tác viên được Admin thêm thủ công khi lên lịch nội bộ.",
+            createdAt: serverTimestamp()
+          });
+          toast.success(`Đã tự động lưu CTV mới: ${helperNameEntered}`);
+        } catch (saveHelperErr) {
+          console.error("Lỗi tự động lưu CTV mới:", saveHelperErr);
+        }
+      }
+    }
+
     // Sanitize to avoid Firestore crash
     const sanitizedData = {};
     Object.keys(formattedData).forEach(key => {
@@ -1212,9 +1238,10 @@ function InternalSchedulesManager() {
                     <option value="">-- Tự nhập / Chọn CTV --</option>
                     {helpers.map(h => {
                       const isOnline = getHelperShiftStatus(h.email);
+                      const typeLabel = h.isManual ? "✍️ [Tự thêm]" : "🛡️ [Đăng ký]";
                       return (
-                        <option key={h.id} value={h.alias ? `${h.alias}` : h.name}>
-                          {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
+                        <option key={h.id} value={h.alias || h.name}>
+                          {isOnline ? "🟢 " : "⚪ "} {typeLabel} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
                         </option>
                       );
                     })}
@@ -1224,10 +1251,21 @@ function InternalSchedulesManager() {
                     type="text"
                     value={formData.helperName}
                     onChange={e => setFormData({ ...formData, helperName: e.target.value })}
-                    placeholder="Nhập tên người đi học khác nếu cần"
+                    placeholder="Nhập/gõ để tìm hoặc thêm CTV mới..."
                     className="form-input"
                     style={{ marginTop: "5px" }}
+                    list="helpers-datalist"
                   />
+                  <datalist id="helpers-datalist">
+                    {helpers.map(h => (
+                      <option 
+                        key={h.id} 
+                        value={h.alias || h.name}
+                      >
+                        {h.isManual ? "✍️ [Admin tự thêm]" : "🛡️ [Đăng ký]"}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>

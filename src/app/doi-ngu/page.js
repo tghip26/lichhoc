@@ -11,6 +11,7 @@ export default function DoiNguPage() {
   const [loading, setLoading] = useState(true);
   const [searchSchool, setSearchSchool] = useState("");
   const [searchSpeciality, setSearchSpeciality] = useState("");
+  const [selectedReviewsHelper, setSelectedReviewsHelper] = useState(null);
 
   useEffect(() => {
     // 1. Tải danh sách CTV đã duyệt từ cấu hình công khai settings/public_helpers
@@ -61,22 +62,23 @@ export default function DoiNguPage() {
     return matches;
   };
 
-  // Tính số sao và số lượt đánh giá trung bình của CTV dựa trên lịch sử reviews
+  // Tính số sao và số lượt đánh giá trung bình của CTV dựa trên lịch sử reviews thực tế
   const getHelperStats = (helperName) => {
     const nameToMatch = (helperName || "").trim().toLowerCase();
     const matchedReviews = reviews.filter(r => 
-      r.comment?.toLowerCase().includes(nameToMatch) || 
-      r.userName?.toLowerCase() === nameToMatch
+      (r.helperName && r.helperName.trim().toLowerCase() === nameToMatch) ||
+      (r.comment?.toLowerCase().includes(nameToMatch))
     );
 
     if (matchedReviews.length === 0) {
-      // Số sao ngẫu nhiên uy tín dựa trên thâm niên
-      return { rating: 5.0, count: 5 + (nameToMatch.charCodeAt(0) % 8) };
+      return { rating: 5.0, count: 0 };
     }
 
-    const avg = matchedReviews.reduce((sum, r) => sum + r.rating, 0) / matchedReviews.length;
-    return { rating: avg.toFixed(1), count: matchedReviews.length };
+    const totalStars = matchedReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0);
+    const avgRating = Number((totalStars / matchedReviews.length).toFixed(1));
+    return { rating: avgRating, count: matchedReviews.length };
   };
+
 
   // Lọc danh sách CTV theo trường đại học và môn chuyên ngành
   const filteredHelpers = helpers.filter(h => {
@@ -179,13 +181,19 @@ export default function DoiNguPage() {
                     </div>
 
                     {/* Số sao đánh giá */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "1.25rem", fontSize: "0.85rem" }}>
+                    <div 
+                      onClick={() => setSelectedReviewsHelper(h)}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "1.25rem", fontSize: "0.85rem", cursor: "pointer" }}
+                      title="Xem nhận xét đánh giá thực tế từ học viên"
+                      onMouseOver={e => e.currentTarget.style.opacity = 0.8}
+                      onMouseLeave={e => e.currentTarget.style.opacity = 1}
+                    >
                       <span style={{ color: "#FBBC05", fontSize: "1.1rem" }}>
                         {"★".repeat(Math.round(stats.rating))}
                         {"☆".repeat(5 - Math.round(stats.rating))}
                       </span>
                       <strong style={{ color: "var(--text-primary)" }}>{stats.rating}</strong>
-                      <span style={{ color: "var(--text-secondary)" }}>({stats.count} đánh giá)</span>
+                      <span style={{ color: "var(--text-secondary)", textDecoration: "underline" }}>({stats.count} đánh giá)</span>
                     </div>
 
                     {/* Lĩnh vực chuyên sâu */}
@@ -212,8 +220,8 @@ export default function DoiNguPage() {
                   </div>
 
                   {/* Nút đặt lịch */}
-                  <Link href="/dashboard" className="btn btn-primary" style={{ width: "100%", padding: "0.75rem", borderRadius: "12px", textDecoration: "none", fontSize: "0.88rem" }}>
-                    👉 Đặt Lịch Học Với {h.alias || "CTV"}
+                  <Link href={`/dashboard?helperName=${encodeURIComponent(h.name)}&helperEmail=${encodeURIComponent(h.email || '')}`} className="btn btn-primary" style={{ width: "100%", padding: "0.75rem", borderRadius: "12px", textDecoration: "none", fontSize: "0.88rem" }}>
+                    👉 Đặt Lịch Học Với {h.alias || h.name || "CTV"}
                   </Link>
                 </div>
               );
@@ -221,6 +229,86 @@ export default function DoiNguPage() {
           </div>
         )}
       </div>
+
+      {/* Modal hiển thị đánh giá thực tế của CTV */}
+      {selectedReviewsHelper && (() => {
+        const nameToMatch = (selectedReviewsHelper.alias || selectedReviewsHelper.name || "").trim().toLowerCase();
+        const matchedReviews = reviews.filter(r => 
+          (r.helperName && r.helperName.trim().toLowerCase() === nameToMatch) ||
+          (r.comment?.toLowerCase().includes(nameToMatch))
+        );
+
+        return (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1.5rem"
+          }} onClick={() => setSelectedReviewsHelper(null)}>
+            <div style={{
+              background: "white",
+              borderRadius: "24px",
+              padding: "2rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+              border: "1px solid #e2e8f0"
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "1rem" }}>
+                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+                  💬 Đánh giá từ Học viên
+                </h3>
+                <button onClick={() => setSelectedReviewsHelper(null)} style={{ background: "rgba(0,0,0,0.05)", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#64748b", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  &times;
+                </button>
+              </div>
+
+              <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
+                <h4 style={{ margin: "0 0 5px 0", fontSize: "1.1rem", color: "var(--text-primary)", fontWeight: "800" }}>{selectedReviewsHelper.alias || selectedReviewsHelper.name}</h4>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)" }}>🏫 {selectedReviewsHelper.school}</p>
+              </div>
+
+              {matchedReviews.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "3rem 1rem", color: "var(--text-secondary)", fontStyle: "italic", fontSize: "0.9rem" }}>
+                  Chưa có lượt nhận xét đánh giá nào dành cho CTV này.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                  {matchedReviews.map(r => (
+                    <div key={r.id} style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "16px", border: "1px solid #f1f5f9" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>{r.userName || "Sinh viên ẩn danh"}</strong>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                          {r.createdAt ? new Date(r.createdAt.seconds * 1000).toLocaleDateString("vi-VN") : "Gần đây"}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "6px" }}>
+                        <span style={{ color: "#FBBC05", fontSize: "0.85rem" }}>{"★".repeat(Number(r.rating || 5))}</span>
+                        <span style={{ fontSize: "0.75rem", background: "rgba(79, 70, 229, 0.06)", color: "var(--primary)", padding: "1px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                          Môn: {r.className}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.82rem", color: "#334155", fontStyle: "italic", lineHeight: "1.4" }}>
+                        "{r.comment}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

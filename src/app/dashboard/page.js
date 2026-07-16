@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 
 function Dashboard() {
-  const { user, loading, systemSettings, sendTelegramAlert } = useAuth();
+  const { user, loading, isAdmin, systemSettings, sendTelegramAlert } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -18,6 +18,7 @@ function Dashboard() {
   const [formData, setFormData] = useState({
     name: "",
     className: "",
+    classRegular: "",
     studentId: "",
     school: "",
     classDate: "",
@@ -77,16 +78,34 @@ function Dashboard() {
   const [lightboxImage, setLightboxImage] = useState(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
+    if (!loading) {
+      if (!user) {
+        router.push("/");
+      } else if (isAdmin) {
+        router.push("/admin");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAdmin, router]);
 
   useEffect(() => {
     if (tabParam) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  const [requestedHelper, setRequestedHelper] = useState("");
+  const [requestedHelperEmail, setRequestedHelperEmail] = useState("");
+
+  useEffect(() => {
+    const helperName = searchParams.get("helperName");
+    const helperEmail = searchParams.get("helperEmail");
+    if (helperName) {
+      setRequestedHelper(decodeURIComponent(helperName));
+    }
+    if (helperEmail) {
+      setRequestedHelperEmail(decodeURIComponent(helperEmail));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Đặt ngày học mặc định là ngày hôm nay trên client
@@ -334,7 +353,7 @@ function Dashboard() {
     return () => window.removeEventListener("paste", handlePaste);
   }, []);
 
-  if (loading || !user) {
+  if (loading || !user || isAdmin) {
     return <div className="loader"></div>;
   }
 
@@ -425,6 +444,7 @@ function Dashboard() {
         userEmail: user.email || "No Email",
         name: formData.name,
         className: formData.className,
+        classRegular: formData.classRegular || "",
         studentId: formData.studentId,
         school: formData.school,
         classDate: formData.classDate,
@@ -438,6 +458,8 @@ function Dashboard() {
         imageUrl: file, // Lưu trực tiếp chuỗi Base64
         status: paymentMethod === "wallet" ? "paid" : "pending",
         paymentMethod: paymentMethod,
+        assignedTo: requestedHelper || "", // Gán thẳng nếu chỉ định CTV
+        requestedHelper: requestedHelper || "",
         createdAt: serverTimestamp()
       });
 
@@ -447,6 +469,7 @@ function Dashboard() {
           studentName: formData.name,
           studentId: formData.studentId,
           className: formData.className,
+          classRegular: formData.classRegular || "",
           school: formData.school,
           phone: formData.phone
         });
@@ -467,12 +490,14 @@ function Dashboard() {
         `• <b>Mã đơn (VietQR):</b> <code>${orderIdSub}</code>\n` +
         `• <b>Họ tên sinh viên:</b> ${formData.name}\n` +
         `• <b>Mã số sinh viên:</b> ${formData.studentId}\n` +
-        `• <b>Lớp học:</b> ${formData.className}\n` +
+        `• <b>Lớp học cần hộ:</b> ${formData.className}\n` +
+        (formData.classRegular ? `• <b>Lớp chính khóa:</b> ${formData.classRegular}\n` : "") +
         `• <b>Trường học:</b> ${formData.school}\n` +
         `• <b>Ngày học:</b> ${weekday} (${new Date(formData.classDate).toLocaleDateString("vi-VN")})${timeAlert}\n` +
         `• <b>Số điện thoại:</b> ${formData.phone}\n` +
         `• <b>Giá thuê:</b> ${formatPrice} VNĐ\n` +
-        `• <b>Phương thức:</b> ${paymentInfo}\n\n` +
+        `• <b>Phương thức:</b> ${paymentInfo}\n` +
+        (requestedHelper ? `• <b>CTV chỉ định:</b> ${requestedHelper}\n` : "") + `\n` +
         `<i>Vui lòng truy cập Bảng quản trị để phê duyệt lịch!</i>`;
 
       sendTelegramAlert(telegramText);
@@ -481,7 +506,7 @@ function Dashboard() {
       await addDoc(collection(db, "notifications"), {
         userId: "admin",
         title: paymentMethod === "wallet" ? "Đơn thanh toán qua Ví" : "Đơn thuê học mới",
-        message: `Sinh viên ${formData.name} đăng ký học môn ${formData.className} (${formatPrice} đ).`,
+        message: `Sinh viên ${formData.name} đăng ký học môn ${formData.className} (${formData.classRegular || "N/A"}) (${formatPrice} đ).`,
         read: false,
         link: "/admin?tab=schedules",
         createdAt: serverTimestamp()
@@ -521,6 +546,7 @@ function Dashboard() {
         name: userProfile?.studentName || userProfile?.displayName || "",
         studentId: userProfile?.studentId || "",
         className: "",
+        classRegular: "",
         school: userProfile?.school || "",
         classDate: todayStr,
         startTime: "",
@@ -530,6 +556,8 @@ function Dashboard() {
         phone: userProfile?.phone || "",
         price: "" 
       });
+      setRequestedHelper("");
+      setRequestedHelperEmail("");
       
       const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
       setWeekday(daysOfWeek[today.getDay()]);
@@ -1290,6 +1318,7 @@ function Dashboard() {
         school: reviewItem.school,
         rating: rating,
         comment: reviewText,
+        helperName: reviewItem.assignedTo || "",
         createdAt: serverTimestamp()
       });
       
@@ -1635,8 +1664,13 @@ function Dashboard() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Lớp</label>
-              <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="IT1" />
+              <label className="form-label">Lớp (chính khóa)</label>
+              <input type="text" name="classRegular" value={formData.classRegular} onChange={handleChange} required className="form-input" placeholder="Ví dụ: D15CNPM5" />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Lớp cần học hộ (VD: CS1.E402)</label>
+              <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402" />
             </div>
 
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
@@ -1644,8 +1678,29 @@ function Dashboard() {
               <input type="text" name="school" value={formData.school} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Đại học Công nghệ" />
             </div>
 
+            {/* Người đi học (CTV Chỉ định) */}
+            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <label className="form-label" style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "5px", fontWeight: "700" }}>
+                <span>👤 Người đi học (CTV chỉ định)</span>
+              </label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "5px" }}>
+                <span style={{ fontSize: "0.9rem", fontWeight: "700", color: requestedHelper ? "var(--primary)" : "var(--text-secondary)" }}>
+                  {requestedHelper ? `🟢 ${requestedHelper}` : "⚪ Chưa chỉ định (CTV tự chọn nhận đơn / Admin duyệt)"}
+                </span>
+                {requestedHelper && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setRequestedHelper(""); setRequestedHelperEmail(""); }}
+                    style={{ background: "#fee2e2", border: "none", color: "#b91c1c", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
+                  >
+                    Hủy chỉ định
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="form-group">
-              <label className="form-label">Ngày sinh</label>
+              <label className="form-label">Ngày tháng năm sinh</label>
               <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
             </div>
 
@@ -2019,7 +2074,7 @@ function Dashboard() {
                   
                   <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px", marginBottom: "0.4rem" }}>
                     <svg style={{ width: "14px", height: "14px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                    {item.school} • {item.className}
+                    {item.school} • {item.classRegular ? `${item.classRegular} • ` : ""}{item.className}
                   </div>
  
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
@@ -2253,9 +2308,15 @@ function Dashboard() {
                 <span style={{ fontWeight: "700" }}>{selectedItem.studentId}</span>
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
-                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>LỚP HỌC</strong>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>LỚP CẦN HỌC HỘ</strong>
                 <span>{selectedItem.className}</span>
               </div>
+              {selectedItem.classRegular && (
+                <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
+                  <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>LỚP CHÍNH KHÓA</strong>
+                  <span>{selectedItem.classRegular}</span>
+                </div>
+              )}
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRƯỜNG HỌC</strong>
                 <span>{selectedItem.school}</span>
@@ -2265,7 +2326,7 @@ function Dashboard() {
                 <span>{selectedItem.phone || "Không cung cấp"}</span>
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
-                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>NGÀY SINH</strong>
+                <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>NGÀY THÁNG NĂM SINH</strong>
                 <span>{selectedItem.dob ? new Date(selectedItem.dob).toLocaleDateString("vi-VN") : "Không cung cấp"}</span>
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>

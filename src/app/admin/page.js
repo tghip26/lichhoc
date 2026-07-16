@@ -112,7 +112,7 @@ function AdminDashboard() {
      if (!isAdmin || helpers.length === 0) return;
      
      const approvedHelpers = helpers
-       .filter(h => h.status === "approved" || h.isApproved)
+       .filter(h => (h.status === "approved" || h.isApproved) && !h.isManual)
        .map(h => ({
          id: h.id,
          name: h.name || "",
@@ -1460,6 +1460,7 @@ function AdminDashboard() {
                       <td style={{ padding: "1rem 1.5rem" }}>
                         <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
                           {h.name} {h.alias && <span style={{ color: "var(--primary)", fontWeight: "600", fontSize: "0.85rem" }}>({h.alias})</span>}
+                          {h.isManual && <span style={{ background: "#fee2e2", color: "#b91c1c", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "6px", marginLeft: "6px", fontWeight: "700" }}>Admin Tự Thêm</span>}
                         </div>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>MSSV: {h.studentId}</div>
                         <button
