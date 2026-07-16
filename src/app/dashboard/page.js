@@ -1669,7 +1669,7 @@ function Dashboard() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Lớp cần học hộ (VD: CS1.E402)</label>
+              <label className="form-label">Lớp cần học hộ</label>
               <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402" />
             </div>
 
