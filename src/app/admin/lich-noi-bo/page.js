@@ -65,6 +65,8 @@ function InternalSchedulesManager() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
+  const [showAllManualHelpers, setShowAllManualHelpers] = useState(false);
+
   // Form Fields
   const [formData, setFormData] = useState({
     studentName: "",
@@ -2393,56 +2395,95 @@ function InternalSchedulesManager() {
                   </datalist>
 
                   {/* Manually added CTV chips with X delete buttons */}
-                  {helpers.filter(h => h.isManual).length > 0 && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600", marginBottom: "4px" }}>
-                        📌 Danh sách CTV tự thêm (Click để chọn nhanh, click đúp để sửa, bấm x để xóa):
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                        {helpers.filter(h => h.isManual).map(h => (
-                          <div 
-                            key={h.id}
-                            onDoubleClick={() => handleEditManualHelper(h.id, h.name, h.alias)}
-                            onClick={() => setFormData(prev => ({ ...prev, helperName: h.alias || h.name }))}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              background: "#f3e8ff",
-                              color: "#6b21a8",
-                              fontSize: "0.78rem",
-                              fontWeight: "700",
-                              padding: "4px 10px",
-                              borderRadius: "20px",
-                              border: "1px solid #e9d5ff",
-                              cursor: "pointer",
-                              transition: "all 0.2s"
-                            }}
-                            title="Nhấp đúp để chỉnh sửa tên CTV này"
-                          >
-                            <span>{h.alias || h.name}</span>
-                            <span 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteManualHelper(h.id, h.alias || h.name);
-                              }}
+                  {(() => {
+                    const manualHelpers = helpers.filter(h => h.isManual);
+                    if (manualHelpers.length === 0) return null;
+
+                    // Sort manual helpers by frequency of usage in schedules
+                    const sortedManualHelpers = [...manualHelpers].sort((a, b) => {
+                      const countA = schedules.filter(s => 
+                        (s.helperName || "").toLowerCase().trim() === (a.alias || a.name || "").toLowerCase().trim()
+                      ).length;
+                      const countB = schedules.filter(s => 
+                        (s.helperName || "").toLowerCase().trim() === (b.alias || b.name || "").toLowerCase().trim()
+                      ).length;
+                      return countB - countA;
+                    });
+
+                    const displayedManualHelpers = showAllManualHelpers 
+                      ? sortedManualHelpers 
+                      : sortedManualHelpers.slice(0, 6);
+
+                    return (
+                      <div style={{ marginTop: "8px" }}>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600", marginBottom: "4px" }}>
+                          📌 Danh sách CTV tự thêm phổ biến nhất (Click để chọn nhanh, click đúp để sửa, bấm x để xóa):
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+                          {displayedManualHelpers.map(h => (
+                            <div 
+                              key={h.id}
+                              onDoubleClick={() => handleEditManualHelper(h.id, h.name, h.alias)}
+                              onClick={() => setFormData(prev => ({ ...prev, helperName: h.alias || h.name }))}
                               style={{
-                                color: "#b91c1c",
-                                fontWeight: "800",
-                                fontSize: "0.9rem",
-                                padding: "0 2px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                background: "#f3e8ff",
+                                color: "#6b21a8",
+                                fontSize: "0.78rem",
+                                fontWeight: "700",
+                                padding: "4px 10px",
+                                borderRadius: "20px",
+                                border: "1px solid #e9d5ff",
                                 cursor: "pointer",
-                                marginLeft: "2px"
+                                transition: "all 0.2s"
                               }}
-                              title="Xóa CTV này"
+                              title="Nhấp đúp để chỉnh sửa tên CTV này"
                             >
-                              &times;
-                            </span>
-                          </div>
-                        ))}
+                              <span>{h.alias || h.name}</span>
+                              <span 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteManualHelper(h.id, h.alias || h.name);
+                                }}
+                                style={{
+                                  color: "#b91c1c",
+                                  fontWeight: "800",
+                                  fontSize: "0.9rem",
+                                  padding: "0 2px",
+                                  cursor: "pointer",
+                                  marginLeft: "2px"
+                                }}
+                                title="Xóa CTV này"
+                              >
+                                &times;
+                              </span>
+                            </div>
+                          ))}
+                          
+                          {sortedManualHelpers.length > 6 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAllManualHelpers(!showAllManualHelpers)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "var(--primary)",
+                                fontSize: "0.78rem",
+                                fontWeight: "750",
+                                cursor: "pointer",
+                                padding: "4px 8px",
+                                textDecoration: "underline"
+                              }}
+                            >
+                              {showAllManualHelpers ? "Thu gọn ◀" : `Xem thêm (${sortedManualHelpers.length - 6}) ▶`}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
