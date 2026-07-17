@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { 
   collection, addDoc, doc, updateDoc, deleteDoc, 
-  onSnapshot, query, orderBy, serverTimestamp 
+  onSnapshot, query, orderBy, serverTimestamp, increment
 } from "firebase/firestore";
 import toast from "react-hot-toast";
 
@@ -332,6 +332,30 @@ function InternalSchedulesManager() {
       }
     });
 
+    // Check payout logic
+    let payoutCompleted = false;
+    if (isEditing && editingId) {
+      const prevDoc = schedules.find(s => s.id === editingId);
+      if (sanitizedData.salaryStatus === "Đã trả lương" && (!prevDoc || !prevDoc.payoutDone)) {
+        payoutCompleted = true;
+      }
+    } else if (!isEditing) {
+      if (sanitizedData.salaryStatus === "Đã trả lương") {
+        payoutCompleted = true;
+      }
+    }
+
+    if (payoutCompleted) {
+      sanitizedData.payoutDone = true;
+    } else {
+      if (isEditing && editingId) {
+        const prevDoc = schedules.find(s => s.id === editingId);
+        if (sanitizedData.salaryStatus === "ChưaTL" && prevDoc && prevDoc.payoutDone) {
+          sanitizedData.payoutDone = false;
+        }
+      }
+    }
+
     try {
       if (isEditing) {
         await updateDoc(doc(db, "internal_schedules", editingId), sanitizedData);
@@ -341,6 +365,56 @@ function InternalSchedulesManager() {
         await addDoc(collection(db, "internal_schedules"), sanitizedData);
         toast.success("Đã thêm lịch học nội bộ mới!");
       }
+
+      // Trigger auto payout if marked completed
+      if (payoutCompleted) {
+        const helperNameClean = (sanitizedData.helperName || "").trim().toLowerCase();
+        if (helperNameClean) {
+          const helperObj = helpers.find(h => 
+            !h.isManual && 
+            ((h.alias && h.alias.trim().toLowerCase() === helperNameClean) ||
+             (h.name && h.name.trim().toLowerCase() === helperNameClean))
+          );
+
+          if (helperObj && helperObj.userId) {
+            const payoutVal = (Number(sanitizedData.salaryAmount) || 0) + (Number(sanitizedData.staffTipAmount) || 0);
+            if (payoutVal > 0) {
+              try {
+                // 1. Update wallet balance
+                await updateDoc(doc(db, "users", helperObj.userId), {
+                  helperBalance: increment(payoutVal)
+                });
+
+                // 2. Add transaction record
+                await addDoc(collection(db, "transactions"), {
+                  userId: helperObj.userId,
+                  userEmail: helperObj.email || helperObj.name || "ctv",
+                  amount: payoutVal,
+                  type: "payout_earn",
+                  status: "completed",
+                  message: `Nhận thù lao trực lớp nội bộ ${sanitizedData.subject} ngày ${new Date(sanitizedData.classDate).toLocaleDateString("vi-VN")}`,
+                  createdAt: serverTimestamp()
+                });
+
+                // 3. Send Notification
+                await addDoc(collection(db, "notifications"), {
+                  userId: helperObj.userId,
+                  title: "Nhận thù lao lịch nội bộ 💰",
+                  message: `Ví thù lao CTV của bạn đã được cộng +${payoutVal.toLocaleString("vi-VN")} đ cho ca trực nội bộ môn ${sanitizedData.subject}.`,
+                  read: false,
+                  link: "/dashboard",
+                  createdAt: serverTimestamp()
+                });
+
+                toast.info(`Đã tự động cộng +${payoutVal.toLocaleString("vi-VN")} đ thù lao vào ví CTV của ${helperObj.name}!`);
+              } catch (payoutErr) {
+                console.error("Lỗi tự động cộng tiền CTV:", payoutErr);
+              }
+            }
+          }
+        }
+      }
+
       setShowModal(false);
     } catch (err) {
       console.error("Lỗi lưu lịch:", err);
@@ -990,6 +1064,17 @@ function InternalSchedulesManager() {
           <span style={{ color: "#4f46e5", fontWeight: "700" }}>
             👤 {item.helperName || "(Chưa giao CTV)"}
           </span>
+          {item.proofImage && (
+            <div style={{ marginTop: "5px" }}>
+              <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)", display: "block", marginBottom: "2px" }}>📸 Minh chứng:</span>
+              <img 
+                src={item.proofImage} 
+                alt="Minh chứng" 
+                style={{ width: "100%", height: "60px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                onClick={() => setLightboxImage(item.proofImage)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Render sub-info badges matching the spreadsheet view */}
@@ -1390,6 +1475,16 @@ function InternalSchedulesManager() {
                       }}>
                         {s.checkinStatus === "checked_in" ? "✓ Đã Checkin" : "✗ Chưa"}
                       </span>
+                      {s.proofImage && (
+                        <div style={{ marginTop: "4px" }}>
+                          <span 
+                            onClick={() => setLightboxImage(s.proofImage)}
+                            style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                          >
+                            📷 Xem ảnh
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "1rem", textAlign: "center" }}>
                       {renderStatusPill(s.studyStatus)}

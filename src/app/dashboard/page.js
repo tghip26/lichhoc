@@ -64,6 +64,7 @@ function Dashboard() {
   // Cộng tác viên (CTV) state
   const [openJobs, setOpenJobs] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
+  const [myInternalJobs, setMyInternalJobs] = useState([]);
   const [isCTVMode, setIsCTVMode] = useState(false);
   const [ctvActiveTab, setCtvActiveTab] = useState("job_board"); // "job_board" or "my_jobs"
   const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -248,6 +249,45 @@ function Dashboard() {
     }, (err) => console.error("Lỗi tải thông tin ứng tuyển CTV:", err));
     return () => unsubscribe();
   }, [user]);
+
+  useEffect(() => {
+    let unsubscribeInternalJobs;
+    if (user && (userProfile?.role === "helper" || userProfile?.role === "admin")) {
+      const qInternal = query(collection(db, "internal_schedules"));
+      unsubscribeInternalJobs = onSnapshot(qInternal, (snapshot) => {
+        const allInternal = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isInternal: true }));
+        
+        const myName = (helperApplication?.name || "").toLowerCase().trim();
+        const myAlias = (helperApplication?.alias || "").toLowerCase().trim();
+        const myEmail = (user?.email || "").toLowerCase().trim();
+        const profileName = (userProfile?.name || "").toLowerCase().trim();
+        const profileDisplayName = (userProfile?.displayName || "").toLowerCase().trim();
+
+        const myInternalFiltered = allInternal.filter(s => {
+          const assignedName = (s.helperName || "").toLowerCase().trim();
+          if (!assignedName) return false;
+          return (
+            assignedName === myName ||
+            assignedName === myAlias ||
+            assignedName === profileName ||
+            assignedName === profileDisplayName ||
+            assignedName === myEmail
+          );
+        });
+        
+        myInternalFiltered.sort((a, b) => {
+          const dateA = new Date(a.classDate);
+          const dateB = new Date(b.classDate);
+          return dateB - dateA;
+        });
+
+        setMyInternalJobs(myInternalFiltered);
+      }, (err) => console.error("Lỗi tải lịch nội bộ CTV:", err));
+    }
+    return () => {
+      if (unsubscribeInternalJobs) unsubscribeInternalJobs();
+    };
+  }, [user, userProfile?.role, helperApplication, userProfile?.name, userProfile?.displayName]);
 
   // Tự động điền thông tin học viên đã lưu từ hồ sơ người dùng
   useEffect(() => {
@@ -816,18 +856,27 @@ function Dashboard() {
     setSubmittingProof(true);
     toast.loading("Đang gửi minh chứng...", { id: "proof" });
     try {
-      await updateDoc(doc(db, "schedules", selectedJobForProof.id), {
-        helperProofImage: proofFile,
-        helperProofTime: serverTimestamp(),
-        status: "proof_submitted"
-      });
+      if (selectedJobForProof.isInternal) {
+        await updateDoc(doc(db, "internal_schedules", selectedJobForProof.id), {
+          proofImage: proofFile,
+          checkinStatus: "checked_in",
+          studyStatus: "da_hoc"
+        });
+      } else {
+        await updateDoc(doc(db, "schedules", selectedJobForProof.id), {
+          helperProofImage: proofFile,
+          helperProofTime: serverTimestamp(),
+          status: "proof_submitted"
+        });
+      }
       toast.success("Báo cáo trực lớp thành công! Chờ Admin duyệt.", { id: "proof" });
       setShowProofModal(false);
       setProofFile(null);
       setSelectedJobForProof(null);
 
       // Gửi thông báo Telegram cho Admin
-      const proofText = `📸 <b>CTV BÁO CÁO HOÀN THÀNH LỚP!</b>\n\n` +
+      const isInternalStr = selectedJobForProof.isInternal ? " [LỊCH NỘI BỘ]" : "";
+      const proofText = `📸 <b>CTV BÁO CÁO HOÀN THÀNH LỚP${isInternalStr}!</b>\n\n` +
         `• <b>CTV:</b> ${userProfile?.name || user.email}\n` +
         `• <b>Môn học:</b> ${selectedJobForProof.className}\n` +
         `• <b>Ngày học:</b> ${new Date(selectedJobForProof.classDate).toLocaleDateString("vi-VN")}\n\n` +
@@ -1158,80 +1207,130 @@ function Dashboard() {
               </div>
             </div>
             <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
-            {myJobs.length === 0 ? (
-              <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
-                Bạn chưa nhận lịch học hộ nào. Hãy qua tab Chợ Nhận Lớp để ứng tuyển!
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
-                {myJobs.map((job) => {
-                  const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
-                  const helperPayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
-                  return (
-                    <div key={job.id} className="glass-panel" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "8px", background: "white", borderLeft: "5px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5") }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-                        <strong style={{ fontSize: "1rem" }}>{job.className}</strong>
-                        {job.status === "completed" ? (
-                          <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
-                        ) : job.status === "proof_submitted" ? (
-                          <span style={{ fontSize: "0.75rem", background: "rgba(217,119,6,0.12)", color: "#D97706", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đã nộp báo cáo</span>
-                        ) : (
-                          <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.12)", color: "#4F46E5", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đang trực lớp</span>
+            {(() => {
+              const allJobsCombined = [
+                ...myJobs.map(j => ({ ...j, isInternal: false })),
+                ...myInternalJobs.map(j => ({
+                  ...j,
+                  isInternal: true,
+                  className: j.subject,
+                  startTime: j.timeSlot ? j.timeSlot.split(" - ")[0] : "Ca học",
+                  endTime: j.timeSlot ? j.timeSlot.split(" - ")[1] : "Nội bộ",
+                  name: j.studentName || "Học viên nội bộ",
+                  payoutAmount: (Number(j.salaryAmount) || 0) + (Number(j.staffTipAmount) || 0),
+                  status: j.salaryStatus === "Đã trả lương" ? "completed" : (j.proofImage ? "proof_submitted" : "in_progress")
+                }))
+              ];
+              allJobsCombined.sort((a, b) => new Date(b.classDate) - new Date(a.classDate));
+
+              if (allJobsCombined.length === 0) {
+                return (
+                  <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                    Bạn chưa có lịch học hộ hoặc ca trực nội bộ nào được giao.
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
+                  {allJobsCombined.map((job) => {
+                    const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                    const helperPayout = job.isInternal ? job.payoutAmount : (job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75));
+                    return (
+                      <div 
+                        key={job.id} 
+                        className="glass-panel" 
+                        style={{ 
+                          padding: "1.25rem", 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          gap: "8px", 
+                          background: "white", 
+                          borderLeft: "5px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5"),
+                          position: "relative"
+                        }}
+                      >
+                        {job.isInternal && (
+                          <span style={{ 
+                            position: "absolute", 
+                            top: "8px", 
+                            right: "8px", 
+                            background: "#f3e8ff", 
+                            color: "#6b21a8", 
+                            fontSize: "0.68rem", 
+                            fontWeight: "800", 
+                            padding: "2px 6px", 
+                            borderRadius: "6px" 
+                          }}>
+                            📅 Lịch Nội Bộ
+                          </span>
                         )}
-                      </div>
 
-                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <span>🏫 Trường: <b>{job.school}</b></span>
-                        <span>📅 Ngày học: <b>{job.weekday || ""} ({new Date(job.classDate).toLocaleDateString("vi-VN")})</b></span>
-                        <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
-                        <span>👤 Học viên: <b>{job.name} (MSSV: {job.studentId})</b></span>
-                        <span>📞 Liên hệ Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)", fontWeight: "bold" }}>0852866856 💬</a></span>
-                      </div>
-
-                      {/* Nút xem lịch chụp của học viên */}
-                      {(job.imageUrl || job.file) && (
-                        <div style={{ margin: "5px 0" }}>
-                          <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>📸 Lịch học:</span>
-                          <img 
-                            src={job.imageUrl || job.file} 
-                            alt="Ảnh lịch học" 
-                            style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
-                            onClick={() => setLightboxImage(job.imageUrl || job.file)}
-                          />
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", paddingRight: job.isInternal ? "80px" : "0" }}>
+                          <strong style={{ fontSize: "1rem" }}>{job.className}</strong>
+                          {job.status === "completed" ? (
+                            <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
+                          ) : job.status === "proof_submitted" ? (
+                            <span style={{ fontSize: "0.75rem", background: "rgba(217,119,6,0.12)", color: "#D97706", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đã nộp báo cáo</span>
+                          ) : (
+                            <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.12)", color: "#4F46E5", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đang trực lớp</span>
+                          )}
                         </div>
-                      )}
 
-                      <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao thợ:</span>
-                          <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                        <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                          <span>🏫 Trường: <b>{job.school || "N/A"}</b></span>
+                          <span>📅 Ngày học: <b>{job.weekday || ""} ({new Date(job.classDate).toLocaleDateString("vi-VN")})</b></span>
+                          <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
+                          {job.classroom && <span>🚪 Phòng học: <b>{job.classroom}</b></span>}
+                          <span>👤 Học viên: <b>{job.name}</b></span>
+                          <span>📞 Liên hệ Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)", fontWeight: "bold" }}>0852866856 💬</a></span>
                         </div>
-                        {(job.status === "accepted" || job.status === "in_progress") && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedJobForProof(job);
-                              setProofFile(null);
-                              setShowProofModal(true);
-                            }}
-                            className="btn"
-                            style={{ background: "#D97706", color: "white", padding: "0.35rem 0.8rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.78rem" }}
-                          >
-                            📸 Báo cáo thù lao
-                          </button>
+
+                        {/* Nút xem lịch chụp của học viên */}
+                        {(job.imageUrl || job.file || job.proofImage) && (
+                          <div style={{ margin: "5px 0" }}>
+                            <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>📸 Lịch học / Minh chứng:</span>
+                            <img 
+                              src={job.imageUrl || job.file || job.proofImage} 
+                              alt="Ảnh đính kèm" 
+                              style={{ width: "100%", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #cbd5e1", cursor: "pointer" }}
+                              onClick={() => setLightboxImage(job.imageUrl || job.file || job.proofImage)}
+                            />
+                          </div>
                         )}
-                        {job.status === "proof_submitted" && (
-                          <span style={{ fontSize: "0.78rem", color: "#D97706", fontWeight: "700" }}>Chờ duyệt</span>
-                        )}
-                        {job.status === "completed" && (
-                          <span style={{ fontSize: "0.78rem", color: "var(--success)", fontWeight: "700" }}>Đã trả ví</span>
-                        )}
+
+                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div>
+                            <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao:</span>
+                            <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                          </div>
+                          {(job.status === "accepted" || job.status === "in_progress") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedJobForProof(job);
+                                setProofFile(null);
+                                setShowProofModal(true);
+                              }}
+                              className="btn"
+                              style={{ background: "#D97706", color: "white", padding: "0.35rem 0.8rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.78rem" }}
+                            >
+                              📸 Báo cáo check-in
+                            </button>
+                          )}
+                          {job.status === "proof_submitted" && (
+                            <span style={{ fontSize: "0.78rem", color: "#D97706", fontWeight: "700" }}>Chờ duyệt</span>
+                          )}
+                          {job.status === "completed" && (
+                            <span style={{ fontSize: "0.78rem", color: "var(--success)", fontWeight: "700" }}>Đã trả ví</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
