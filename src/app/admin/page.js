@@ -2210,17 +2210,17 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "400px", overflowY: "auto" }} className="hide-scrollbar">
               <div>
-                <strong>Học viên:</strong> {selectedItem.name}
+                <strong>Học viên:</strong> {selectedItem.name || "N/A"}
                 {(() => {
-                  const userDoc = users.find(u => u.id === selectedItem.userId);
+                  const userDoc = (users || []).find(u => u && u.id === selectedItem.userId);
                   return userDoc?.alias ? <span style={{ color: "#8B5CF6", fontWeight: "700", marginLeft: "6px" }}>(🏷️ {userDoc.alias})</span> : null;
                 })()}
               </div>
-              <div><strong>Môn học:</strong> {selectedItem.className}</div>
-              <div><strong>Mã đơn VietQR:</strong> <span style={{ fontFamily: "monospace", color: "var(--primary)", fontWeight: "700" }}>{selectedItem.id.substring(0, 8).toUpperCase()}</span></div>
-              <div><strong>Trường:</strong> {selectedItem.school} • Lớp: {selectedItem.className}</div>
-              <div><strong>Thời gian:</strong> {selectedItem.weekday} ({new Date(selectedItem.classDate).toLocaleDateString("vi-VN")})</div>
-              <div><strong>Giờ học:</strong> {selectedItem.startTime} - {selectedItem.endTime}</div>
+              <div><strong>Môn học:</strong> {selectedItem.className || "N/A"}</div>
+              <div><strong>Mã đơn VietQR:</strong> <span style={{ fontFamily: "monospace", color: "var(--primary)", fontWeight: "700" }}>{selectedItem.id ? selectedItem.id.substring(0, 8).toUpperCase() : "N/A"}</span></div>
+              <div><strong>Trường:</strong> {selectedItem.school || "N/A"} • Lớp: {selectedItem.className || "N/A"}</div>
+              <div><strong>Thời gian:</strong> {selectedItem.weekday || ""} ({selectedItem.classDate ? new Date(selectedItem.classDate).toLocaleDateString("vi-VN") : "N/A"})</div>
+              <div><strong>Giờ học:</strong> {selectedItem.startTime || "N/A"} - {selectedItem.endTime || "N/A"}</div>
               <div><strong>Học phí:</strong> <span style={{ color: "var(--primary)", fontWeight: "700" }}>{Number(selectedItem.price || 0).toLocaleString("vi-VN")} đ</span></div>
               
               {selectedItem.phone && (
@@ -2238,7 +2238,9 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                     alt="Lịch học" 
                     style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "8px", marginTop: "4px", cursor: "pointer", border: "1px solid #cbd5e1" }}
                     onClick={() => {
-                      setLightboxImage(selectedItem.imageUrl);
+                      if (typeof setLightboxImage === "function") {
+                        setLightboxImage(selectedItem.imageUrl);
+                      }
                     }}
                   />
                 </div>
@@ -2249,7 +2251,9 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                 <select
                   value={selectedItem.status || "pending"}
                   onChange={(e) => {
-                    handleUpdateStatus(selectedItem.id, e.target.value);
+                    if (typeof handleUpdateStatus === "function") {
+                      handleUpdateStatus(selectedItem.id, e.target.value);
+                    }
                     setSelectedItem(prev => ({ ...prev, status: e.target.value }));
                   }}
                   className="form-input"
@@ -2269,15 +2273,17 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                 <select
                   value={selectedItem.assignedTo || ""}
                   onChange={(e) => {
-                    handleAssignHelper(selectedItem.id, e.target.value);
+                    if (typeof handleAssignHelper === "function") {
+                      handleAssignHelper(selectedItem.id, e.target.value);
+                    }
                     setSelectedItem(prev => ({ ...prev, assignedTo: e.target.value }));
                   }}
                   className="form-input"
                   style={{ background: "white", cursor: "pointer" }}
                 >
                   <option value="">-- Chưa giao --</option>
-                  {helpers.filter(h => h.isApproved || h.status === 'approved').map(h => {
-                    const isOnline = getHelperShiftStatus(h.email);
+                  {(helpers || []).filter(h => h && (h.isApproved || h.status === 'approved')).map(h => {
+                    const isOnline = typeof getHelperShiftStatus === "function" ? getHelperShiftStatus(h.email) : false;
                     return (
                       <option key={h.id} value={h.name}>
                         {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
