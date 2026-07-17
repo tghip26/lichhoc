@@ -1383,6 +1383,98 @@ function Dashboard() {
     }
   };
 
+  const handleQuickRebook = (item) => {
+    setFormData({
+      name: item.name || "",
+      className: item.className || "",
+      classRegular: item.classRegular || "",
+      studentId: item.studentId || "",
+      school: item.school || "",
+      classDate: "",
+      startTime: item.startTime || "",
+      endTime: item.endTime || "",
+      dob: item.dob || "",
+      notes: item.notes || "",
+      phone: item.phone || "",
+      price: item.price !== undefined ? String(item.price) : ""
+    });
+    setWeekday("");
+    setFile(null);
+    setFileName("");
+    setFilePreview(null);
+
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    toast.success(`Đã sao chép thông tin lớp "${item.className}". Vui lòng chọn ngày học mới và đính kèm ảnh lịch học.`);
+  };
+
+  const renderStatusStepper = (status) => {
+    const steps = [
+      { key: "pending", label: "Đăng đơn" },
+      { key: "approved", label: "Giao CTV" },
+      { key: "in_progress", label: "Đang học" },
+      { key: "completed", label: "Hoàn thành" }
+    ];
+
+    let currentIdx = 0;
+    if (status === "approved" || status === "paid") currentIdx = 1;
+    else if (status === "in_progress") currentIdx = 2;
+    else if (status === "completed") currentIdx = 3;
+    else if (status === "rejected") {
+      return (
+        <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px", border: "1px solid #fca5a5", color: "#b91c1c", fontSize: "0.82rem", fontWeight: "600", marginBottom: "1.5rem", textAlign: "center" }}>
+          ❌ Đơn hàng này đã bị hủy bỏ hoặc từ chối duyệt.
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", margin: "0.5rem 0 1.75rem 0", padding: "0 10px" }}>
+        <div style={{ position: "absolute", top: "15px", left: "30px", right: "30px", height: "3px", background: "#cbd5e1", zIndex: 1 }} />
+        <div style={{ 
+          position: "absolute", 
+          top: "15px", 
+          left: "30px", 
+          width: `${(currentIdx / (steps.length - 1)) * 80}%`, 
+          height: "3px", 
+          background: "var(--primary)", 
+          zIndex: 2,
+          transition: "width 0.3s ease" 
+        }} />
+
+        {steps.map((step, idx) => {
+          const isActive = idx <= currentIdx;
+          const isCurrent = idx === currentIdx;
+          return (
+            <div key={step.key} style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 3, position: "relative", width: "22%" }}>
+              <div style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background: isActive ? "var(--primary)" : "white",
+                color: isActive ? "white" : "var(--text-secondary)",
+                border: isActive ? "2px solid var(--primary)" : "2px solid #cbd5e1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "800",
+                fontSize: "0.8rem",
+                boxShadow: isCurrent ? "0 0 10px rgba(22, 163, 74, 0.4)" : "none",
+                transition: "all 0.3s ease"
+              }}>
+                {idx + 1}
+              </div>
+              <span style={{ fontSize: "0.75rem", fontWeight: isActive ? "800" : "600", color: isActive ? "var(--primary)" : "var(--text-secondary)", marginTop: "6px", textAlign: "center", whiteSpace: "nowrap" }}>
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const handleConfirmPayment = async (orderId, orderName, orderPrice) => {
     if (!confirm(`Bạn đã chắc chắn chuyển khoản đúng số tiền ${Number(orderPrice).toLocaleString("vi-VN")} đ và đúng nội dung QR chưa?`)) {
       return;
@@ -2149,6 +2241,20 @@ function Dashboard() {
                         Hủy bỏ
                       </button>
                     )}
+                    {item.status === "completed" && (
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuickRebook(item);
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(22, 163, 74, 0.1)", border: "none", color: "var(--primary)", cursor: "pointer", padding: "0.4rem 0.6rem", borderRadius: "8px", fontSize: "0.8rem", fontWeight: "600", transition: "all 0.2s" }}
+                        onMouseOver={e => e.currentTarget.style.background="rgba(22, 163, 74, 0.2)"}
+                        onMouseOut={e => e.currentTarget.style.background="rgba(22, 163, 74, 0.1)"}
+                      >
+                        🔄 Đặt lại
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2349,6 +2455,9 @@ function Dashboard() {
                 &times;
               </button>
             </div>
+            
+            {/* Real-time Order Status Stepper */}
+            {renderStatusStepper(selectedItem.status)}
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
