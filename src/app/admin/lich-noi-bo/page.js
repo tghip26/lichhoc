@@ -28,7 +28,7 @@ function InternalSchedulesManager() {
   const [loadingData, setLoadingData] = useState(true);
 
   // Filter & Navigation states
-  const [viewMode, setViewMode] = useState("grid"); // "grid" or "table"
+  const [viewMode, setViewMode] = useState("grid"); // "grid", "table" or "analytics"
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
@@ -407,6 +407,288 @@ function InternalSchedulesManager() {
       console.error("Lỗi nhân bản:", err);
       toast.error("Không thể nhân bản lịch học!");
     }
+  };
+
+  const renderAnalyticsView = () => {
+    // 1. Calculate debt amounts across ALL schedules
+    const unpaidCustomerTotal = schedules
+      .filter(s => !s.paymentStatus?.toLowerCase().includes("đã") && s.paymentStatus !== "Đã thanh toán")
+      .reduce((sum, s) => sum + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0);
+
+    const unpaidHelperSalaryTotal = schedules
+      .filter(s => !s.salaryStatus?.toLowerCase().includes("đã") && s.salaryStatus !== "Đã trả lương")
+      .reduce((sum, s) => sum + Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0), 0);
+
+    // 2. Guest stats (sorted high to low)
+    const guestStats = {};
+    schedules.forEach(s => {
+      const name = s.studentName ? s.studentName.trim() : "Khách ẩn danh";
+      if (!guestStats[name]) {
+        guestStats[name] = { name, total: 0, paid: 0, unpaid: 0, count: 0 };
+      }
+      const amt = Number(s.rentAmount || 0) + Number(s.tipAmount || 0);
+      guestStats[name].total += amt;
+      if (s.paymentStatus?.toLowerCase().includes("đã") || s.paymentStatus === "Đã thanh toán") {
+        guestStats[name].paid += amt;
+      } else {
+        guestStats[name].unpaid += amt;
+      }
+      guestStats[name].count += 1;
+    });
+    const sortedGuests = Object.values(guestStats).sort((a, b) => b.total - a.total);
+
+    // 3. CTV stats (salary paid/unpaid and count of finished classes)
+    const ctvStats = {};
+    schedules.forEach(s => {
+      const name = s.helperName ? s.helperName.trim() : "";
+      if (!name || name === "(Chưa giao CTV)") return;
+      if (!ctvStats[name]) {
+        ctvStats[name] = { name, totalEarned: 0, paid: 0, unpaid: 0, totalClasses: 0, finishedClasses: 0 };
+      }
+      const payout = Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0);
+      const isFinished = s.studyStatus === "da_hoc" || s.studyStatus === "online";
+      ctvStats[name].totalEarned += payout;
+      if (s.salaryStatus?.toLowerCase().includes("đã") || s.salaryStatus === "Đã trả lương") {
+        ctvStats[name].paid += payout;
+      } else {
+        ctvStats[name].unpaid += payout;
+      }
+      ctvStats[name].totalClasses += 1;
+      if (isFinished) {
+        ctvStats[name].finishedClasses += 1;
+      }
+    });
+    const sortedCtvs = Object.values(ctvStats).sort((a, b) => b.totalEarned - a.totalEarned);
+
+    // 4. Calculate weekly revenues of selected month
+    const selectedMonth = currentWeekStart.getMonth(); // 0-11
+    const selectedYear = currentWeekStart.getFullYear();
+    const monthName = currentWeekStart.toLocaleString("vi-VN", { month: "long" });
+
+    const monthSchedules = schedules.filter(s => {
+      if (!s.classDate) return false;
+      const d = new Date(s.classDate);
+      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
+
+    const weeklyRevenue = [0, 0, 0, 0];
+    monthSchedules.forEach(s => {
+      const day = new Date(s.classDate).getDate();
+      const amt = Number(s.rentAmount || 0) + Number(s.tipAmount || 0);
+      if (day <= 7) weeklyRevenue[0] += amt;
+      else if (day <= 14) weeklyRevenue[1] += amt;
+      else if (day <= 21) weeklyRevenue[2] += amt;
+      else weeklyRevenue[3] += amt;
+    });
+
+    const maxWeeklyRev = Math.max(...weeklyRevenue, 1);
+
+    // Month navigation helpers
+    const changeMonth = (increment) => {
+      const newDate = new Date(currentWeekStart);
+      newDate.setMonth(newDate.getMonth() + increment);
+      setCurrentWeekStart(newDate);
+    };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        
+        {/* Header month navigator */}
+        <div className="glass-panel" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.5rem", flexWrap: "wrap", gap: "12px" }}>
+          <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "var(--text-primary)" }}>
+            📊 Phân tích tài chính - {monthName} / {selectedYear}
+          </h3>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => changeMonth(-1)} className="btn" style={{ padding: "6px 12px", background: "white", border: "1px solid #cbd5e1", fontSize: "0.82rem" }}>◀ Tháng trước</button>
+            <button onClick={() => { setCurrentWeekStart(new Date()); }} className="btn" style={{ padding: "6px 12px", background: "white", border: "1px solid #cbd5e1", fontWeight: "700", fontSize: "0.82rem" }}>Tháng này</button>
+            <button onClick={() => changeMonth(1)} className="btn" style={{ padding: "6px 12px", background: "white", border: "1px solid #cbd5e1", fontSize: "0.82rem" }}>Tháng sau ▶</button>
+          </div>
+        </div>
+
+        {/* 4 Financial Indicator Mini Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          
+          <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "5px solid var(--danger)", background: "linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, white 100%)" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#b91c1c", textTransform: "uppercase" }}>
+              Khách chưa thanh toán (Công nợ)
+            </span>
+            <h3 style={{ margin: "6px 0 2px 0", fontSize: "1.5rem", fontWeight: "850", color: "var(--danger)" }}>
+              {unpaidCustomerTotal.toLocaleString("vi-VN")} đ
+            </h3>
+            <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>
+              Tổng tiền thu từ các đơn hàng chưa thanh toán
+            </span>
+          </div>
+
+          <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "5px solid #d97706", background: "linear-gradient(135deg, rgba(217, 119, 6, 0.05) 0%, white 100%)" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#b45309", textTransform: "uppercase" }}>
+              Lương CTV chưa trả
+            </span>
+            <h3 style={{ margin: "6px 0 2px 0", fontSize: "1.5rem", fontWeight: "850", color: "#d97706" }}>
+              {unpaidHelperSalaryTotal.toLocaleString("vi-VN")} đ
+            </h3>
+            <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>
+              Tổng tiền lương chưa chi trả cho Cộng tác viên
+            </span>
+          </div>
+
+          <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "5px solid var(--primary)", background: "linear-gradient(135deg, rgba(22, 163, 74, 0.05) 0%, white 100%)" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "var(--primary)", textTransform: "uppercase" }}>
+              Doanh thu trong tháng
+            </span>
+            <h3 style={{ margin: "6px 0 2px 0", fontSize: "1.5rem", fontWeight: "850", color: "var(--primary)" }}>
+              {monthSchedules.reduce((acc, s) => acc + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0).toLocaleString("vi-VN")} đ
+            </h3>
+            <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>
+              Tổng tiền thu dự kiến trong tháng ({monthSchedules.length} ca)
+            </span>
+          </div>
+
+          <div className="glass-panel" style={{ padding: "1.25rem", borderLeft: "5px solid #4f46e5", background: "linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, white 100%)" }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#4338ca", textTransform: "uppercase" }}>
+              Lợi nhuận ròng tháng
+            </span>
+            <h3 style={{ margin: "6px 0 2px 0", fontSize: "1.5rem", fontWeight: "850", color: "#4f46e5" }}>
+              {(
+                monthSchedules.reduce((acc, s) => acc + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0) - 
+                monthSchedules.reduce((acc, s) => acc + Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0), 0)
+              ).toLocaleString("vi-VN")} đ
+            </h3>
+            <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)" }}>
+              Lợi nhuận sau khi khấu trừ lương & tip CTV
+            </span>
+          </div>
+
+        </div>
+
+        {/* 2-Column Dashboard Layout */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.5rem", alignItems: "start" }} className="form-grid">
+          
+          {/* Left Column: Weekly Bar Chart & Guest Ranking */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            
+            {/* Weekly Revenue Bar Chart */}
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <h4 style={{ margin: "0 0 1.25rem 0", color: "var(--text-primary)", fontWeight: "800", fontSize: "0.95rem" }}>
+                📈 Biểu đồ cột doanh thu của từng tuần (Trong tháng)
+              </h4>
+              <div style={{ display: "flex", justifyContent: "space-around", alignItems: "flex-end", height: "180px", padding: "10px 10px 0 10px", borderBottom: "2px solid #e2e8f0" }}>
+                {weeklyRevenue.map((rev, idx) => {
+                  const pct = Math.max(8, Math.min(100, Math.round((rev / maxWeeklyRev) * 100)));
+                  return (
+                    <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "15%" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: "750", color: "var(--text-primary)", marginBottom: "6px" }}>
+                        {rev > 0 ? `${(rev / 1000).toLocaleString("vi-VN")}k` : "0"}
+                      </span>
+                      <div style={{
+                        width: "100%",
+                        height: `${pct * 1.3}px`,
+                        background: "linear-gradient(180deg, var(--primary) 0%, #10B981 100%)",
+                        borderRadius: "6px 6px 0 0",
+                        boxShadow: "0 4px 12px rgba(22, 163, 74, 0.2)",
+                        transition: "all 0.3s ease-in-out"
+                      }} />
+                      <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "var(--text-secondary)", marginTop: "8px", whiteSpace: "nowrap" }}>
+                        Tuần {idx + 1}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", gap: "15px", marginTop: "12px", fontSize: "0.7rem", color: "var(--text-secondary)", fontWeight: "600", flexWrap: "wrap" }}>
+                <span>📅 T1: Ngày 1-7</span>
+                <span>📅 T2: Ngày 8-14</span>
+                <span>📅 T3: Ngày 15-21</span>
+                <span>📅 T4: Ngày 22-Hết</span>
+              </div>
+            </div>
+
+            {/* Guest Ranking Table */}
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontWeight: "800", fontSize: "0.95rem" }}>
+                🏆 Chi phí thuê của từng khách thuê (Xếp từ cao đến thấp)
+              </h4>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b" }}>
+                      <th style={{ padding: "8px 4px" }}>Khách hàng</th>
+                      <th style={{ padding: "8px 4px", textAlign: "center" }}>Số ca</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã trả</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa trả</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng chi tiêu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedGuests.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu khách hàng.</td>
+                      </tr>
+                    ) : (
+                      sortedGuests.map((g, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "10px 4px", fontWeight: "700", color: "var(--text-primary)" }}>{g.name}</td>
+                          <td style={{ padding: "10px 4px", textAlign: "center", fontWeight: "600" }}>{g.count}</td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", color: "var(--success)", fontWeight: "600" }}>{g.paid.toLocaleString("vi-VN")}đ</td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", color: g.unpaid > 0 ? "var(--danger)" : "var(--text-secondary)", fontWeight: "600" }}>
+                            {g.unpaid > 0 ? `${g.unpaid.toLocaleString("vi-VN")}đ` : "-"}
+                          </td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{g.total.toLocaleString("vi-VN")}đ</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column: Helper Stats Table */}
+          <div className="glass-panel" style={{ padding: "1.5rem" }}>
+            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontWeight: "800", fontSize: "0.95rem" }}>
+              👥 Thống kê lương & Số buổi đã đi học của CTV
+            </h4>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b" }}>
+                    <th style={{ padding: "8px 4px" }}>Cộng tác viên</th>
+                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Số ca nhận</th>
+                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Đã học</th>
+                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã nhận</th>
+                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa nhận</th>
+                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng lương</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedCtvs.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu Cộng tác viên.</td>
+                    </tr>
+                  ) : (
+                    sortedCtvs.map((c, idx) => (
+                      <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "10px 4px", fontWeight: "700", color: "#4f46e5" }}>{c.name}</td>
+                        <td style={{ padding: "10px 4px", textAlign: "center", fontWeight: "600" }}>{c.totalClasses}</td>
+                        <td style={{ padding: "10px 4px", textAlign: "center", color: "var(--success)", fontWeight: "750" }}>{c.finishedClasses} ca</td>
+                        <td style={{ padding: "10px 4px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "600" }}>{c.paid.toLocaleString("vi-VN")}đ</td>
+                        <td style={{ padding: "10px 4px", textAlign: "right", color: c.unpaid > 0 ? "#d97706" : "var(--text-secondary)", fontWeight: "600" }}>
+                          {c.unpaid > 0 ? `${c.unpaid.toLocaleString("vi-VN")}đ` : "-"}
+                        </td>
+                        <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{c.totalEarned.toLocaleString("vi-VN")}đ</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    );
   };
 
   const renderMobileGridView = () => {
@@ -791,7 +1073,7 @@ function InternalSchedulesManager() {
       {/* VIEW SELECTOR & NAV */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "12px 1.5rem", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", marginBottom: "1.5rem", flexWrap: "wrap", gap: "15px" }}>
         {/* Toggle Grid/Table View */}
-        <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px" }}>
+        <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px", flexWrap: "wrap", gap: "2px" }}>
           <button
             onClick={() => setViewMode("grid")}
             style={{
@@ -815,6 +1097,18 @@ function InternalSchedulesManager() {
             }}
           >
             📊 Giao diện Bảng Tính
+          </button>
+          <button
+            onClick={() => setViewMode("analytics")}
+            style={{
+              padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
+              background: viewMode === "analytics" ? "white" : "transparent",
+              color: viewMode === "analytics" ? "var(--text-primary)" : "var(--text-secondary)",
+              boxShadow: viewMode === "analytics" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+              transition: "all 0.15s"
+            }}
+          >
+            📈 Phân tích tài chính 📊
           </button>
         </div>
 
@@ -1092,6 +1386,11 @@ function InternalSchedulesManager() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* RENDER ANALYTICS VIEW (Financial reports) */}
+      {viewMode === "analytics" && (
+        renderAnalyticsView()
       )}
 
       {/* Helper functions are now declared above the return block */}
