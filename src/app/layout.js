@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ToastProvider from "@/components/ToastProvider";
+import SupportWidget from "@/components/SupportWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({ children }) {
           <Navbar />
           <main className="container" style={{ minHeight: "calc(100vh - 350px)" }}>{children}</main>
           <Footer />
+          <SupportWidget />
         </AuthProvider>
       </body>
     </html>
