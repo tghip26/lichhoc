@@ -77,17 +77,42 @@ function InternalSchedulesManager() {
     studyStatus: "chua_hoc",
     rentAmount: "",
     tipAmount: "",
+    tipStatus: "Chưa gửi",
     paymentStatus: "ChưaTT",
     salaryAmount: "",
     salaryStatus: "ChưaTL",
     staffTipAmount: "",
+    staffTipStatus: "Chưa gửi",
     period: "chieu", // "sang", "chieu", "toi"
-    timeSlot: ""
+    timeSlot: "",
+    notes: ""
   });
 
   // Responsive states
   const [isMobile, setIsMobile] = useState(false);
   const [selectedMobileDayOffset, setSelectedMobileDayOffset] = useState(0);
+
+  // Khách hàng & Đơn hàng liên kết
+  const [customers, setCustomers] = useState([]);
+  const [clientOrders, setClientOrders] = useState([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importSearchQuery, setImportSearchQuery] = useState("");
+
+  // Quản lý Khách hàng state
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState(null);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [customerFilterSegment, setCustomerFilterSegment] = useState("all");
+  const [customerFormData, setCustomerFormData] = useState({
+    name: "",
+    className: "",
+    studentId: "",
+    birthDate: "",
+    portalAccount: "",
+    portalPassword: "",
+    segment: "new",
+    notes: ""
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -137,10 +162,36 @@ function InternalSchedulesManager() {
       console.error("Lỗi tải thành viên:", err);
     });
 
+    // Load Internal Customers
+    const qCustomers = query(
+      collection(db, "internal_customers"),
+      orderBy("createdAt", "desc")
+    );
+    const unsubscribeCustomers = onSnapshot(qCustomers, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomers(data);
+    }, (err) => {
+      console.error("Lỗi tải danh sách khách hàng:", err);
+    });
+
+    // Load Client Orders (from schedules)
+    const qClientOrders = query(
+      collection(db, "schedules"),
+      orderBy("classDate", "desc")
+    );
+    const unsubscribeClientOrders = onSnapshot(qClientOrders, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setClientOrders(data);
+    }, (err) => {
+      console.error("Lỗi tải đơn thuê học:", err);
+    });
+
     return () => {
       unsubscribeSchedules();
       unsubscribeHelpers();
       unsubscribeUsers();
+      unsubscribeCustomers();
+      unsubscribeClientOrders();
     };
   }, [user, isAdmin]);
 
@@ -246,12 +297,15 @@ function InternalSchedulesManager() {
       studyStatus: "chua_hoc",
       rentAmount: "",
       tipAmount: "",
+      tipStatus: "Chưa gửi",
       paymentStatus: "ChưaTT",
       salaryAmount: "",
       salaryStatus: "ChưaTL",
       staffTipAmount: "",
+      staffTipStatus: "Chưa gửi",
       period: defaultPeriod,
-      timeSlot: ""
+      timeSlot: "",
+      notes: ""
     });
     setIsEditing(false);
     setShowModal(true);
@@ -270,12 +324,15 @@ function InternalSchedulesManager() {
       studyStatus: item.studyStatus || "chua_hoc",
       rentAmount: item.rentAmount !== undefined ? String(item.rentAmount) : "",
       tipAmount: item.tipAmount !== undefined ? String(item.tipAmount) : "",
+      tipStatus: item.tipStatus || "Chưa gửi",
       paymentStatus: item.paymentStatus || "ChưaTT",
       salaryAmount: item.salaryAmount !== undefined ? String(item.salaryAmount) : "",
       salaryStatus: item.salaryStatus || "ChưaTL",
       staffTipAmount: item.staffTipAmount !== undefined ? String(item.staffTipAmount) : "",
+      staffTipStatus: item.staffTipStatus || "Chưa gửi",
       period: item.period || "chieu",
-      timeSlot: item.timeSlot || ""
+      timeSlot: item.timeSlot || "",
+      notes: item.notes || ""
     });
     setEditingId(item.id);
     setIsEditing(true);
@@ -415,10 +472,90 @@ function InternalSchedulesManager() {
         }
       }
 
+      // Tự động kiểm tra và lưu khách hàng mới vào internal_customers
+      const studentNameClean = (sanitizedData.studentName || "").trim();
+      if (studentNameClean) {
+        const customerExists = customers.some(c => c.name.toLowerCase().trim() === studentNameClean.toLowerCase());
+        if (!customerExists) {
+          try {
+            await addDoc(collection(db, "internal_customers"), {
+              name: studentNameClean,
+              className: sanitizedData.classroom || "",
+              studentId: "",
+              birthDate: "",
+              portalAccount: "",
+              portalPassword: "",
+              segment: "new",
+              notes: "Tự động lưu từ Lập lịch nội bộ",
+              createdAt: serverTimestamp()
+            });
+          } catch (saveCustErr) {
+            console.error("Lỗi tự động lưu khách hàng mới:", saveCustErr);
+          }
+        }
+      }
+
       setShowModal(false);
     } catch (err) {
       console.error("Lỗi lưu lịch:", err);
       toast.error("Không thể lưu lịch học!");
+    }
+  };
+
+  const handleSaveCustomer = async (e) => {
+    e.preventDefault();
+    if (!customerFormData.name.trim()) {
+      toast.error("Vui lòng nhập tên khách hàng!");
+      return;
+    }
+    
+    const data = {
+      name: customerFormData.name.trim(),
+      className: customerFormData.className.trim(),
+      studentId: customerFormData.studentId.trim(),
+      birthDate: customerFormData.birthDate || "",
+      portalAccount: customerFormData.portalAccount.trim(),
+      portalPassword: customerFormData.portalPassword.trim(),
+      segment: customerFormData.segment,
+      notes: customerFormData.notes.trim()
+    };
+
+    try {
+      if (editingCustomerId) {
+        await updateDoc(doc(db, "internal_customers", editingCustomerId), data);
+        toast.success("Đã cập nhật thông tin khách hàng!");
+      } else {
+        data.createdAt = serverTimestamp();
+        await addDoc(collection(db, "internal_customers"), data);
+        toast.success("Đã thêm khách hàng mới!");
+      }
+      setShowCustomerModal(false);
+      setEditingCustomerId(null);
+      setCustomerFormData({
+        name: "",
+        className: "",
+        studentId: "",
+        birthDate: "",
+        portalAccount: "",
+        portalPassword: "",
+        segment: "new",
+        notes: ""
+      });
+    } catch (err) {
+      console.error("Lỗi lưu khách hàng:", err);
+      toast.error("Không thể lưu thông tin khách hàng!");
+    }
+  };
+
+  const handleDeleteCustomer = async (id, name) => {
+    if (confirm(`Bạn có chắc chắn muốn xóa khách hàng "${name}" không?`)) {
+      try {
+        await deleteDoc(doc(db, "internal_customers", id));
+        toast.success("Đã xóa khách hàng!");
+      } catch (err) {
+        console.error("Lỗi xóa khách hàng:", err);
+        toast.error("Không thể xóa khách hàng!");
+      }
     }
   };
 
@@ -809,6 +946,151 @@ function InternalSchedulesManager() {
     );
   };
 
+  const renderCustomersView = () => {
+    const filteredCustomers = customers.filter(c => {
+      const q = customerSearchQuery.toLowerCase();
+      const matchesSearch = 
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.studentId && c.studentId.toLowerCase().includes(q)) ||
+        (c.className && c.className.toLowerCase().includes(q));
+      const matchesSegment = customerFilterSegment === "all" || c.segment === customerFilterSegment;
+      return matchesSearch && matchesSegment;
+    });
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {/* Toolbar cho Customers */}
+        <div className="glass-panel" style={{ padding: "1.25rem 1.5rem" }}>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.75rem", flex: 1, minWidth: "300px", flexWrap: "wrap" }}>
+              <input 
+                type="text" 
+                placeholder="Tìm tên khách, lớp, MSSV..." 
+                value={customerSearchQuery}
+                onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ flex: 2, minWidth: "200px", maxWidth: "400px", background: "white" }}
+              />
+              <select
+                value={customerFilterSegment}
+                onChange={(e) => setCustomerFilterSegment(e.target.value)}
+                className="form-input"
+                style={{ flex: 1, minWidth: "160px", maxWidth: "200px", background: "white", cursor: "pointer", fontWeight: "600" }}
+              >
+                <option value="all">Tất cả phân loại</option>
+                <option value="new">Khách mới</option>
+                <option value="regular">Khách quen/Hay thuê</option>
+                <option value="vip">Khách VIP ⭐</option>
+                <option value="potential">Khách tiềm năng</option>
+              </select>
+            </div>
+            
+            <button 
+              onClick={() => {
+                setEditingCustomerId(null);
+                setCustomerFormData({
+                  name: "",
+                  className: "",
+                  studentId: "",
+                  birthDate: "",
+                  portalAccount: "",
+                  portalPassword: "",
+                  segment: "new",
+                  notes: ""
+                });
+                setShowCustomerModal(true);
+              }} 
+              className="btn btn-primary"
+              style={{ padding: "0.6rem 1.2rem" }}
+            >
+              ➕ Thêm Khách Hàng
+            </button>
+          </div>
+        </div>
+
+        {/* Bảng Danh Sách Khách Hàng */}
+        <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
+            <thead>
+              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Họ Tên</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Lớp</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>MSSV</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ngày Sinh</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tài Khoản Portal SV</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Mật Khẩu Portal SV</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Phân Loại</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Hành Động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan="9" style={{ padding: "3rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic" }}>
+                    Không tìm thấy khách hàng nào phù hợp!
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map((c) => (
+                  <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{c.name}</td>
+                    <td style={{ padding: "1rem" }}>{c.className || "N/A"}</td>
+                    <td style={{ padding: "1rem", fontWeight: "600" }}>{c.studentId || "N/A"}</td>
+                    <td style={{ padding: "1rem" }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}</td>
+                    <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalAccount || "N/A"}</td>
+                    <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalPassword || "N/A"}</td>
+                    <td style={{ padding: "1rem" }}>
+                      {c.segment === "vip" ? (
+                        <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>
+                      ) : c.segment === "regular" ? (
+                        <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>
+                      ) : c.segment === "potential" ? (
+                        <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>
+                      ) : (
+                        <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{c.notes || "N/A"}</td>
+                    <td style={{ padding: "1rem", textAlign: "center" }}>
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                        <button 
+                          onClick={() => {
+                            setEditingCustomerId(c.id);
+                            setCustomerFormData({
+                              name: c.name || "",
+                              className: c.className || "",
+                              studentId: c.studentId || "",
+                              birthDate: c.birthDate || "",
+                              portalAccount: c.portalAccount || "",
+                              portalPassword: c.portalPassword || "",
+                              segment: c.segment || "new",
+                              notes: c.notes || ""
+                            });
+                            setShowCustomerModal(true);
+                          }}
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          Sửa
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCustomer(c.id, c.name)}
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderMobileGridView = () => {
     const activeDateStr = formatLocalDate(getDateOfWeekday(selectedMobileDayOffset));
     const morningJobs = getSchedulesForCell(activeDateStr, "sang");
@@ -1048,8 +1330,20 @@ function InternalSchedulesManager() {
         }}
       >
         {/* Header / Student Name (Occupies entire line) */}
-        <div style={{ fontWeight: "800", color: "#1e293b", fontSize: "0.85rem", wordBreak: "break-word", lineHeight: "1.3" }}>
-          {item.studentName}
+        <div style={{ fontWeight: "850", color: "#1e293b", fontSize: "0.85rem", wordBreak: "break-word", lineHeight: "1.3", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px" }}>
+          <span>{item.studentName}</span>
+          {(() => {
+            const matchedCustomer = customers.find(c => c.name.toLowerCase().trim() === (item.studentName || "").toLowerCase().trim());
+            if (!matchedCustomer) return null;
+            if (matchedCustomer.segment === "vip") {
+              return <span style={{ fontSize: "0.62rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "1px 4px", borderRadius: "4px", fontWeight: "900" }}>⭐ VIP</span>;
+            } else if (matchedCustomer.segment === "regular") {
+              return <span style={{ fontSize: "0.62rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "1px 4px", borderRadius: "4px", fontWeight: "800" }}>Quen</span>;
+            } else if (matchedCustomer.segment === "potential") {
+              return <span style={{ fontSize: "0.62rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "1px 4px", borderRadius: "4px", fontWeight: "750" }}>T.Năng</span>;
+            }
+            return null;
+          })()}
         </div>
         
         {/* Time Slot (Below the name) */}
@@ -1064,6 +1358,11 @@ function InternalSchedulesManager() {
           <span style={{ color: "#4f46e5", fontWeight: "700" }}>
             👤 {item.helperName || "(Chưa giao CTV)"}
           </span>
+          {item.notes && (
+            <div style={{ fontSize: "0.72rem", color: "#b45309", marginTop: "4px", fontStyle: "italic", background: "#fffbeb", padding: "2px 6px", borderRadius: "4px" }}>
+              📝 {item.notes}
+            </div>
+          )}
           {item.proofImage && (
             <div style={{ marginTop: "5px" }}>
               <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)", display: "block", marginBottom: "2px" }}>📸 Minh chứng:</span>
@@ -1107,23 +1406,27 @@ function InternalSchedulesManager() {
             {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
           </span>
 
-          {/* Tip / Extra tip for Staff if present */}
-          {item.staffTipAmount > 0 && (
-            <span style={{
-              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-              background: "#e0f2fe", color: "#0369a1"
-            }}>
-              +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip Staff
-            </span>
-          )}
-
           {/* Tip / Extra tip from Customer if present */}
           {item.tipAmount > 0 && (
             <span style={{
               fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-              background: "#fef3c7", color: "#b45309"
+              background: item.tipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
+              color: item.tipStatus === "Đã gửi" ? "#166534" : "#b91c1c",
+              border: `1px solid ${item.tipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
             }}>
-              +{Number(item.tipAmount).toLocaleString("vi-VN")}đ Tip KT
+              +{Number(item.tipAmount).toLocaleString("vi-VN")}đ Tip KT ({item.tipStatus || "Chưa gửi"})
+            </span>
+          )}
+
+          {/* Tip / Extra tip for Staff if present */}
+          {item.staffTipAmount > 0 && (
+            <span style={{
+              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+              background: item.staffTipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
+              color: item.staffTipStatus === "Đã gửi" ? "#166534" : "#b91c1c",
+              border: `1px solid ${item.staffTipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
+            }}>
+              +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip CTV ({item.staffTipStatus || "Chưa gửi"})
             </span>
           )}
         </div>
@@ -1145,6 +1448,13 @@ function InternalSchedulesManager() {
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
+          <button 
+            onClick={() => setShowImportModal(true)} 
+            className="btn"
+            style={{ background: "#4f46e5", color: "white", padding: "0.6rem 1.2rem", borderRadius: "10px", fontWeight: "700", border: "none" }}
+          >
+            📥 Nhập từ Đơn thuê
+          </button>
           <button 
             onClick={() => openAddModal()} 
             className="btn btn-primary"
@@ -1248,6 +1558,18 @@ function InternalSchedulesManager() {
             }}
           >
             📈 Phân tích tài chính 📊
+          </button>
+          <button
+            onClick={() => setViewMode("customers")}
+            style={{
+              padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
+              background: viewMode === "customers" ? "white" : "transparent",
+              color: viewMode === "customers" ? "var(--text-primary)" : "var(--text-secondary)",
+              boxShadow: viewMode === "customers" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+              transition: "all 0.15s"
+            }}
+          >
+            👥 Quản lý Khách Hàng
           </button>
         </div>
 
@@ -1442,95 +1764,139 @@ function InternalSchedulesManager() {
                 <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Trạng Thái Học</th>
                 <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tiền Thuê (Tip)</th>
                 <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Gửi Tiền</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Trả Lương CTV</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Trả Lương CTV (Tip)</th>
+                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
                 <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Thao Tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredTableList.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                  <td colSpan="12" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
                     Không tìm thấy lịch học nội bộ phù hợp bộ lọc.
                   </td>
                 </tr>
               ) : (
-                filteredTableList.map(s => (
-                  <tr key={s.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "1rem", fontWeight: "700" }}>{s.studentName}</td>
-                    <td style={{ padding: "1rem" }}>{s.subject}</td>
-                    <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                      <div><b>{s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN") : ""}</b></div>
-                      <div style={{ opacity: 0.6, fontSize: "0.75rem" }}>{s.weekday} | Ca {s.period === "sang" ? "Sáng" : s.period === "chieu" ? "Chiều" : "Tối"} ({s.timeSlot || "N/A"})</div>
-                    </td>
-                    <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                      <div>Phòng: <b>{s.classroom || "N/A"}</b></div>
-                      <div style={{ opacity: 0.6 }}>GV: {s.lecturer || "N/A"}</div>
-                    </td>
-                    <td style={{ padding: "1rem", fontWeight: "600", color: "#4f46e5" }}>{s.helperName || "Chưa giao"}</td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      <span style={{
-                        fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
-                        background: s.checkinStatus === "checked_in" ? "#dcfce7" : "#fee2e2",
-                        color: s.checkinStatus === "checked_in" ? "#166534" : "#991b1b"
-                      }}>
-                        {s.checkinStatus === "checked_in" ? "✓ Đã Checkin" : "✗ Chưa"}
-                      </span>
-                      {s.proofImage && (
-                        <div style={{ marginTop: "4px" }}>
-                          <span 
-                            onClick={() => setLightboxImage(s.proofImage)}
-                            style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
-                          >
-                            📷 Xem ảnh
+                filteredTableList.map(s => {
+                  const matchedCustomer = customers.find(c => c.name.toLowerCase().trim() === (s.studentName || "").toLowerCase().trim());
+                  return (
+                    <tr key={s.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td style={{ padding: "1rem", fontWeight: "700" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span>{s.studentName}</span>
+                          {matchedCustomer && (
+                            matchedCustomer.segment === "vip" ? (
+                              <span style={{ fontSize: "0.62rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "1px 4px", borderRadius: "4px", fontWeight: "900" }}>⭐ VIP</span>
+                            ) : matchedCustomer.segment === "regular" ? (
+                              <span style={{ fontSize: "0.62rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "1px 4px", borderRadius: "4px", fontWeight: "800" }}>Quen</span>
+                            ) : matchedCustomer.segment === "potential" ? (
+                              <span style={{ fontSize: "0.62rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "1px 4px", borderRadius: "4px", fontWeight: "750" }}>T.Năng</span>
+                            ) : null
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ padding: "1rem" }}>{s.subject}</td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
+                        <div><b>{s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN") : ""}</b></div>
+                        <div style={{ opacity: 0.6, fontSize: "0.75rem" }}>{s.weekday} | Ca {s.period === "sang" ? "Sáng" : s.period === "chieu" ? "Chiều" : "Tối"} ({s.timeSlot || "N/A"})</div>
+                      </td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
+                        <div>Phòng: <b>{s.classroom || "N/A"}</b></div>
+                        <div style={{ opacity: 0.6 }}>GV: {s.lecturer || "N/A"}</div>
+                      </td>
+                      <td style={{ padding: "1rem", fontWeight: "600", color: "#4f46e5" }}>{s.helperName || "Chưa giao"}</td>
+                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                        <span style={{
+                          fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
+                          background: s.checkinStatus === "checked_in" ? "#dcfce7" : "#fee2e2",
+                          color: s.checkinStatus === "checked_in" ? "#166534" : "#991b1b"
+                        }}>
+                          {s.checkinStatus === "checked_in" ? "✓ Đã Checkin" : "✗ Chưa"}
+                        </span>
+                        {s.proofImage && (
+                          <div style={{ marginTop: "4px" }}>
+                            <span 
+                              onClick={() => setLightboxImage(s.proofImage)}
+                              style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                            >
+                              📷 Xem ảnh
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                        {renderStatusPill(s.studyStatus)}
+                      </td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
+                        <div>{(s.rentAmount || 0).toLocaleString("vi-VN")}đ</div>
+                        {s.tipAmount > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
+                            <span style={{ color: "#d97706", fontWeight: "700" }}>+Tip: {s.tipAmount.toLocaleString("vi-VN")}đ</span>
+                            <span style={{
+                              fontSize: "0.62rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
+                              background: s.tipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
+                              color: s.tipStatus === "Đã gửi" ? "#166534" : "#991b1b",
+                              border: `1px solid ${s.tipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
+                            }}>
+                              {s.tipStatus || "Chưa gửi"}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "1rem" }}>
+                        <span style={{
+                          fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
+                          ...getStatusBadgeStyle(s.paymentStatus)
+                        }}>
+                          {s.paymentStatus}
+                        </span>
+                      </td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <span>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ</span>
+                          <span style={{
+                            fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", fontWeight: "700",
+                            ...getStatusBadgeStyle(s.salaryStatus)
+                          }}>
+                            {s.salaryStatus}
                           </span>
                         </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      {renderStatusPill(s.studyStatus)}
-                    </td>
-                    <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                      <div>{(s.rentAmount || 0).toLocaleString("vi-VN")}đ</div>
-                      {s.tipAmount > 0 && <div style={{ color: "#d97706", fontSize: "0.75rem" }}>+Tip: {s.tipAmount.toLocaleString("vi-VN")}đ</div>}
-                    </td>
-                    <td style={{ padding: "1rem" }}>
-                      <span style={{
-                        fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
-                        ...getStatusBadgeStyle(s.paymentStatus)
-                      }}>
-                        {s.paymentStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <span>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ</span>
-                        <span style={{
-                          fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", fontWeight: "700",
-                          ...getStatusBadgeStyle(s.salaryStatus)
-                        }}>
-                          {s.salaryStatus}
-                        </span>
-                      </div>
-                      {s.staffTipAmount > 0 && <div style={{ color: "#059669", fontSize: "0.75rem", marginTop: "4px" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</div>}
-                    </td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                        <button 
-                          onClick={() => openEditModal(s)}
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
-                        >
-                          Sửa
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(s.id)}
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        {s.staffTipAmount > 0 && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
+                            <span style={{ color: "#059669", fontWeight: "700" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</span>
+                            <span style={{
+                              fontSize: "0.62rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
+                              background: s.staffTipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
+                              color: s.staffTipStatus === "Đã gửi" ? "#166534" : "#991b1b",
+                              border: `1px solid ${s.staffTipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
+                            }}>
+                              {s.staffTipStatus || "Chưa gửi"}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={s.notes}>
+                        {s.notes || "-"}
+                      </td>
+                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                          <button 
+                            onClick={() => openEditModal(s)}
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+                          >
+                            Sửa
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(s.id)}
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1540,6 +1906,296 @@ function InternalSchedulesManager() {
       {/* RENDER ANALYTICS VIEW (Financial reports) */}
       {viewMode === "analytics" && (
         renderAnalyticsView()
+      )}
+
+      {/* RENDER CUSTOMERS VIEW (Customer list management) */}
+      {viewMode === "customers" && (
+        renderCustomersView()
+      )}
+
+      {/* MODAL: THÊM / SỬA KHÁCH HÀNG */}
+      {showCustomerModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1006, padding: "1rem"
+          }}
+          onClick={() => setShowCustomerModal(false)}
+        >
+          <form 
+            onSubmit={handleSaveCustomer}
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "500px", width: "100%", maxHeight: "90vh", overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+              border: "1px solid #cbd5e1"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)" }}>
+                {editingCustomerId ? "📝 Sửa Thông Tin Khách Hàng" : "➕ Thêm Khách Hàng Mới"}
+              </h3>
+              <button type="button" onClick={() => setShowCustomerModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "1.5rem" }}>
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Tên Khách Hàng</label>
+                <input
+                  type="text"
+                  required
+                  value={customerFormData.name}
+                  onChange={e => setCustomerFormData({ ...customerFormData, name: e.target.value })}
+                  placeholder="Nguyễn Văn A"
+                  className="form-input"
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "700" }}>Lớp Học</label>
+                  <input
+                    type="text"
+                    value={customerFormData.className}
+                    onChange={e => setCustomerFormData({ ...customerFormData, className: e.target.value })}
+                    placeholder="D15CNPM1"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "700" }}>Mã Sinh Viên</label>
+                  <input
+                    type="text"
+                    value={customerFormData.studentId}
+                    onChange={e => setCustomerFormData({ ...customerFormData, studentId: e.target.value })}
+                    placeholder="B15DCCN001"
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Ngày Sinh</label>
+                <input
+                  type="date"
+                  value={customerFormData.birthDate}
+                  onChange={e => setCustomerFormData({ ...customerFormData, birthDate: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "700" }}>Tài Khoản Portal SV</label>
+                  <input
+                    type="text"
+                    value={customerFormData.portalAccount}
+                    onChange={e => setCustomerFormData({ ...customerFormData, portalAccount: e.target.value })}
+                    placeholder="Tên đăng nhập"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: "700" }}>Mật Khẩu Portal SV</label>
+                  <input
+                    type="text"
+                    value={customerFormData.portalPassword}
+                    onChange={e => setCustomerFormData({ ...customerFormData, portalPassword: e.target.value })}
+                    placeholder="Mật khẩu"
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Phân Loại Khách Hàng</label>
+                <select
+                  value={customerFormData.segment}
+                  onChange={e => setCustomerFormData({ ...customerFormData, segment: e.target.value })}
+                  className="form-input"
+                  style={{ background: "white" }}
+                >
+                  <option value="new">Khách mới</option>
+                  <option value="regular">Khách quen/Hay thuê</option>
+                  <option value="vip">Khách VIP ⭐</option>
+                  <option value="potential">Khách tiềm năng</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "700" }}>Ghi Chú</label>
+                <textarea
+                  value={customerFormData.notes}
+                  onChange={e => setCustomerFormData({ ...customerFormData, notes: e.target.value })}
+                  placeholder="Nhập ghi chú riêng về khách hàng này..."
+                  className="form-input"
+                  rows={2}
+                  style={{ resize: "vertical" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", borderTop: "1px solid #e2e8f0", paddingTop: "1.25rem" }}>
+              <button 
+                type="button" 
+                onClick={() => setShowCustomerModal(false)}
+                className="btn"
+                style={{ background: "#f1f5f9", color: "var(--text-secondary)", border: "1px solid #cbd5e1" }}
+              >
+                Hủy
+              </button>
+              <button 
+                type="submit"
+                className="btn btn-primary"
+              >
+                Lưu Khách Hàng
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: NHẬP TỪ ĐƠN THUÊ HỌC */}
+      {showImportModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1004, padding: "1rem"
+          }}
+          onClick={() => setShowImportModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "680px", width: "100%", maxHeight: "85vh", overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+              border: "1px solid #cbd5e1"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "1rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "800", color: "var(--text-primary)" }}>
+                📥 Nhập đơn từ danh sách Đơn thuê học ngoài
+              </h3>
+              <button type="button" onClick={() => setShowImportModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm đơn theo tên học viên, môn học, trường..." 
+              value={importSearchQuery}
+              onChange={(e) => setImportSearchQuery(e.target.value)}
+              className="form-input"
+              style={{ marginBottom: "1.5rem", background: "#f8fafc" }}
+            />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {clientOrders.filter(o => {
+                const q = importSearchQuery.toLowerCase();
+                return (
+                  (o.name && o.name.toLowerCase().includes(q)) ||
+                  (o.className && o.className.toLowerCase().includes(q)) ||
+                  (o.school && o.school.toLowerCase().includes(q))
+                );
+              }).length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)", fontStyle: "italic" }}>
+                  Không tìm thấy đơn thuê nào phù hợp.
+                </div>
+              ) : (
+                clientOrders.filter(o => {
+                  const q = importSearchQuery.toLowerCase();
+                  return (
+                    (o.name && o.name.toLowerCase().includes(q)) ||
+                    (o.className && o.className.toLowerCase().includes(q)) ||
+                    (o.school && o.school.toLowerCase().includes(q))
+                  );
+                }).slice(0, 10).map(o => {
+                  const rentVal = o.price ? Number(String(o.price).replace(/\./g, "")) : 0;
+                  const payoutVal = o.payoutAmount !== undefined ? Number(o.payoutAmount) : Math.floor(rentVal * 0.75);
+                  return (
+                    <div 
+                      key={o.id} 
+                      style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center", 
+                        padding: "12px 16px", 
+                        background: "#f8fafc", 
+                        border: "1px solid #e2e8f0", 
+                        borderRadius: "12px" 
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
+                        <span style={{ fontWeight: "800", color: "var(--text-primary)" }}>{o.name}</span>
+                        <span style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                          📖 {o.className} | 🏫 {o.school}
+                        </span>
+                        <span style={{ fontSize: "0.78rem", color: "#6366f1", fontWeight: "600" }}>
+                          📅 {o.weekday} ({o.classDate ? new Date(o.classDate).toLocaleDateString("vi-VN") : "N/A"}) | 🕒 {o.startTime} - {o.endTime}
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "#10b981", fontWeight: "700" }}>
+                          💵 Thuê: {rentVal.toLocaleString("vi-VN")} đ | 💰 Payout: {payoutVal.toLocaleString("vi-VN")} đ
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({
+                            studentName: o.name || "",
+                            subject: o.className || "",
+                            classDate: o.classDate || "",
+                            classroom: o.classroom || "",
+                            lecturer: o.lecturer || "",
+                            helperName: o.assignedTo || "",
+                            checkinStatus: o.status === "completed" || o.status === "proof_submitted" ? "checked_in" : "not_checked_in",
+                            studyStatus: o.status === "completed" ? "da_hoc" : "chua_hoc",
+                            rentAmount: String(rentVal),
+                            tipAmount: "",
+                            tipStatus: "Chưa gửi",
+                            paymentStatus: o.status === "completed" || o.status === "paid" ? "Đã thanh toán" : "Chưa thanh toán",
+                            salaryAmount: String(payoutVal),
+                            salaryStatus: o.status === "completed" ? "Đã trả lương" : "ChưaTL",
+                            staffTipAmount: "",
+                            staffTipStatus: "Chưa gửi",
+                            period: "chieu",
+                            timeSlot: `${o.startTime || ""} - ${o.endTime || ""}`,
+                            notes: `Nhập từ Đơn thuê ngoài (Mã đơn: ${o.id})`
+                          });
+                          setIsEditing(false);
+                          setEditingId(null);
+                          setShowImportModal(false);
+                          setShowModal(true);
+                          toast.success(`Đã sao chép đơn của học viên ${o.name}! Hãy chỉnh sửa và bấm lưu.`);
+                        }}
+                        className="btn btn-primary"
+                        style={{ padding: "6px 12px", fontSize: "0.8rem", borderRadius: "8px" }}
+                      >
+                        Nhập Lịch
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "2rem", borderTop: "1px solid #e2e8f0", paddingTop: "1rem" }}>
+              <button 
+                type="button" 
+                onClick={() => setShowImportModal(false)}
+                className="btn"
+                style={{ background: "#f1f5f9", color: "var(--text-secondary)", border: "1px solid #cbd5e1" }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Helper functions are now declared above the return block */}
@@ -1581,11 +2237,32 @@ function InternalSchedulesManager() {
                   <input
                     type="text"
                     value={formData.studentName}
-                    onChange={e => setFormData({ ...formData, studentName: e.target.value })}
+                    onChange={e => {
+                      const typedName = e.target.value;
+                      const matchedCust = customers.find(c => c.name.toLowerCase().trim() === typedName.toLowerCase().trim());
+                      if (matchedCust) {
+                        setFormData({
+                          ...formData,
+                          studentName: typedName,
+                          classroom: matchedCust.className || formData.classroom,
+                          notes: matchedCust.studentId ? `MSSV: ${matchedCust.studentId}` : formData.notes
+                        });
+                      } else {
+                        setFormData({ ...formData, studentName: typedName });
+                      }
+                    }}
                     required
                     placeholder="Ví dụ: Hoàng Xuân Tùng"
                     className="form-input"
+                    list="customers-list"
                   />
+                  <datalist id="customers-list">
+                    {customers.map(c => (
+                      <option key={c.id} value={c.name}>
+                        {c.studentId ? `${c.studentId} - ` : ""}{c.className || ""}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
@@ -1828,6 +2505,19 @@ function InternalSchedulesManager() {
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
+                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền tip khách (tipStatus)</label>
+                  <select
+                    value={formData.tipStatus}
+                    onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
+                    className="form-input"
+                    style={{ background: "white" }}
+                  >
+                    <option value="Chưa gửi">Chưa gửi</option>
+                    <option value="Đã gửi">Đã gửi ✓</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: "1rem" }}>
                   <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền người thuê</label>
                   <select
                     value={formData.paymentStatus}
@@ -1884,8 +2574,34 @@ function InternalSchedulesManager() {
                     </div>
                   )}
                 </div>
+
+                <div className="form-group" style={{ marginBottom: "1rem" }}>
+                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền tip CTV (staffTipStatus)</label>
+                  <select
+                    value={formData.staffTipStatus}
+                    onChange={e => setFormData({ ...formData, staffTipStatus: e.target.value })}
+                    className="form-input"
+                    style={{ background: "white" }}
+                  >
+                    <option value="Chưa gửi">Chưa gửi</option>
+                    <option value="Đã gửi">Đã gửi ✓</option>
+                  </select>
+                </div>
               </div>
 
+            </div>
+
+            {/* Ghi chú buổi học */}
+            <div className="form-group" style={{ marginBottom: "1.5rem" }}>
+              <label className="form-label" style={{ fontWeight: "700" }}>Ghi chú buổi học (notes)</label>
+              <textarea
+                value={formData.notes}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Nhập ghi chú hoặc nội dung phát sinh cho buổi học..."
+                className="form-input"
+                rows={2}
+                style={{ resize: "vertical" }}
+              />
             </div>
 
             {/* Form footer actions */}
