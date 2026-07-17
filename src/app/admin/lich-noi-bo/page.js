@@ -1335,13 +1335,13 @@ function InternalSchedulesManager() {
                     className="form-input"
                     style={{ background: "white" }}
                   >
-                    <option value="ChưaTT">Chưa thanh toán (ChưaTT)</option>
+                    <option value="ChưaTT">Chưa thanh toán</option>
                     <option value="Đã thanh toán">Đã thanh toán ✓</option>
                   </select>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền trả lương CTV (salaryAmount)</label>
+                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền trả lương CTV</label>
                   <input
                     type="text"
                     value={formData.salaryAmount}
@@ -1364,13 +1364,13 @@ function InternalSchedulesManager() {
                     className="form-input"
                     style={{ background: "white" }}
                   >
-                    <option value="ChưaTL">Chưa trả lương (ChưaTL)</option>
+                    <option value="ChưaTL">Chưa trả lương</option>
                     <option value="Đã trả lương">Đã trả lương ✓</option>
                   </select>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip cho nhân viên/CTV (staffTipAmount)</label>
+                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip cho nhân viên/CTV</label>
                   <input
                     type="text"
                     value={formData.staffTipAmount}
