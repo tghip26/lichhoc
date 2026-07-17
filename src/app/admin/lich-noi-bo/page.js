@@ -987,6 +987,16 @@ function InternalSchedulesManager() {
               +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip Staff
             </span>
           )}
+
+          {/* Tip / Extra tip from Customer if present */}
+          {item.tipAmount > 0 && (
+            <span style={{
+              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
+              background: "#fef3c7", color: "#b45309"
+            }}>
+              +{Number(item.tipAmount).toLocaleString("vi-VN")}đ Tip KT
+            </span>
+          )}
         </div>
       </div>
     );
