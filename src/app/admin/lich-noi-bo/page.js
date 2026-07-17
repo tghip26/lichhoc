@@ -361,6 +361,50 @@ function InternalSchedulesManager() {
     }
   };
 
+  const handleDeleteManualHelper = async (id, name) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa CTV "${name}" khỏi danh sách tự thêm không?`)) {
+      return;
+    }
+    try {
+      toast.loading("Đang xóa...", { id: "delete-manual-helper" });
+      await deleteDoc(doc(db, "helpers", id));
+      toast.success(`Đã xóa CTV "${name}" thành công!`, { id: "delete-manual-helper" });
+      if (formData.helperName === name) {
+        setFormData(prev => ({ ...prev, helperName: "" }));
+      }
+    } catch (err) {
+      console.error("Lỗi xóa CTV tự thêm:", err);
+      toast.error("Không thể xóa CTV: " + err.message, { id: "delete-manual-helper" });
+    }
+  };
+
+  const handleEditManualHelper = async (id, currentName, currentAlias) => {
+    const newName = prompt("Nhập Tên mới cho CTV:", currentName || "");
+    if (newName === null) return;
+    const newAlias = prompt("Nhập Biệt danh (Tên gợi nhớ) mới cho CTV:", currentAlias || newName);
+    if (newAlias === null) return;
+
+    if (!newName.trim()) {
+      toast.error("Tên CTV không được để trống!");
+      return;
+    }
+
+    try {
+      toast.loading("Đang cập nhật...", { id: "edit-manual-helper" });
+      await updateDoc(doc(db, "helpers", id), {
+        name: newName.trim(),
+        alias: newAlias.trim()
+      });
+      toast.success("Cập nhật thông tin CTV thành công!", { id: "edit-manual-helper" });
+      if (formData.helperName === currentAlias || formData.helperName === currentName) {
+        setFormData(prev => ({ ...prev, helperName: newAlias.trim() }));
+      }
+    } catch (err) {
+      console.error("Lỗi cập nhật CTV tự thêm:", err);
+      toast.error("Không thể cập nhật CTV: " + err.message, { id: "edit-manual-helper" });
+    }
+  };
+
   const handleDuplicateToNextWeek = async () => {
     if (!formData.classDate) {
       toast.error("Không có ngày học để nhân bản!");
@@ -1575,6 +1619,58 @@ function InternalSchedulesManager() {
                       </option>
                     ))}
                   </datalist>
+
+                  {/* Manually added CTV chips with X delete buttons */}
+                  {helpers.filter(h => h.isManual).length > 0 && (
+                    <div style={{ marginTop: "8px" }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600", marginBottom: "4px" }}>
+                        📌 Danh sách CTV tự thêm (Click để chọn nhanh, click đúp để sửa, bấm x để xóa):
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {helpers.filter(h => h.isManual).map(h => (
+                          <div 
+                            key={h.id}
+                            onDoubleClick={() => handleEditManualHelper(h.id, h.name, h.alias)}
+                            onClick={() => setFormData(prev => ({ ...prev, helperName: h.alias || h.name }))}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              background: "#f3e8ff",
+                              color: "#6b21a8",
+                              fontSize: "0.78rem",
+                              fontWeight: "700",
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              border: "1px solid #e9d5ff",
+                              cursor: "pointer",
+                              transition: "all 0.2s"
+                            }}
+                            title="Nhấp đúp để chỉnh sửa tên CTV này"
+                          >
+                            <span>{h.alias || h.name}</span>
+                            <span 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteManualHelper(h.id, h.alias || h.name);
+                              }}
+                              style={{
+                                color: "#b91c1c",
+                                fontWeight: "800",
+                                fontSize: "0.9rem",
+                                padding: "0 2px",
+                                cursor: "pointer",
+                                marginLeft: "2px"
+                              }}
+                              title="Xóa CTV này"
+                            >
+                              &times;
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
