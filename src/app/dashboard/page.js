@@ -2200,8 +2200,6 @@ function Dashboard() {
                 key={item.id} 
                 onClick={() => setSelectedItem(item)}
                 className="history-card" 
-                onMouseOver={e => {e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 20px rgba(0,0,0,0.05)"}} 
-                onMouseOut={e => {e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"}}
               >
                 <div style={{ position: "relative" }}>
                   <img src={item.imageUrl} alt="Lịch" style={{ width: "90px", height: "90px", objectFit: "cover", borderRadius: "10px", border: "1px solid #f1f5f9" }} />
