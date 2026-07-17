@@ -20,6 +20,8 @@ function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [transFilterStatus, setTransFilterStatus] = useState("all");
   const [helperFilterStatus, setHelperFilterStatus] = useState("all");
+  const [userFilterRole, setUserFilterRole] = useState("all");
+  const [userFilterBalance, setUserFilterBalance] = useState("all");
   const [lightboxImage, setLightboxImage] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
   const [sortBy, setSortBy] = useState("newest"); // "newest", "oldest", "dateNearest", "priceHigh", "priceLow"
@@ -677,12 +679,28 @@ function AdminDashboard() {
 
   const filteredUsers = users.filter(u => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       (u.email && u.email.toLowerCase().includes(query)) ||
       (u.displayName && u.displayName.toLowerCase().includes(query)) ||
       (u.phone && u.phone.includes(query)) ||
       (u.alias && u.alias.toLowerCase().includes(query))
     );
+    
+    const matchesRole = userFilterRole === "all" || 
+                        (userFilterRole === "admin" && u.role === "admin") ||
+                        (userFilterRole === "helper" && u.role === "helper") ||
+                        (userFilterRole === "user" && (u.role === "user" || !u.role));
+
+    let matchesBalance = true;
+    if (userFilterBalance === "has_student_balance") {
+      matchesBalance = (u.balance || 0) > 0;
+    } else if (userFilterBalance === "has_helper_balance") {
+      matchesBalance = (u.helperBalance || 0) > 0;
+    } else if (userFilterBalance === "empty_balance") {
+      matchesBalance = (u.balance || 0) === 0 && (u.helperBalance || 0) === 0;
+    }
+
+    return matchesSearch && matchesRole && matchesBalance;
   });
 
   const filteredTransactions = transactions.filter(t => {
@@ -1197,16 +1215,43 @@ function AdminDashboard() {
         {activeTab === "users" && (
           <>
             {/* Toolbar cho Users */}
-            <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
-                <input 
-                  type="text" 
-                  placeholder="Tìm email, tên, biệt danh hoặc SĐT..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, maxWidth: "400px", background: "white" }}
-                />
+            <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", marginBottom: "2rem" }}>
+              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "0.75rem", flex: 1, minWidth: "300px", flexWrap: "wrap" }}>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm email, tên, biệt danh hoặc SĐT..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="form-input"
+                    style={{ flex: 2, minWidth: "200px", maxWidth: "400px", background: "white" }}
+                  />
+                  
+                  <select
+                    value={userFilterRole}
+                    onChange={(e) => setUserFilterRole(e.target.value)}
+                    className="form-input"
+                    style={{ flex: 1, minWidth: "140px", maxWidth: "180px", background: "white", cursor: "pointer", fontWeight: "600" }}
+                  >
+                    <option value="all">Tất cả vai trò</option>
+                    <option value="user">Học viên (User)</option>
+                    <option value="helper">Cộng tác viên (Helper)</option>
+                    <option value="admin">Quản trị viên (Admin)</option>
+                  </select>
+
+                  <select
+                    value={userFilterBalance}
+                    onChange={(e) => setUserFilterBalance(e.target.value)}
+                    className="form-input"
+                    style={{ flex: 1, minWidth: "160px", maxWidth: "200px", background: "white", cursor: "pointer", fontWeight: "600" }}
+                  >
+                    <option value="all">Tất cả số dư</option>
+                    <option value="has_student_balance">Có số dư Học viên &gt; 0</option>
+                    <option value="has_helper_balance">Có số dư CTV &gt; 0</option>
+                    <option value="empty_balance">Số dư rỗng (0 đ)</option>
+                  </select>
+                </div>
+                
                 <button onClick={handleExportUsersCSV} className="btn" style={{ background: "white", color: "var(--success)", border: "1px solid var(--success)", padding: "0.6rem 1.2rem", boxShadow: "none" }}>
                   📥 Xuất Excel
                 </button>
