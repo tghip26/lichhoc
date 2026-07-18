@@ -74,6 +74,17 @@ function Dashboard() {
   const [openJobs, setOpenJobs] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
   const [myInternalJobs, setMyInternalJobs] = useState([]);
+  const [ctvJobsView, setCtvJobsView] = useState("list"); // "list" or "calendar"
+  const [ctvCurrentDate, setCtvCurrentDate] = useState(new Date());
+  const [ctvSelectedDay, setCtvSelectedDay] = useState(new Date());
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const [isCTVMode, setIsCTVMode] = useState(false);
   const [ctvActiveTab, setCtvActiveTab] = useState("job_board"); // "job_board" or "my_jobs"
   const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -1215,7 +1226,48 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "10px" }}>
+              <h4 style={{ margin: 0, color: "var(--text-primary)" }}>📅 Lớp học hộ bạn đã nhận công tác</h4>
+              <div style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "4px", borderRadius: "10px" }}>
+                <button 
+                  type="button"
+                  onClick={() => setCtvJobsView("list")}
+                  style={{
+                    border: "none",
+                    background: ctvJobsView === "list" ? "white" : "transparent",
+                    color: ctvJobsView === "list" ? "var(--primary)" : "var(--text-secondary)",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    boxShadow: ctvJobsView === "list" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Danh sách
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setCtvJobsView("calendar")}
+                  style={{
+                    border: "none",
+                    background: ctvJobsView === "calendar" ? "white" : "transparent",
+                    color: ctvJobsView === "calendar" ? "var(--primary)" : "var(--text-secondary)",
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    boxShadow: ctvJobsView === "calendar" ? "0 2px 5px rgba(0,0,0,0.05)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Lịch biểu
+                </button>
+              </div>
+            </div>
+
             {(() => {
               const allJobsCombined = [
                 ...myJobs.map(j => ({ ...j, isInternal: false })),
@@ -1240,6 +1292,314 @@ function Dashboard() {
                 );
               }
 
+              // Calendar setup helpers
+              const getCTVStartOfWeek = (d) => {
+                const temp = new Date(d);
+                const day = temp.getDay();
+                const diff = temp.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(temp.setDate(diff));
+              };
+
+              const startOfWeek = getCTVStartOfWeek(new Date(ctvCurrentDate));
+              const weekDays = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(startOfWeek);
+                d.setDate(startOfWeek.getDate() + i);
+                return d;
+              });
+
+              const getJobsForDate = (date) => {
+                const dateStr = date.toLocaleDateString("en-CA");
+                return allJobsCombined.filter(j => {
+                  try {
+                    const jDate = new Date(j.classDate);
+                    return jDate.toLocaleDateString("en-CA") === dateStr;
+                  } catch (e) {
+                    return false;
+                  }
+                });
+              };
+
+              const handlePrevWeek = () => {
+                const prev = new Date(ctvCurrentDate);
+                prev.setDate(prev.getDate() - 7);
+                setCtvCurrentDate(prev);
+              };
+
+              const handleNextWeek = () => {
+                const next = new Date(ctvCurrentDate);
+                next.setDate(next.getDate() + 7);
+                setCtvCurrentDate(next);
+              };
+
+              const handleThisWeek = () => {
+                setCtvCurrentDate(new Date());
+              };
+
+              // Reusable job card element
+              const renderJobCardMini = (job) => {
+                const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                const helperPayout = job.isInternal ? job.payoutAmount : (job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75));
+                
+                return (
+                  <div 
+                    key={job.id} 
+                    className="glass-panel"
+                    style={{ 
+                      padding: "0.75rem", 
+                      background: "white", 
+                      borderLeft: "4px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5"),
+                      textAlign: "left",
+                      fontSize: "0.78rem"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "5px", marginBottom: "4px" }}>
+                      <strong style={{ fontSize: "0.82rem", wordBreak: "break-word" }}>{job.className}</strong>
+                      {job.isInternal && (
+                        <span style={{ background: "#f3e8ff", color: "#6b21a8", fontSize: "0.6rem", fontWeight: "800", padding: "1px 4px", borderRadius: "4px", flexShrink: 0 }}>Nội bộ</span>
+                      )}
+                    </div>
+                    <div style={{ color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "2px", fontSize: "0.72rem", marginBottom: "6px" }}>
+                      <span>🕒 {job.startTime} - {job.endTime}</span>
+                      <span>🚪 Phòng: <b>{job.classroom || "N/A"}</b></span>
+                      <span>👤 {job.name}</span>
+                    </div>
+
+                    <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <strong style={{ color: "var(--success)", fontSize: "0.78rem" }}>{helperPayout.toLocaleString("vi-VN")}đ</strong>
+                      {job.status === "completed" ? (
+                        <span style={{ color: "var(--success)", fontWeight: "700" }}>Hoàn thành</span>
+                      ) : job.status === "proof_submitted" ? (
+                        <span style={{ color: "#D97706", fontWeight: "700" }}>Chờ duyệt</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedJobForProof(job);
+                            setProofFile(null);
+                            setShowProofModal(true);
+                          }}
+                          className="btn"
+                          style={{ background: "#D97706", color: "white", padding: "2px 6px", borderRadius: "5px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.68rem" }}
+                        >
+                          📸 Check-in
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              };
+
+              if (ctvJobsView === "calendar") {
+                const monStr = weekDays[0].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
+                const sunStr = weekDays[6].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
+                const weekdayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+                    {/* Weekly Calendar Navigation Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", background: "white", padding: "10px 15px", borderRadius: "14px", border: "1px solid #cbd5e1" }}>
+                      <div style={{ display: "flex", gap: "5px" }}>
+                        <button type="button" onClick={handlePrevWeek} className="btn" style={{ padding: "5px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "1px solid #cbd5e1" }}>◀ Tuần trước</button>
+                        <button type="button" onClick={handleThisWeek} className="btn" style={{ padding: "5px 10px", background: "white", fontSize: "0.8rem", border: "1px solid #cbd5e1", fontWeight: "750" }}>Tuần này</button>
+                        <button type="button" onClick={handleNextWeek} className="btn" style={{ padding: "5px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "1px solid #cbd5e1" }}>Tuần sau ▶</button>
+                      </div>
+                      <span style={{ fontSize: "0.88rem", fontWeight: "800", color: "var(--text-primary)" }}>
+                        Tuần từ {monStr} đến {sunStr}
+                      </span>
+                    </div>
+
+                    {!isMobile ? (
+                      /* DESKTOP CALENDAR VIEW: 7 Columns */
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "10px", alignItems: "start" }}>
+                        {weekDays.map((day, idx) => {
+                          const dateStr = day.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
+                          const isToday = new Date().toDateString() === day.toDateString();
+                          const dayJobs = getJobsForDate(day);
+
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                background: isToday ? "rgba(22, 163, 74, 0.03)" : "rgba(255, 255, 255, 0.5)", 
+                                borderRadius: "14px", 
+                                border: isToday ? "2px solid var(--primary)" : "1px solid #cbd5e1",
+                                overflow: "hidden",
+                                minHeight: "220px",
+                                display: "flex",
+                                flexDirection: "column"
+                              }}
+                            >
+                              {/* Day Header */}
+                              <div style={{ 
+                                background: isToday ? "var(--primary)" : "#cbd5e1", 
+                                color: isToday ? "white" : "#334155", 
+                                padding: "8px 5px", 
+                                fontSize: "0.78rem", 
+                                fontWeight: "800", 
+                                textAlign: "center"
+                              }}>
+                                <div>{weekdayNames[idx]}</div>
+                                <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>{dateStr}</div>
+                              </div>
+
+                              {/* Shifts list */}
+                              <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                                {dayJobs.length === 0 ? (
+                                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontStyle: "italic", margin: "auto 0" }}>Trống lịch</span>
+                                ) : (
+                                  dayJobs.map(job => renderJobCardMini(job))
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* MOBILE CALENDAR VIEW: Horizontal Swiper + Selected Day list */
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        {/* Day swiper */}
+                        <div 
+                          className="hide-scrollbar"
+                          style={{ 
+                            display: "flex", 
+                            gap: "8px", 
+                            overflowX: "auto", 
+                            paddingBottom: "5px",
+                            WebkitOverflowScrolling: "touch"
+                          }}
+                        >
+                          {weekDays.map((day, idx) => {
+                            const dateNum = day.getDate();
+                            const isSelected = ctvSelectedDay && ctvSelectedDay.toDateString() === day.toDateString();
+                            const isToday = new Date().toDateString() === day.toDateString();
+                            const dayJobs = getJobsForDate(day);
+
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setCtvSelectedDay(day)}
+                                style={{
+                                  flex: "1 0 54px",
+                                  maxWidth: "60px",
+                                  padding: "8px 0",
+                                  borderRadius: "10px",
+                                  border: isSelected ? "none" : (isToday ? "1.5px solid var(--primary)" : "1px solid #cbd5e1"),
+                                  background: isSelected ? "var(--primary)" : "white",
+                                  color: isSelected ? "white" : (isToday ? "var(--primary)" : "var(--text-primary)"),
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  alignItems: "center",
+                                  gap: "3px",
+                                  cursor: "pointer",
+                                  position: "relative"
+                                }}
+                              >
+                                <span style={{ fontSize: "0.68rem", fontWeight: "700", opacity: 0.9 }}>{weekdayNames[idx]}</span>
+                                <span style={{ fontSize: "1rem", fontWeight: "800" }}>{dateNum}</span>
+                                {dayJobs.length > 0 && (
+                                  <span style={{ 
+                                    position: "absolute", 
+                                    bottom: "2px", 
+                                    width: "5px", 
+                                    height: "5px", 
+                                    borderRadius: "50%", 
+                                    background: isSelected ? "white" : "var(--primary)" 
+                                  }}></span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Selected day shifts list */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "var(--text-secondary)", textAlign: "left" }}>
+                            📅 Ca trực ngày {ctvSelectedDay.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric", year: "numeric" })}:
+                          </div>
+                          {(() => {
+                            const selectedDayJobs = getJobsForDate(ctvSelectedDay);
+                            if (selectedDayJobs.length === 0) {
+                              return (
+                                <div className="glass-panel" style={{ padding: "2.5rem", textAlign: "center", color: "var(--text-secondary)", background: "white", borderRadius: "14px" }}>
+                                  🎉 Không có ca trực trong ngày này!
+                                </div>
+                              );
+                            }
+                            return (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                                {selectedDayJobs.map(job => {
+                                  const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                                  const helperPayout = job.isInternal ? job.payoutAmount : (job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75));
+                                  return (
+                                    <div 
+                                      key={job.id} 
+                                      className="glass-panel" 
+                                      style={{ 
+                                        padding: "1.25rem", 
+                                        display: "flex", 
+                                        flexDirection: "column", 
+                                        gap: "8px", 
+                                        background: "white", 
+                                        borderLeft: "5px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5"),
+                                        position: "relative"
+                                      }}
+                                    >
+                                      {job.isInternal && (
+                                        <span style={{ position: "absolute", top: "8px", right: "8px", background: "#f3e8ff", color: "#6b21a8", fontSize: "0.68rem", fontWeight: "800", padding: "2px 6px", borderRadius: "6px" }}>📅 Lịch Nội Bộ</span>
+                                      )}
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", paddingRight: job.isInternal ? "80px" : "0" }}>
+                                        <strong style={{ fontSize: "1rem" }}>{job.className}</strong>
+                                        {job.status === "completed" ? (
+                                          <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
+                                        ) : job.status === "proof_submitted" ? (
+                                          <span style={{ fontSize: "0.75rem", background: "rgba(217,119,6,0.12)", color: "#D97706", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đã nộp báo cáo</span>
+                                        ) : (
+                                          <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.12)", color: "#4F46E5", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đang trực lớp</span>
+                                        )}
+                                      </div>
+
+                                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                                        <span>🏫 Trường: <b>{job.school || "N/A"}</b></span>
+                                        <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
+                                        {job.classroom && <span>🚪 Phòng học: <b>{job.classroom}</b></span>}
+                                        <span>👤 Học viên: <b>{job.name}</b></span>
+                                      </div>
+
+                                      <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <div>
+                                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao:</span>
+                                          <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                                        </div>
+                                        {(job.status === "accepted" || job.status === "in_progress") && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedJobForProof(job);
+                                              setProofFile(null);
+                                              setShowProofModal(true);
+                                            }}
+                                            className="btn"
+                                            style={{ background: "#D97706", color: "white", padding: "0.35rem 0.8rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.78rem" }}
+                                          >
+                                            📸 Báo cáo check-in
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              /* STANDARD LIST VIEW */
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
                   {allJobsCombined.map((job) => {
