@@ -9,6 +9,7 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [systemSettings, setSystemSettings] = useState(() => {
@@ -69,37 +70,47 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
+    let unsubProfile = null;
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        // Listen to user profile document
+        unsubProfile = onSnapshot(doc(db, "users", authUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setUserProfile(docSnap.data());
+          } else {
+            setUserProfile(null);
+          }
+        });
+
         // Kiểm tra xem user có phải là admin không
         const envAdmins = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
         const allAdmins = [...envAdmins, "hiplaika263@gmail.com"];
-        const adminStatus = allAdmins.includes(user.email.toLowerCase());
+        const adminStatus = allAdmins.includes(authUser.email.toLowerCase());
         setIsAdmin(adminStatus);
         
         // Kiểm tra và đồng bộ thông tin tài khoản trên Firestore
         try {
-          const userDocRef = doc(db, "users", user.uid);
+          const userDocRef = doc(db, "users", authUser.uid);
           const userDocSnap = await getDoc(userDocRef);
           
           if (!userDocSnap.exists()) {
             // Báo Telegram người dùng Google/Redirect mới
-            sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Tên hiển thị:</b> ${user.displayName || user.email.split('@')[0]}\n• <b>Email:</b> ${user.email}\n• <b>Hình thức:</b> Liên kết ngoài (Google)\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
+            sendTelegramAlert(`👤 <b>CÓ TÀI KHOẢN ĐĂNG KÝ MỚI!</b>\n\n• <b>Tên hiển thị:</b> ${authUser.displayName || authUser.email.split('@')[0]}\n• <b>Email:</b> ${authUser.email}\n• <b>Hình thức:</b> Liên kết ngoài (Google)\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
           }
 
           // Kiểm tra và đồng bộ nếu email khớp với hồ sơ CTV đã duyệt
           let helperApproved = false;
           try {
             const helpersRef = collection(db, "helpers");
-            const qHelpersEmail = query(helpersRef, where("email", "==", user.email));
+            const qHelpersEmail = query(helpersRef, where("email", "==", authUser.email));
             const querySnap = await getDocs(qHelpersEmail);
             if (!querySnap.empty) {
               const helperDoc = querySnap.docs[0];
               const helperData = helperDoc.data();
               // Liên kết uid người dùng vào hồ sơ CTV
-              if (!helperData.userId || helperData.userId !== user.uid) {
-                await updateDoc(doc(db, "helpers", helperDoc.id), { userId: user.uid });
+              if (!helperData.userId || helperData.userId !== authUser.uid) {
+                await updateDoc(doc(db, "helpers", helperDoc.id), { userId: authUser.uid });
               }
               if (helperData.status === "approved" || helperData.isApproved) {
                 helperApproved = true;
@@ -124,18 +135,18 @@ export function AuthProvider({ children }) {
           }
 
           await setDoc(userDocRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            photoURL: user.photoURL || "",
+            uid: authUser.uid,
+            email: authUser.email,
+            displayName: authUser.displayName || authUser.email.split('@')[0],
+            photoURL: authUser.photoURL || "",
             role: finalRole,
             lastLogin: serverTimestamp()
           }, { merge: true });
 
           // Lưu email vào chỉ mục công khai phục vụ tra cứu
           try {
-            await setDoc(doc(db, "user_emails_index", user.email.toLowerCase()), {
-              uid: user.uid,
+            await setDoc(doc(db, "user_emails_index", authUser.email.toLowerCase()), {
+              uid: authUser.uid,
               createdAt: serverTimestamp()
             }, { merge: true });
           } catch (indexErr) {
@@ -146,11 +157,16 @@ export function AuthProvider({ children }) {
         }
       } else {
         setIsAdmin(false);
+        setUserProfile(null);
+        if (unsubProfile) unsubProfile();
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubProfile) unsubProfile();
+    };
   }, []);
 
   const loginWithGoogle = async () => {
@@ -211,7 +227,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings, sendTelegramAlert }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings, sendTelegramAlert }}>
       {children}
     </AuthContext.Provider>
   );

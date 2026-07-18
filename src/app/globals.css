@@ -25,6 +25,9 @@
   --radius-md: 16px;
   --radius-lg: 24px;
 }
+html {
+  scroll-behavior: smooth;
+}
 
 /* Global Reset & Body */
 * {

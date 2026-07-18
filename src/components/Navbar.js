@@ -9,12 +9,25 @@ import { collection, query, where, orderBy, limit, onSnapshot, doc, updateDoc, d
 import toast from "react-hot-toast";
 
 export default function Navbar() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, userProfile, isAdmin, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [hidePhoneBanner, setHidePhoneBanner] = useState(true);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (user && userProfile && !userProfile.phone) {
+      const today = new Date().toDateString();
+      const hideDate = localStorage.getItem("hidePhoneBannerDate");
+      if (hideDate !== today) {
+        setHidePhoneBanner(false);
+      }
+    } else {
+      setHidePhoneBanner(true);
+    }
+  }, [user, userProfile]);
 
   useEffect(() => {
     if (!user) {
@@ -91,8 +104,70 @@ export default function Navbar() {
     }
   };
 
+  const handleDismissPhoneBanner = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    localStorage.setItem("hidePhoneBannerDate", new Date().toDateString());
+    setHidePhoneBanner(true);
+  };
+
   return (
-    <nav className="navbar">
+    <>
+      {/* PHONE NUMBER ALERT BANNER */}
+      {!hidePhoneBanner && (
+        <div 
+          onClick={() => router.push("/tai-khoan")}
+          style={{
+            background: "linear-gradient(90deg, #ef4444 0%, #f59e0b 100%)",
+            color: "white",
+            padding: "10px 15px",
+            textAlign: "center",
+            fontSize: "0.85rem",
+            fontWeight: "750",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "10px",
+            position: "relative",
+            zIndex: 1002,
+            boxShadow: "0 4px 10px rgba(239, 68, 68, 0.2)",
+            animation: "pulseBanner 2s infinite"
+          }}
+        >
+          <span>⚠️ Tài khoản của bạn chưa cập nhật Số điện thoại! Vui lòng nhấp vào đây để bổ sung ngay. 📲</span>
+          <button 
+            type="button"
+            onClick={handleDismissPhoneBanner}
+            style={{
+              background: "rgba(0,0,0,0.15)",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "20px",
+              height: "20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "0.8rem",
+              fontWeight: "bold",
+              cursor: "pointer",
+              marginLeft: "10px"
+            }}
+            title="Tắt thông báo hôm nay"
+          >
+            &times;
+          </button>
+          <style jsx>{`
+            @keyframes pulseBanner {
+              0% { opacity: 0.95; }
+              50% { opacity: 1; }
+              100% { opacity: 0.95; }
+            }
+          `}</style>
+        </div>
+      )}
+      <nav className="navbar">
       <div className="navbar-container">
         
         {/* Brand Area */}
@@ -387,5 +462,6 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
+    </>
   );
 }

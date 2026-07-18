@@ -2148,6 +2148,16 @@ function InternalSchedulesManager() {
     );
   };
 
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    setTimeout(() => {
+      const container = document.getElementById("internal-view-content");
+      if (container) {
+        container.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
+
   return (
     <div style={{ padding: "2rem", minHeight: "100vh", background: "#f8fafc" }}>
       {/* HEADER SECTION */}
@@ -2233,6 +2243,8 @@ function InternalSchedulesManager() {
         </div>
       </div>
 
+
+
       {/* VIEW SELECTOR & NAV */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "12px 1.5rem", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", marginBottom: "1.5rem", flexWrap: "wrap", gap: "15px" }}>
         {/* Toggle Grid/Table View */}
@@ -2251,7 +2263,7 @@ function InternalSchedulesManager() {
           }}
         >
           <button
-            onClick={() => setViewMode("grid")}
+            onClick={() => handleViewModeChange("grid")}
             style={{
               padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
               background: viewMode === "grid" ? "white" : "transparent",
@@ -2264,7 +2276,7 @@ function InternalSchedulesManager() {
             📅 Giao diện Lịch Tuần
           </button>
           <button
-            onClick={() => setViewMode("table")}
+            onClick={() => handleViewModeChange("table")}
             style={{
               padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
               background: viewMode === "table" ? "white" : "transparent",
@@ -2277,7 +2289,7 @@ function InternalSchedulesManager() {
             📊 Giao diện Bảng Tính
           </button>
           <button
-            onClick={() => setViewMode("analytics")}
+            onClick={() => handleViewModeChange("analytics")}
             style={{
               padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
               background: viewMode === "analytics" ? "white" : "transparent",
@@ -2290,7 +2302,7 @@ function InternalSchedulesManager() {
             📈 Phân tích tài chính 📊
           </button>
           <button
-            onClick={() => setViewMode("customers")}
+            onClick={() => handleViewModeChange("customers")}
             style={{
               padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "0.85rem", fontWeight: "700", cursor: "pointer",
               background: viewMode === "customers" ? "white" : "transparent",
@@ -2348,6 +2360,8 @@ function InternalSchedulesManager() {
           </div>
         )}
       </div>
+
+      <div id="internal-view-content">
 
       {/* RENDER GRID VIEW (Weekly Timetable) */}
       {viewMode === "grid" && (
@@ -3413,6 +3427,7 @@ function InternalSchedulesManager() {
           </form>
         </div>
       )}
+      </div>
 
       {/* Autocomplete Datalists gợi ý nhập liệu */}
       <datalist id="subjects-list">

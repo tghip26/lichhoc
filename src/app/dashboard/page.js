@@ -55,6 +55,15 @@ function Dashboard() {
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "wallet"
+  const handleActiveTabChange = (tab) => {
+    setActiveTab(tab);
+    setTimeout(() => {
+      const el = document.getElementById("dashboard-active-content");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [reviews, setReviews] = useState([]);
@@ -1834,7 +1843,7 @@ function Dashboard() {
         }}
       >
         <button 
-          onClick={() => setActiveTab("schedules")}
+          onClick={() => handleActiveTabChange("schedules")}
           style={{
             flexShrink: 0,
             background: activeTab === "schedules" ? "var(--primary)" : "white",
@@ -1852,7 +1861,7 @@ function Dashboard() {
           📅 Đăng đơn & Lịch học
         </button>
         <button 
-          onClick={() => setActiveTab("wallet")}
+          onClick={() => handleActiveTabChange("wallet")}
           style={{
             flexShrink: 0,
             background: activeTab === "wallet" ? "var(--primary)" : "white",
@@ -1871,6 +1880,7 @@ function Dashboard() {
         </button>
       </div>
 
+      <div id="dashboard-active-content">
       {activeTab === "schedules" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: "2.5rem" }}>
       
@@ -2496,6 +2506,7 @@ function Dashboard() {
           </div>
         </div>
       )}
+      </div>
 
       {/* OVERLAY MODAL: HIỂN THỊ CHI TIẾT ĐƠN HÀNG */}
       {selectedItem && (
