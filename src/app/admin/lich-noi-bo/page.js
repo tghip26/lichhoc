@@ -482,7 +482,7 @@ function InternalSchedulesManager() {
           try {
             await addDoc(collection(db, "internal_customers"), {
               name: studentNameClean,
-              className: sanitizedData.classroom || "",
+              className: "",
               studentId: "",
               birthDate: "",
               portalAccount: "",
@@ -2246,7 +2246,6 @@ function InternalSchedulesManager() {
                         setFormData({
                           ...formData,
                           studentName: typedName,
-                          classroom: matchedCust.className || formData.classroom,
                           notes: matchedCust.studentId ? `MSSV: ${matchedCust.studentId}` : formData.notes
                         });
                       } else {

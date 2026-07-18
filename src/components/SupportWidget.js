@@ -19,7 +19,7 @@ export default function SupportWidget() {
   const faqTriggers = [
     {
       q: "💵 Bảng giá dịch vụ thuê học hộ?",
-      a: "Chào bạn! Chi phí thuê học hộ cơ bản dao động từ 75.000 đ - 100.000 đ/buổi trực lớp tùy theo thời lượng (tiết học). Các khoản tiền tip làm bài kiểm tra hoặc thuyết trình sẽ do bạn thương lượng thêm với CTV. Bạn có thể đặt lịch ngay tại Bảng điều khiển cá nhân nhé!",
+      a: "Chào bạn! Chi phí thuê học hộ cơ bản dao động từ 150.000 đ - 200.000 đ/buổi trực lớp tùy theo thời lượng (tiết học). Các khoản tiền tip làm bài kiểm tra hoặc thuyết trình sẽ do bạn thương lượng thêm với CTV. Bạn có thể đặt lịch ngay tại Bảng điều khiển cá nhân nhé!",
       cta: { text: "📅 Đi đặt lịch ngay", link: "/dashboard" }
     },
     {
