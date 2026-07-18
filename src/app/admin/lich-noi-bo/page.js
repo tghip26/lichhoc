@@ -1338,89 +1338,180 @@ function InternalSchedulesManager() {
           </div>
         </div>
 
-        {/* Bảng Danh Sách Khách Hàng */}
-        <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
-            <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Họ Tên</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Lớp</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>MSSV</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ngày Sinh</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tài Khoản Portal SV</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Mật Khẩu Portal SV</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Phân Loại</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Hành Động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.length === 0 ? (
-                <tr>
-                  <td colSpan="9" style={{ padding: "3rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic" }}>
-                    Không tìm thấy khách hàng nào phù hợp!
-                  </td>
-                </tr>
-              ) : (
-                filteredCustomers.map((c) => (
-                  <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                    <td style={{ padding: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{c.name}</td>
-                    <td style={{ padding: "1rem" }}>{c.className || "N/A"}</td>
-                    <td style={{ padding: "1rem", fontWeight: "600" }}>{c.studentId || "N/A"}</td>
-                    <td style={{ padding: "1rem" }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}</td>
-                    <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalAccount || "N/A"}</td>
-                    <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalPassword || "N/A"}</td>
-                    <td style={{ padding: "1rem" }}>
-                      {(() => {
-                        const seg = getCustomerSegment(c);
-                        if (seg === "vip") {
-                          return <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>;
-                        }
-                        if (seg === "regular") {
-                          return <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>;
-                        }
-                        if (seg === "potential") {
-                          return <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>;
-                        }
-                        return <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>;
-                      })()}
-                    </td>
-                    <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{c.notes || "N/A"}</td>
-                    <td style={{ padding: "1rem", textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                        <button 
-                          onClick={() => {
-                            setEditingCustomerId(c.id);
-                            setCustomerFormData({
-                              name: c.name || "",
-                              className: c.className || "",
-                              studentId: c.studentId || "",
-                              birthDate: c.birthDate || "",
-                              portalAccount: c.portalAccount || "",
-                              portalPassword: c.portalPassword || "",
-                              segment: c.segment || "new",
-                              notes: c.notes || ""
-                            });
-                            setShowCustomerModal(true);
-                          }}
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
-                        >
-                          Sửa
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteCustomer(c.id, c.name)}
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
-                        >
-                          Xóa
-                        </button>
+        {/* Bảng/Card Danh Sách Khách Hàng */}
+        {isMobile ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {filteredCustomers.length === 0 ? (
+              <div style={{ padding: "3rem 1rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic", background: "white", borderRadius: "16px", border: "1px solid #cbd5e1" }}>
+                Không tìm thấy khách hàng nào phù hợp!
+              </div>
+            ) : (
+              filteredCustomers.map((c) => {
+                const seg = getCustomerSegment(c);
+                return (
+                  <div 
+                    key={c.id} 
+                    style={{ 
+                      background: "white", 
+                      borderRadius: "16px", 
+                      padding: "1.25rem", 
+                      boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)",
+                      border: "1px solid #cbd5e1",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                      textAlign: "left"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontWeight: "800", fontSize: "0.95rem", color: "var(--text-primary)" }}>{c.name}</span>
+                      
+                      {seg === "vip" ? (
+                        <span style={{ fontSize: "0.68rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>
+                      ) : seg === "regular" ? (
+                        <span style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>
+                      ) : seg === "potential" ? (
+                        <span style={{ fontSize: "0.68rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>
+                      ) : (
+                        <span style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.78rem", color: "var(--text-secondary)", borderTop: "1px solid #f1f5f9", paddingTop: "8px" }}>
+                      <div><strong>Lớp:</strong> {c.className || "N/A"}</div>
+                      <div><strong>MSSV:</strong> {c.studentId || "N/A"}</div>
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                      <strong>Ngày sinh:</strong> {c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}
+                    </div>
+                    
+                    <div style={{ background: "#f8fafc", borderRadius: "10px", padding: "8px 12px", fontSize: "0.78rem", display: "flex", flexDirection: "column", gap: "4px", border: "1px solid #f1f5f9" }}>
+                      <div><strong>Tài khoản SV:</strong> <code style={{ color: "var(--primary)", fontWeight: "700" }}>{c.portalAccount || "N/A"}</code></div>
+                      <div><strong>Mật khẩu:</strong> <code style={{ color: "var(--primary)", fontWeight: "700" }}>{c.portalPassword || "N/A"}</code></div>
+                    </div>
+                    
+                    {c.notes && (
+                      <div style={{ fontSize: "0.75rem", color: "#92400e", background: "#fef3c7", padding: "6px 10px", borderRadius: "8px", borderLeft: "3px solid #f59e0b" }}>
+                        💬 {c.notes}
                       </div>
+                    )}
+                    
+                    <div style={{ display: "flex", gap: "8px", borderTop: "1px solid #f1f5f9", paddingTop: "8px", justifyContent: "flex-end" }}>
+                      <button 
+                        onClick={() => {
+                          setEditingCustomerId(c.id);
+                          setCustomerFormData({
+                            name: c.name || "",
+                            className: c.className || "",
+                            studentId: c.studentId || "",
+                            birthDate: c.birthDate || "",
+                            portalAccount: c.portalAccount || "",
+                            portalPassword: c.portalPassword || "",
+                            segment: c.segment || "new",
+                            notes: c.notes || ""
+                          });
+                          setShowCustomerModal(true);
+                        }}
+                        style={{ padding: "5px 12px", fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+                      >
+                        Sửa
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteCustomer(c.id, c.name)}
+                        style={{ padding: "5px 12px", fontSize: "0.72rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Họ Tên</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Lớp</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>MSSV</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ngày Sinh</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tài Khoản Portal SV</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Mật Khẩu Portal SV</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Phân Loại</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
+                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Hành Động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" style={{ padding: "3rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic" }}>
+                      Không tìm thấy khách hàng nào phù hợp!
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredCustomers.map((c) => (
+                    <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{c.name}</td>
+                      <td style={{ padding: "1rem" }}>{c.className || "N/A"}</td>
+                      <td style={{ padding: "1rem", fontWeight: "600" }}>{c.studentId || "N/A"}</td>
+                      <td style={{ padding: "1rem" }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}</td>
+                      <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalAccount || "N/A"}</td>
+                      <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalPassword || "N/A"}</td>
+                      <td style={{ padding: "1rem" }}>
+                        {(() => {
+                          const seg = getCustomerSegment(c);
+                          if (seg === "vip") {
+                            return <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>;
+                          }
+                          if (seg === "regular") {
+                            return <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>;
+                          }
+                          if (seg === "potential") {
+                            return <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>;
+                          }
+                          return <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>;
+                        })()}
+                      </td>
+                      <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{c.notes || "N/A"}</td>
+                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                          <button 
+                            onClick={() => {
+                              setEditingCustomerId(c.id);
+                              setCustomerFormData({
+                                name: c.name || "",
+                                className: c.className || "",
+                                studentId: c.studentId || "",
+                                birthDate: c.birthDate || "",
+                                portalAccount: c.portalAccount || "",
+                                portalPassword: c.portalPassword || "",
+                                segment: c.segment || "new",
+                                notes: c.notes || ""
+                              });
+                              setShowCustomerModal(true);
+                            }}
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+                          >
+                            Sửa
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteCustomer(c.id, c.name)}
+                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     );
   };
@@ -1856,7 +1947,20 @@ function InternalSchedulesManager() {
       {/* VIEW SELECTOR & NAV */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "12px 1.5rem", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", marginBottom: "1.5rem", flexWrap: "wrap", gap: "15px" }}>
         {/* Toggle Grid/Table View */}
-        <div style={{ display: "flex", background: "#f1f5f9", padding: "4px", borderRadius: "10px", flexWrap: "wrap", gap: "2px" }}>
+        <div 
+          className="hide-scrollbar"
+          style={{ 
+            display: "flex", 
+            background: "#f1f5f9", 
+            padding: "4px", 
+            borderRadius: "10px", 
+            gap: "2px", 
+            overflowX: "auto", 
+            whiteSpace: "nowrap", 
+            width: isMobile ? "100%" : "auto",
+            WebkitOverflowScrolling: "touch"
+          }}
+        >
           <button
             onClick={() => setViewMode("grid")}
             style={{
@@ -1864,7 +1968,8 @@ function InternalSchedulesManager() {
               background: viewMode === "grid" ? "white" : "transparent",
               color: viewMode === "grid" ? "var(--text-primary)" : "var(--text-secondary)",
               boxShadow: viewMode === "grid" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s"
+              transition: "all 0.15s",
+              flexShrink: 0
             }}
           >
             📅 Giao diện Lịch Tuần
@@ -1876,7 +1981,8 @@ function InternalSchedulesManager() {
               background: viewMode === "table" ? "white" : "transparent",
               color: viewMode === "table" ? "var(--text-primary)" : "var(--text-secondary)",
               boxShadow: viewMode === "table" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s"
+              transition: "all 0.15s",
+              flexShrink: 0
             }}
           >
             📊 Giao diện Bảng Tính
@@ -1888,7 +1994,8 @@ function InternalSchedulesManager() {
               background: viewMode === "analytics" ? "white" : "transparent",
               color: viewMode === "analytics" ? "var(--text-primary)" : "var(--text-secondary)",
               boxShadow: viewMode === "analytics" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s"
+              transition: "all 0.15s",
+              flexShrink: 0
             }}
           >
             📈 Phân tích tài chính 📊
@@ -1900,7 +2007,8 @@ function InternalSchedulesManager() {
               background: viewMode === "customers" ? "white" : "transparent",
               color: viewMode === "customers" ? "var(--text-primary)" : "var(--text-secondary)",
               boxShadow: viewMode === "customers" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-              transition: "all 0.15s"
+              transition: "all 0.15s",
+              flexShrink: 0
             }}
           >
             👥 Quản lý Khách Hàng

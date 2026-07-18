@@ -385,11 +385,16 @@ tbody tr:hover {
   }
 }
 
-/* Helper Responsive Classes */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .dashboard-panel {
