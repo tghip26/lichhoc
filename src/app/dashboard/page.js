@@ -1390,27 +1390,64 @@ function Dashboard() {
               };
 
               if (ctvJobsView === "calendar") {
-                const monStr = weekDays[0].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
-                const sunStr = weekDays[6].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
-                const weekdayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+                const monStr = weekDays[0].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric", year: "numeric" });
+                const sunStr = weekDays[6].toLocaleDateString("vi-VN", { day: "numeric", month: "numeric", year: "numeric" });
+                const weekdayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+                const weekdayShort = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+                // Tính toán thống kê ca học & thù lao của tuần được chọn
+                const weeklyJobs = weekDays.flatMap(day => getJobsForDate(day));
+                const weeklyShiftsCount = weeklyJobs.length;
+                const weeklyEarnings = weeklyJobs.reduce((sum, j) => {
+                  const proposedPriceNum = j.price ? Number(String(j.price).replace(/\./g, "")) : 0;
+                  const helperPayout = j.isInternal ? j.payoutAmount : (j.payoutAmount !== undefined ? Number(j.payoutAmount) : Math.floor(proposedPriceNum * 0.75));
+                  return sum + helperPayout;
+                }, 0);
 
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                    {/* Weekly Calendar Navigation Header */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", background: "white", padding: "10px 15px", borderRadius: "14px", border: "1px solid #cbd5e1" }}>
-                      <div style={{ display: "flex", gap: "5px" }}>
-                        <button type="button" onClick={handlePrevWeek} className="btn" style={{ padding: "5px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "1px solid #cbd5e1" }}>◀ Tuần trước</button>
-                        <button type="button" onClick={handleThisWeek} className="btn" style={{ padding: "5px 10px", background: "white", fontSize: "0.8rem", border: "1px solid #cbd5e1", fontWeight: "750" }}>Tuần này</button>
-                        <button type="button" onClick={handleNextWeek} className="btn" style={{ padding: "5px 10px", background: "#f1f5f9", fontSize: "0.8rem", border: "1px solid #cbd5e1" }}>Tuần sau ▶</button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    
+                    {/* THỐNG KÊ TUẦN NHANH */}
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                      gap: "1rem"
+                    }}>
+                      <div className="glass-panel" style={{ padding: "1.25rem", background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #bfdbfe", borderRadius: "16px", display: "flex", alignItems: "center", gap: "12px", textAlign: "left" }}>
+                        <span style={{ fontSize: "1.8rem" }}>📅</span>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", color: "#1e3a8a", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>Ca học tuần này</div>
+                          <strong style={{ fontSize: "1.35rem", color: "#1d4ed8", fontWeight: "900" }}>{weeklyShiftsCount} ca trực</strong>
+                        </div>
                       </div>
-                      <span style={{ fontSize: "0.88rem", fontWeight: "800", color: "var(--text-primary)" }}>
-                        Tuần từ {monStr} đến {sunStr}
-                      </span>
+
+                      <div className="glass-panel" style={{ padding: "1.25rem", background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", borderRadius: "16px", display: "flex", alignItems: "center", gap: "12px", textAlign: "left" }}>
+                        <span style={{ fontSize: "1.8rem" }}>💰</span>
+                        <div>
+                          <div style={{ fontSize: "0.75rem", color: "#14532d", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>Thù lao ước tính</div>
+                          <strong style={{ fontSize: "1.35rem", color: "#15803d", fontWeight: "900" }}>{weeklyEarnings.toLocaleString("vi-VN")} đ</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* WEEKLY CALENDAR NAVIGATION */}
+                    <div className="glass-panel" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", background: "white", padding: "1rem 1.25rem", borderRadius: "18px", border: "1px solid #cbd5e1" }}>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button type="button" onClick={handlePrevWeek} className="btn" style={{ padding: "0.5rem 1rem", background: "#f8fafc", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "10px", color: "var(--text-primary)", cursor: "pointer", transition: "all 0.2s", fontWeight: "700" }}>◀ Tuần trước</button>
+                        <button type="button" onClick={handleThisWeek} className="btn" style={{ padding: "0.5rem 1rem", background: "white", fontSize: "0.8rem", border: "1.5px solid var(--primary)", borderRadius: "10px", color: "var(--primary)", fontWeight: "800", cursor: "pointer", transition: "all 0.2s" }}>Tuần này</button>
+                        <button type="button" onClick={handleNextWeek} className="btn" style={{ padding: "0.5rem 1rem", background: "#f8fafc", fontSize: "0.8rem", border: "1px solid #cbd5e1", borderRadius: "10px", color: "var(--text-primary)", cursor: "pointer", transition: "all 0.2s", fontWeight: "700" }}>Tuần sau ▶</button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", textAlign: "right" }}>
+                        <span style={{ fontSize: "0.9rem", fontWeight: "850", color: "var(--text-primary)" }}>
+                          Tuần từ {monStr.substring(0, 5)} đến {sunStr.substring(0, 5)}
+                        </span>
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "2px" }}>Năm {weekDays[0].getFullYear()}</span>
+                      </div>
                     </div>
 
                     {!isMobile ? (
-                      /* DESKTOP CALENDAR VIEW: 7 Columns */
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "10px", alignItems: "start" }}>
+                      /* DESKTOP CALENDAR VIEW: 7 Columns Grid Layout */
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "12px", alignItems: "start" }}>
                         {weekDays.map((day, idx) => {
                           const dateStr = day.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
                           const isToday = new Date().toDateString() === day.toDateString();
@@ -1420,34 +1457,98 @@ function Dashboard() {
                             <div 
                               key={idx} 
                               style={{ 
-                                background: isToday ? "rgba(22, 163, 74, 0.03)" : "rgba(255, 255, 255, 0.5)", 
-                                borderRadius: "14px", 
-                                border: isToday ? "2px solid var(--primary)" : "1px solid #cbd5e1",
+                                background: isToday ? "rgba(22, 163, 74, 0.02)" : "rgba(255, 255, 255, 0.4)", 
+                                borderRadius: "16px", 
+                                border: isToday ? "2px solid var(--primary)" : "1px solid #e2e8f0",
+                                boxShadow: isToday ? "0 4px 20px rgba(22, 163, 74, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)",
                                 overflow: "hidden",
-                                minHeight: "220px",
+                                minHeight: "280px",
                                 display: "flex",
-                                flexDirection: "column"
+                                flexDirection: "column",
+                                transition: "all 0.2s ease"
                               }}
                             >
-                              {/* Day Header */}
+                              {/* Day column header */}
                               <div style={{ 
-                                background: isToday ? "var(--primary)" : "#cbd5e1", 
-                                color: isToday ? "white" : "#334155", 
-                                padding: "8px 5px", 
-                                fontSize: "0.78rem", 
+                                background: isToday ? "linear-gradient(135deg, var(--primary) 0%, #059669 100%)" : "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)", 
+                                color: isToday ? "white" : "var(--text-primary)", 
+                                padding: "10px 5px", 
+                                fontSize: "0.82rem", 
                                 fontWeight: "800", 
-                                textAlign: "center"
+                                textAlign: "center",
+                                borderBottom: "1px solid #cbd5e1"
                               }}>
                                 <div>{weekdayNames[idx]}</div>
-                                <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>{dateStr}</div>
+                                <div style={{ fontSize: "0.72rem", opacity: 0.9, marginTop: "2px", fontWeight: "700" }}>{dateStr}</div>
                               </div>
 
-                              {/* Shifts list */}
+                              {/* Shifts list inside day column */}
                               <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                                 {dayJobs.length === 0 ? (
-                                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontStyle: "italic", margin: "auto 0" }}>Trống lịch</span>
+                                  <div style={{ margin: "auto 0", padding: "1rem 0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                                    <span style={{ fontSize: "1.2rem", marginBottom: "4px" }}>☕</span>
+                                    <span style={{ fontSize: "0.7rem", color: "var(--text-secondary)", fontStyle: "italic" }}>Trống lịch</span>
+                                  </div>
                                 ) : (
-                                  dayJobs.map(job => renderJobCardMini(job))
+                                  dayJobs.map(job => {
+                                    const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
+                                    const helperPayout = job.isInternal ? job.payoutAmount : (job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75));
+                                    
+                                    return (
+                                      <div 
+                                        key={job.id} 
+                                        className="glass-panel hover-grow"
+                                        style={{ 
+                                          padding: "0.75rem", 
+                                          background: "white", 
+                                          borderLeft: "4px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5"),
+                                          textAlign: "left",
+                                          fontSize: "0.78rem",
+                                          boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                                          borderRadius: "10px",
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          gap: "4px",
+                                          transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+                                        }}
+                                      >
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "4px" }}>
+                                          <strong style={{ fontSize: "0.82rem", wordBreak: "break-word", color: "var(--text-primary)" }}>{job.className}</strong>
+                                          {job.isInternal && (
+                                            <span style={{ background: "#f3e8ff", color: "#6b21a8", fontSize: "0.58rem", fontWeight: "800", padding: "1px 4px", borderRadius: "4px", flexShrink: 0 }}>Nội bộ</span>
+                                          )}
+                                        </div>
+                                        
+                                        <div style={{ color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "2px", fontSize: "0.7rem", marginTop: "2px" }}>
+                                          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>🕒 {job.startTime} - {job.endTime}</span>
+                                          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>🚪 Phòng: <b>{job.classroom || "N/A"}</b></span>
+                                          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>👤 HV: <b>{job.name}</b></span>
+                                        </div>
+
+                                        <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: "6px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                          <strong style={{ color: "var(--success)", fontSize: "0.82rem" }}>{helperPayout.toLocaleString("vi-VN")}đ</strong>
+                                          {job.status === "completed" ? (
+                                            <span style={{ color: "var(--success)", fontWeight: "800", fontSize: "0.7rem" }}>✓ Đã học</span>
+                                          ) : job.status === "proof_submitted" ? (
+                                            <span style={{ color: "#D97706", fontWeight: "800", fontSize: "0.7rem" }}>⌛ Duyệt</span>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setSelectedJobForProof(job);
+                                                setProofFile(null);
+                                                setShowProofModal(true);
+                                              }}
+                                              className="btn"
+                                              style={{ background: "#D97706", color: "white", padding: "2px 6px", borderRadius: "5px", border: "none", fontWeight: "750", cursor: "pointer", fontSize: "0.68rem", transition: "background 0.2s" }}
+                                            >
+                                              📸 Báo cáo
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })
                                 )}
                               </div>
                             </div>
@@ -1455,16 +1556,17 @@ function Dashboard() {
                         })}
                       </div>
                     ) : (
-                      /* MOBILE CALENDAR VIEW: Horizontal Swiper + Selected Day list */
+                      /* MOBILE CALENDAR VIEW: Horizontal planner swiper + details card list */
                       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                        {/* Day swiper */}
+                        
+                        {/* Day picker buttons block */}
                         <div 
                           className="hide-scrollbar"
                           style={{ 
                             display: "flex", 
                             gap: "8px", 
                             overflowX: "auto", 
-                            paddingBottom: "5px",
+                            paddingBottom: "8px",
                             WebkitOverflowScrolling: "touch"
                           }}
                         >
@@ -1482,30 +1584,42 @@ function Dashboard() {
                                 style={{
                                   flex: "1 0 54px",
                                   maxWidth: "60px",
-                                  padding: "8px 0",
-                                  borderRadius: "10px",
-                                  border: isSelected ? "none" : (isToday ? "1.5px solid var(--primary)" : "1px solid #cbd5e1"),
-                                  background: isSelected ? "var(--primary)" : "white",
+                                  padding: "10px 0",
+                                  borderRadius: "12px",
+                                  border: isSelected ? "none" : (isToday ? "2px solid var(--primary)" : "1px solid #e2e8f0"),
+                                  background: isSelected ? "linear-gradient(135deg, var(--primary) 0%, #059669 100%)" : "white",
                                   color: isSelected ? "white" : (isToday ? "var(--primary)" : "var(--text-primary)"),
                                   display: "flex",
                                   flexDirection: "column",
                                   alignItems: "center",
-                                  gap: "3px",
+                                  gap: "4px",
                                   cursor: "pointer",
-                                  position: "relative"
+                                  position: "relative",
+                                  boxShadow: isSelected ? "0 4px 12px rgba(22, 163, 74, 0.2)" : "0 1px 3px rgba(0,0,0,0.02)",
+                                  transform: isSelected ? "scale(1.05)" : "scale(1)",
+                                  transition: "all 0.2s ease"
                                 }}
                               >
-                                <span style={{ fontSize: "0.68rem", fontWeight: "700", opacity: 0.9 }}>{weekdayNames[idx]}</span>
-                                <span style={{ fontSize: "1rem", fontWeight: "800" }}>{dateNum}</span>
+                                <span style={{ fontSize: "0.68rem", fontWeight: "800", opacity: 0.9 }}>{weekdayShort[idx]}</span>
+                                <span style={{ fontSize: "1.05rem", fontWeight: "900" }}>{dateNum}</span>
                                 {dayJobs.length > 0 && (
                                   <span style={{ 
                                     position: "absolute", 
-                                    bottom: "2px", 
-                                    width: "5px", 
-                                    height: "5px", 
+                                    top: "4px", 
+                                    right: "4px", 
+                                    width: "14px", 
+                                    height: "14px", 
                                     borderRadius: "50%", 
-                                    background: isSelected ? "white" : "var(--primary)" 
-                                  }}></span>
+                                    background: isSelected ? "white" : "var(--primary)",
+                                    color: isSelected ? "var(--primary)" : "white",
+                                    fontSize: "0.58rem",
+                                    fontWeight: "800",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center"
+                                  }}>
+                                    {dayJobs.length}
+                                  </span>
                                 )}
                               </button>
                             );
@@ -1514,15 +1628,17 @@ function Dashboard() {
 
                         {/* Selected day shifts list */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "var(--text-secondary)", textAlign: "left" }}>
-                            📅 Ca trực ngày {ctvSelectedDay.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric", year: "numeric" })}:
+                          <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "var(--text-secondary)", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>📋 Ca trực ngày:</span>
+                            <span style={{ color: "var(--text-primary)" }}>{ctvSelectedDay.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}</span>
                           </div>
                           {(() => {
                             const selectedDayJobs = getJobsForDate(ctvSelectedDay);
                             if (selectedDayJobs.length === 0) {
                               return (
-                                <div className="glass-panel" style={{ padding: "2.5rem", textAlign: "center", color: "var(--text-secondary)", background: "white", borderRadius: "14px" }}>
-                                  🎉 Không có ca trực trong ngày này!
+                                <div className="glass-panel" style={{ padding: "3rem 1.5rem", textAlign: "center", color: "var(--text-secondary)", background: "white", borderRadius: "18px", border: "1px dashed #cbd5e1" }}>
+                                  <span style={{ fontSize: "2rem", display: "block", marginBottom: "8px" }}>🍵</span>
+                                  <span style={{ fontSize: "0.85rem", fontWeight: "700" }}>Không có ca học hộ được giao trong ngày này!</span>
                                 </div>
                               );
                             }
@@ -1542,14 +1658,17 @@ function Dashboard() {
                                         gap: "8px", 
                                         background: "white", 
                                         borderLeft: "5px solid " + (job.status === "completed" ? "var(--success)" : job.status === "proof_submitted" ? "#D97706" : "#4F46E5"),
-                                        position: "relative"
+                                        position: "relative",
+                                        borderRadius: "16px",
+                                        boxShadow: "0 4px 15px rgba(0,0,0,0.03)"
                                       }}
                                     >
                                       {job.isInternal && (
                                         <span style={{ position: "absolute", top: "8px", right: "8px", background: "#f3e8ff", color: "#6b21a8", fontSize: "0.68rem", fontWeight: "800", padding: "2px 6px", borderRadius: "6px" }}>📅 Lịch Nội Bộ</span>
                                       )}
+                                      
                                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", paddingRight: job.isInternal ? "80px" : "0" }}>
-                                        <strong style={{ fontSize: "1rem" }}>{job.className}</strong>
+                                        <strong style={{ fontSize: "1rem", color: "var(--text-primary)" }}>{job.className}</strong>
                                         {job.status === "completed" ? (
                                           <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
                                         ) : job.status === "proof_submitted" ? (
@@ -1559,17 +1678,17 @@ function Dashboard() {
                                         )}
                                       </div>
 
-                                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
-                                        <span>🏫 Trường: <b>{job.school || "N/A"}</b></span>
+                                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "4px", textAlign: "left", marginTop: "4px" }}>
+                                        <span>🏫 Trường học: <b>{job.school || "N/A"}</b></span>
                                         <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
                                         {job.classroom && <span>🚪 Phòng học: <b>{job.classroom}</b></span>}
-                                        <span>👤 Học viên: <b>{job.name}</b></span>
+                                        <span>👤 Tên học viên: <b>{job.name}</b></span>
                                       </div>
 
-                                      <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "8px", marginTop: "4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                      <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "10px", marginTop: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <div>
-                                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao:</span>
-                                          <strong style={{ fontSize: "1rem", color: "var(--success)", display: "block" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
+                                          <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Thù lao nhận về:</span>
+                                          <strong style={{ fontSize: "1.1rem", color: "var(--success)", display: "block", fontWeight: "800" }}>{helperPayout.toLocaleString("vi-VN")} đ</strong>
                                         </div>
                                         {(job.status === "accepted" || job.status === "in_progress") && (
                                           <button
@@ -1580,7 +1699,7 @@ function Dashboard() {
                                               setShowProofModal(true);
                                             }}
                                             className="btn"
-                                            style={{ background: "#D97706", color: "white", padding: "0.35rem 0.8rem", borderRadius: "8px", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.78rem" }}
+                                            style={{ background: "#D97706", color: "white", padding: "0.45rem 1rem", borderRadius: "10px", border: "none", fontWeight: "750", cursor: "pointer", fontSize: "0.78rem" }}
                                           >
                                             📸 Báo cáo check-in
                                           </button>
