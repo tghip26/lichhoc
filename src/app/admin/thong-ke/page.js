@@ -205,10 +205,10 @@ export default function ThongKePage() {
     .slice(0, 5); // Lấy top 5
 
   return (
-    <div style={{ padding: "2rem 0", maxWidth: "1200px", margin: "0 auto" }}>
+    <div style={{ padding: "2rem 1.5rem", maxWidth: "1200px", margin: "0 auto" }}>
       
       {/* Header điều hướng */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem", flexWrap: "wrap", gap: "15px" }}>
         <div>
           <h1 className="page-title" style={{ fontSize: "2rem", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
             📊 Thống Kê Doanh Thu & Tài Chính
@@ -221,7 +221,7 @@ export default function ThongKePage() {
       </div>
 
       {/* Tab chuyển đổi loại báo cáo */}
-      <div style={{ display: "flex", gap: "10px", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "2rem", flexWrap: "wrap" }}>
         <button
           onClick={() => setReportType("customer")}
           style={{
