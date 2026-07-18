@@ -60,6 +60,15 @@ function InternalSchedulesManager() {
     return matchedUser?.shiftStatus === "online";
   };
 
+  const getCustomerSegment = (c) => {
+    if (!c) return "new";
+    if (c.segment && c.segment !== "new") return c.segment;
+    const count = schedules.filter(s => (s.studentName || "").toLowerCase().trim() === (c.name || "").toLowerCase().trim()).length;
+    if (count >= 5) return "vip";
+    if (count >= 2) return "regular";
+    return "new";
+  };
+
   // Form Modal states
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -105,6 +114,10 @@ function InternalSchedulesManager() {
   const [editingCustomerId, setEditingCustomerId] = useState(null);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
   const [customerFilterSegment, setCustomerFilterSegment] = useState("all");
+  // Financial Lookup states
+  const [lookupType, setLookupType] = useState("customer"); // "customer" or "ctv"
+  const [lookupName, setLookupName] = useState("");
+
   const [customerFormData, setCustomerFormData] = useState({
     name: "",
     className: "",
@@ -747,6 +760,43 @@ function InternalSchedulesManager() {
       setCurrentWeekStart(newDate);
     };
 
+    // Bulk payment updates helper
+    const handleBulkUpdatePayment = async (name, type) => {
+      if (!confirm(`Xác nhận thanh toán toàn bộ công nợ/lương của ${name}?`)) return;
+      try {
+        toast.loading("Đang xử lý đối soát hàng loạt...", { id: "bulk-payment" });
+        const matchedSchedules = schedules.filter(s => {
+          if (type === "customer") {
+            return (s.studentName || "").trim().toLowerCase() === name.trim().toLowerCase() && 
+                   (!s.paymentStatus || (!s.paymentStatus.includes("Đã") && s.paymentStatus !== "Đã thanh toán"));
+          } else {
+            return (s.helperName || "").trim().toLowerCase() === name.trim().toLowerCase() && 
+                   (!s.salaryStatus || (!s.salaryStatus.includes("Đã") && s.salaryStatus !== "Đã trả lương"));
+          }
+        });
+
+        if (matchedSchedules.length === 0) {
+          toast.error("Không có ca trực nào cần đối soát!", { id: "bulk-payment" });
+          return;
+        }
+
+        const promises = matchedSchedules.map(s => {
+          const ref = doc(db, "internal_schedules", s.id);
+          if (type === "customer") {
+            return updateDoc(ref, { paymentStatus: "Đã thanh toán" });
+          } else {
+            return updateDoc(ref, { salaryStatus: "Đã trả lương" });
+          }
+        });
+
+        await Promise.all(promises);
+        toast.success(`Đã cập nhật đối soát hàng loạt thành công ${matchedSchedules.length} ca trực cho ${name}!`, { id: "bulk-payment" });
+      } catch (err) {
+        console.error(err);
+        toast.error("Lỗi đối soát hàng loạt!", { id: "bulk-payment" });
+      }
+    };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         
@@ -874,12 +924,13 @@ function InternalSchedulesManager() {
                       <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã trả</th>
                       <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa trả</th>
                       <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng chi tiêu</th>
+                      <th style={{ padding: "8px 4px", textAlign: "center" }}>Tra cứu</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedGuests.length === 0 ? (
                       <tr>
-                        <td colSpan="5" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu khách hàng.</td>
+                        <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu khách hàng.</td>
                       </tr>
                     ) : (
                       sortedGuests.map((g, idx) => (
@@ -891,6 +942,18 @@ function InternalSchedulesManager() {
                             {g.unpaid > 0 ? `${g.unpaid.toLocaleString("vi-VN")}đ` : "-"}
                           </td>
                           <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{g.total.toLocaleString("vi-VN")}đ</td>
+                          <td style={{ padding: "10px 4px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => { setLookupType("customer"); setLookupName(g.name); }}
+                              style={{
+                                padding: "3px 8px", fontSize: "0.72rem", background: "rgba(22, 163, 74, 0.1)",
+                                color: "var(--primary)", border: "1px solid var(--primary-light)", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
+                              }}
+                            >
+                              Chi tiết 🔍
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -916,12 +979,13 @@ function InternalSchedulesManager() {
                     <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã nhận</th>
                     <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa nhận</th>
                     <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng lương</th>
+                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Tra cứu</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedCtvs.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu Cộng tác viên.</td>
+                      <td colSpan="7" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu Cộng tác viên.</td>
                     </tr>
                   ) : (
                     sortedCtvs.map((c, idx) => (
@@ -934,6 +998,18 @@ function InternalSchedulesManager() {
                           {c.unpaid > 0 ? `${c.unpaid.toLocaleString("vi-VN")}đ` : "-"}
                         </td>
                         <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{c.totalEarned.toLocaleString("vi-VN")}đ</td>
+                        <td style={{ padding: "10px 4px", textAlign: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => { setLookupType("ctv"); setLookupName(c.name); }}
+                            style={{
+                              padding: "3px 8px", fontSize: "0.72rem", background: "rgba(79, 70, 229, 0.1)",
+                              color: "#4f46e5", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
+                            }}
+                          >
+                            Chi tiết 🔍
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -942,6 +1018,257 @@ function InternalSchedulesManager() {
             </div>
           </div>
 
+        </div>
+
+        {/* DETAILED LOOKUP & RECONCILIATION DASHBOARD WIDGET */}
+        <div className="glass-panel" style={{ padding: "1.75rem", borderTop: "4px solid var(--primary)", marginTop: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{ textAlign: "left" }}>
+              <h4 style={{ margin: 0, color: "var(--text-primary)", fontWeight: "850", fontSize: "1.1rem" }}>
+                🔎 HỆ THỐNG TRA CỨU CHI TIẾT & ĐỐI SOÁT TÀI CHÍNH
+              </h4>
+              <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                Tra cứu cụ thể từng buổi học, số tiền thu chi, trạng thái thanh toán và thù lao của từng Khách hoặc Cộng tác viên.
+              </p>
+            </div>
+            
+            {/* Toggle Lookup Type Buttons */}
+            <div style={{ display: "flex", gap: "5px", background: "#f1f5f9", padding: "4px", borderRadius: "10px" }}>
+              <button
+                type="button"
+                onClick={() => { setLookupType("customer"); setLookupName(""); }}
+                style={{
+                  padding: "6px 12px", border: "none", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer",
+                  background: lookupType === "customer" ? "white" : "transparent",
+                  color: lookupType === "customer" ? "var(--primary)" : "var(--text-secondary)",
+                  boxShadow: lookupType === "customer" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+                  transition: "all 0.15s"
+                }}
+              >
+                👤 Theo Khách Hàng
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLookupType("ctv"); setLookupName(""); }}
+                style={{
+                  padding: "6px 12px", border: "none", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer",
+                  background: lookupType === "ctv" ? "white" : "transparent",
+                  color: lookupType === "ctv" ? "#4f46e5" : "var(--text-secondary)",
+                  boxShadow: lookupType === "ctv" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+                  transition: "all 0.15s"
+                }}
+              >
+                🎓 Theo Cộng Tác Viên
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-start" }}>
+            <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-primary)" }}>Chọn tên đối tượng:</span>
+            <select
+              value={lookupName}
+              onChange={(e) => setLookupName(e.target.value)}
+              className="form-input"
+              style={{ maxWidth: "320px", background: "white", cursor: "pointer", fontWeight: "700", border: "1px solid #cbd5e1" }}
+            >
+              <option value="">-- Chọn tên cần tra cứu --</option>
+              {lookupType === "customer" 
+                ? sortedGuests.map((g, i) => <option key={i} value={g.name}>{g.name} ({g.count} ca)</option>)
+                : sortedCtvs.map((c, i) => <option key={i} value={c.name}>{c.name} ({c.totalClasses} ca)</option>)
+              }
+            </select>
+
+            {lookupName && (
+              <button
+                type="button"
+                onClick={() => handleBulkUpdatePayment(lookupName, lookupType)}
+                className="btn"
+                style={{
+                  background: lookupType === "customer" ? "var(--success)" : "#4f46e5",
+                  color: "white",
+                  padding: "0.6rem 1.2rem",
+                  fontSize: "0.8rem",
+                  fontWeight: "750",
+                  borderRadius: "10px",
+                  border: "none",
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.05)"
+                }}
+              >
+                ⚡ Quyết toán (Thanh toán) TẤT CẢ các ca chưa trả/chưa thu
+              </button>
+            )}
+          </div>
+
+          {/* Breakdown results */}
+          {lookupName ? (() => {
+            const matchedSchedules = schedules.filter(s => {
+              if (lookupType === "customer") {
+                return (s.studentName || "").trim().toLowerCase() === lookupName.trim().toLowerCase();
+              } else {
+                return (s.helperName || "").trim().toLowerCase() === lookupName.trim().toLowerCase();
+              }
+            });
+
+            const totalSchedulesCount = matchedSchedules.length;
+            const completedCount = matchedSchedules.filter(s => s.studyStatus === "da_hoc" || s.studyStatus === "online").length;
+            
+            let accumTotal = 0;
+            let paidTotal = 0;
+            let unpaidTotal = 0;
+
+            matchedSchedules.forEach(s => {
+              const amount = lookupType === "customer" 
+                ? (Number(s.rentAmount || 0) + Number(s.tipAmount || 0))
+                : (Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0));
+              
+              accumTotal += amount;
+              const isPaid = lookupType === "customer"
+                ? (s.paymentStatus?.toLowerCase().includes("đã") || s.paymentStatus === "Đã thanh toán")
+                : (s.salaryStatus?.toLowerCase().includes("đã") || s.salaryStatus === "Đã trả lương");
+
+              if (isPaid) paidTotal += amount;
+              else unpaidTotal += amount;
+            });
+
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", animation: "slideInChat 0.2s ease-out", textAlign: "left" }}>
+                
+                {/* Micro indicators grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+                  <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase" }}>Tổng số ca trực</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "850", color: "var(--text-primary)", marginTop: "4px" }}>{totalSchedulesCount} ca trực</div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--success)", fontWeight: "750", marginTop: "2px" }}>Đã học: {completedCount} ca ({totalSchedulesCount ? Math.round((completedCount/totalSchedulesCount)*100) : 0}%)</div>
+                  </div>
+                  <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase" }}>Tổng tích lũy</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "850", color: lookupType === "customer" ? "var(--primary)" : "#4f46e5", marginTop: "4px" }}>{accumTotal.toLocaleString("vi-VN")}đ</div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: "600", marginTop: "2px" }}>Gồm cả tiền tip</div>
+                  </div>
+                  <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase" }}>Đã quyết toán</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "850", color: "var(--success)", marginTop: "4px" }}>{paidTotal.toLocaleString("vi-VN")}đ</div>
+                    <div style={{ fontSize: "0.68rem", color: "var(--success)", fontWeight: "700", marginTop: "2px" }}>Đã khớp lệnh thành công</div>
+                  </div>
+                  <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "14px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase" }}>Còn nợ lại</div>
+                    <div style={{ fontSize: "1.3rem", fontWeight: "850", color: unpaidTotal > 0 ? "var(--danger)" : "var(--text-secondary)", marginTop: "4px" }}>{unpaidTotal.toLocaleString("vi-VN")}đ</div>
+                    <div style={{ fontSize: "0.68rem", color: unpaidTotal > 0 ? "var(--danger)" : "var(--text-secondary)", fontWeight: "700", marginTop: "2px" }}>Chưa thanh toán/Chưa trả lương</div>
+                  </div>
+                </div>
+
+                {/* Table details breakdown */}
+                <div style={{ background: "white", borderRadius: "16px", border: "1px solid #cbd5e1", overflowX: "auto", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", textAlign: "left", minWidth: "900px" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", color: "#475569" }}>
+                        <th style={{ padding: "12px" }}>Ngày học</th>
+                        <th style={{ padding: "12px" }}>Ca trực</th>
+                        <th style={{ padding: "12px" }}>Môn học & Phòng</th>
+                        <th style={{ padding: "12px", textAlign: "right" }}>Số tiền</th>
+                        <th style={{ padding: "12px", textAlign: "right" }}>Tiền Tip</th>
+                        <th style={{ padding: "12px", textAlign: "center" }}>Trạng thái Tip</th>
+                        <th style={{ padding: "12px", textAlign: "center" }}>Học tập</th>
+                        <th style={{ padding: "12px", textAlign: "center" }}>Trạng thái Tiền</th>
+                        <th style={{ padding: "12px", textAlign: "center" }}>Khớp lệnh</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matchedSchedules.map((s) => {
+                        const amount = lookupType === "customer" ? Number(s.rentAmount || 0) : Number(s.salaryAmount || 0);
+                        const tip = lookupType === "customer" ? Number(s.tipAmount || 0) : Number(s.staffTipAmount || 0);
+                        const isPaid = lookupType === "customer"
+                          ? (s.paymentStatus?.toLowerCase().includes("đã") || s.paymentStatus === "Đã thanh toán")
+                          : (s.salaryStatus?.toLowerCase().includes("đã") || s.salaryStatus === "Đã trả lương");
+                        
+                        const tipStatusText = lookupType === "customer" ? (s.tipStatus || "Chưa gửi") : (s.staffTipStatus || "Chưa gửi");
+
+                        return (
+                          <tr key={s.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "12px", fontWeight: "700" }}>{s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN") : "N/A"}</td>
+                            <td style={{ padding: "12px", textTransform: "capitalize", fontWeight: "600" }}>Ca {s.period || "N/A"}</td>
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ fontWeight: "750", color: "var(--text-primary)" }}>{s.subject || "N/A"}</div>
+                              <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>Vị trí: {s.classroom || "N/A"}</div>
+                            </td>
+                            <td style={{ padding: "12px", textAlign: "right", fontWeight: "750" }}>{amount.toLocaleString("vi-VN")} đ</td>
+                            <td style={{ padding: "12px", textAlign: "right", color: "var(--success)", fontWeight: "700" }}>{tip > 0 ? `${tip.toLocaleString("vi-VN")} đ` : "-"}</td>
+                            <td style={{ padding: "12px", textAlign: "center" }}>
+                              {tip > 0 ? (
+                                <span style={{
+                                  fontSize: "0.68rem", padding: "2px 8px", borderRadius: "6px", fontWeight: "800",
+                                  background: tipStatusText === "Đã gửi" ? "#dcfce7" : "#fee2e2",
+                                  color: tipStatusText === "Đã gửi" ? "#166534" : "#991b1b",
+                                  border: tipStatusText === "Đã gửi" ? "1px solid #bbf7d0" : "1px solid #fca5a5"
+                                }}>
+                                  {tipStatusText}
+                                </span>
+                              ) : "-"}
+                            </td>
+                            <td style={{ padding: "12px", textAlign: "center" }}>
+                              {s.studyStatus === "da_hoc" || s.studyStatus === "online" ? (
+                                <span style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", padding: "2px 8px", borderRadius: "6px", fontWeight: "800", border: "1px solid #bbf7d0" }}>Đã học ✓</span>
+                              ) : (
+                                <span style={{ fontSize: "0.68rem", background: "#fee2e2", color: "#991b1b", padding: "2px 8px", borderRadius: "6px", fontWeight: "800", border: "1px solid #fca5a5" }}>Chưa học</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "12px", textAlign: "center" }}>
+                              <span style={{
+                                fontSize: "0.7rem", padding: "3px 8px", borderRadius: "6px", fontWeight: "800",
+                                background: isPaid ? "#dcfce7" : "#fee2e2",
+                                color: isPaid ? "#166534" : "#991b1b",
+                                border: isPaid ? "1px solid #bbf7d0" : "1px solid #fca5a5"
+                              }}>
+                                {lookupType === "customer" ? (s.paymentStatus || "ChưaTT") : (s.salaryStatus || "ChưaTL")}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px", textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const ref = doc(db, "internal_schedules", s.id);
+                                    if (lookupType === "customer") {
+                                      const nextPayStatus = isPaid ? "ChưaTT" : "Đã thanh toán";
+                                      await updateDoc(ref, { paymentStatus: nextPayStatus });
+                                    } else {
+                                      const nextSalStatus = isPaid ? "ChưaTL" : "Đã trả lương";
+                                      await updateDoc(ref, { salaryStatus: nextSalStatus });
+                                    }
+                                    toast.success("Cập nhật đối soát thành công!");
+                                  } catch (err) {
+                                    toast.error("Lỗi cập nhật!");
+                                  }
+                                }}
+                                style={{
+                                  padding: "5px 10px",
+                                  fontSize: "0.72rem",
+                                  background: "#f1f5f9",
+                                  color: "var(--text-primary)",
+                                  border: "1px solid #cbd5e1",
+                                  borderRadius: "8px",
+                                  cursor: "pointer",
+                                  fontWeight: "750",
+                                  boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                                }}
+                              >
+                                {isPaid ? "Hủy" : "Duyệt ✓"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+              </div>
+            );
+          })() : (
+            <div style={{ padding: "3rem 1.5rem", textAlign: "center", background: "#f8fafc", borderRadius: "16px", border: "2px dashed #cbd5e1", color: "var(--text-secondary)", fontStyle: "italic", fontSize: "0.85rem" }}>
+              👉 Vui lòng chọn đối tượng Khách hàng hoặc Cộng tác viên ở ô chọn phía trên để tra cứu lịch sử trực ca & chi tiết dòng tiền tài chính!
+            </div>
+          )}
         </div>
 
       </div>
@@ -955,7 +1282,8 @@ function InternalSchedulesManager() {
         (c.name && c.name.toLowerCase().includes(q)) ||
         (c.studentId && c.studentId.toLowerCase().includes(q)) ||
         (c.className && c.className.toLowerCase().includes(q));
-      const matchesSegment = customerFilterSegment === "all" || c.segment === customerFilterSegment;
+      const seg = getCustomerSegment(c);
+      const matchesSegment = customerFilterSegment === "all" || seg === customerFilterSegment;
       return matchesSearch && matchesSegment;
     });
 
@@ -1043,15 +1371,19 @@ function InternalSchedulesManager() {
                     <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalAccount || "N/A"}</td>
                     <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalPassword || "N/A"}</td>
                     <td style={{ padding: "1rem" }}>
-                      {c.segment === "vip" ? (
-                        <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>
-                      ) : c.segment === "regular" ? (
-                        <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>
-                      ) : c.segment === "potential" ? (
-                        <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>
-                      ) : (
-                        <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>
-                      )}
+                      {(() => {
+                        const seg = getCustomerSegment(c);
+                        if (seg === "vip") {
+                          return <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>;
+                        }
+                        if (seg === "regular") {
+                          return <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>;
+                        }
+                        if (seg === "potential") {
+                          return <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>;
+                        }
+                        return <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>;
+                      })()}
                     </td>
                     <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{c.notes || "N/A"}</td>
                     <td style={{ padding: "1rem", textAlign: "center" }}>
