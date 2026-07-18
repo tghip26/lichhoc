@@ -797,6 +797,52 @@ function InternalSchedulesManager() {
       }
     };
 
+    // Bulk weekly payment updates helper
+    const handleBulkUpdatePaymentByWeek = async (weekIdx, type) => {
+      const typeLabel = type === "customer" ? "Công nợ Khách Hàng" : "Lương Cộng Tác Viên";
+      const weekLabel = `Tuần ${weekIdx + 1}`;
+      if (!confirm(`Xác nhận đối soát (thanh toán) toàn bộ ${typeLabel} của ${weekLabel}?`)) return;
+      
+      try {
+        toast.loading(`Đang xử lý đối soát ${weekLabel}...`, { id: "weekly-bulk" });
+        
+        const matched = monthSchedules.filter(s => {
+          const day = new Date(s.classDate).getDate();
+          const matchesWeek = (weekIdx === 0 && day <= 7) ||
+                              (weekIdx === 1 && day >= 8 && day <= 14) ||
+                              (weekIdx === 2 && day >= 15 && day <= 21) ||
+                              (weekIdx === 3 && day >= 22);
+          if (!matchesWeek) return false;
+          
+          if (type === "customer") {
+            return !s.paymentStatus?.toLowerCase().includes("đã") && s.paymentStatus !== "Đã thanh toán";
+          } else {
+            return !s.salaryStatus?.toLowerCase().includes("đã") && s.salaryStatus !== "Đã trả lương";
+          }
+        });
+
+        if (matched.length === 0) {
+          toast.error("Không có ca trực nào cần đối soát trong tuần này!", { id: "weekly-bulk" });
+          return;
+        }
+
+        const promises = matched.map(s => {
+          const ref = doc(db, "internal_schedules", s.id);
+          if (type === "customer") {
+            return updateDoc(ref, { paymentStatus: "Đã thanh toán" });
+          } else {
+            return updateDoc(ref, { salaryStatus: "Đã trả lương" });
+          }
+        });
+
+        await Promise.all(promises);
+        toast.success(`Đã quyết toán xong ${matched.length} ca trực cho ${weekLabel}!`, { id: "weekly-bulk" });
+      } catch (err) {
+        console.error(err);
+        toast.error("Lỗi đối soát tuần hàng loạt!", { id: "weekly-bulk" });
+      }
+    };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         
@@ -907,6 +953,105 @@ function InternalSchedulesManager() {
                 <span>📅 T2: Ngày 8-14</span>
                 <span>📅 T3: Ngày 15-21</span>
                 <span>📅 T4: Ngày 22-Hết</span>
+              </div>
+            </div>
+
+            {/* BẢNG ĐỐI SOÁT & QUYẾT TOÁN TÀI CHÍNH THEO TUẦN */}
+            <div className="glass-panel" style={{ padding: "1.5rem" }}>
+              <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontWeight: "850", fontSize: "0.95rem" }}>
+                📅 Bảng Đối Soát & Quyết Toán Tài Chính Theo Tuần ({monthName})
+              </h4>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b" }}>
+                      <th style={{ padding: "8px 4px" }}>Tuần</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Dự kiến thu</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Khách chưa trả</th>
+                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Lương nợ CTV</th>
+                      <th style={{ padding: "8px 4px", textAlign: "center" }}>Hành động nhanh</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const weeksData = [
+                        { label: "Tuần 1 (Ngày 1-7)", expRev: 0, unpaidRev: 0, unpaidSal: 0 },
+                        { label: "Tuần 2 (Ngày 8-14)", expRev: 0, unpaidRev: 0, unpaidSal: 0 },
+                        { label: "Tuần 3 (Ngày 15-21)", expRev: 0, unpaidRev: 0, unpaidSal: 0 },
+                        { label: "Tuần 4 (Ngày 22-Hết)", expRev: 0, unpaidRev: 0, unpaidSal: 0 }
+                      ];
+
+                      monthSchedules.forEach(s => {
+                        const day = new Date(s.classDate).getDate();
+                        let wIdx = 3;
+                        if (day <= 7) wIdx = 0;
+                        else if (day <= 14) wIdx = 1;
+                        else if (day <= 21) wIdx = 2;
+
+                        const rentAmt = Number(s.rentAmount || 0) + Number(s.tipAmount || 0);
+                        const salAmt = Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0);
+
+                        weeksData[wIdx].expRev += rentAmt;
+                        
+                        const isRentPaid = s.paymentStatus?.toLowerCase().includes("đã") || s.paymentStatus === "Đã thanh toán";
+                        if (!isRentPaid) {
+                          weeksData[wIdx].unpaidRev += rentAmt;
+                        }
+
+                        const isSalPaid = s.salaryStatus?.toLowerCase().includes("đã") || s.salaryStatus === "Đã trả lương";
+                        if (!isSalPaid) {
+                          weeksData[wIdx].unpaidSal += salAmt;
+                        }
+                      });
+
+                      return weeksData.map((data, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "10px 4px", fontWeight: "700", color: "var(--text-primary)" }}>{data.label}</td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "600", color: "var(--primary)" }}>
+                            {data.expRev.toLocaleString("vi-VN")}đ
+                          </td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidRev > 0 ? "var(--danger)" : "var(--success)" }}>
+                            {data.unpaidRev > 0 ? `${data.unpaidRev.toLocaleString("vi-VN")}đ` : "Đã thu xong ✓"}
+                          </td>
+                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidSal > 0 ? "#d97706" : "var(--success)" }}>
+                            {data.unpaidSal > 0 ? `${data.unpaidSal.toLocaleString("vi-VN")}đ` : "Đã trả xong ✓"}
+                          </td>
+                          <td style={{ padding: "10px 4px", textAlign: "center" }}>
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                              {data.unpaidRev > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleBulkUpdatePaymentByWeek(idx, "customer")}
+                                  style={{
+                                    padding: "3px 8px", fontSize: "0.72rem", background: "rgba(220, 38, 38, 0.08)",
+                                    color: "var(--danger)", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
+                                  }}
+                                >
+                                  Thu nợ 💸
+                                </button>
+                              )}
+                              {data.unpaidSal > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleBulkUpdatePaymentByWeek(idx, "ctv")}
+                                  style={{
+                                    padding: "3px 8px", fontSize: "0.72rem", background: "rgba(79, 70, 229, 0.08)",
+                                    color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
+                                  }}
+                                >
+                                  Trả CTV 💳
+                                </button>
+                              )}
+                              {data.unpaidRev === 0 && data.unpaidSal === 0 && (
+                                <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "800" }}>Hoàn thành ✓</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
               </div>
             </div>
 
