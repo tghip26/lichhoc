@@ -117,6 +117,8 @@ function InternalSchedulesManager() {
   // Financial Lookup states
   const [lookupType, setLookupType] = useState("customer"); // "customer" or "ctv"
   const [lookupName, setLookupName] = useState("");
+  const [lookupWeek, setLookupWeek] = useState("all"); // "all", "1", "2", "3", "4"
+  const [selectedReconcileWeek, setSelectedReconcileWeek] = useState(null); // null, 0, 1, 2, 3
 
   const [customerFormData, setCustomerFormData] = useState({
     name: "",
@@ -1004,51 +1006,169 @@ function InternalSchedulesManager() {
                         }
                       });
 
-                      return weeksData.map((data, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "10px 4px", fontWeight: "700", color: "var(--text-primary)" }}>{data.label}</td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "600", color: "var(--primary)" }}>
-                            {data.expRev.toLocaleString("vi-VN")}đ
-                          </td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidRev > 0 ? "var(--danger)" : "var(--success)" }}>
-                            {data.unpaidRev > 0 ? `${data.unpaidRev.toLocaleString("vi-VN")}đ` : "Đã thu xong ✓"}
-                          </td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidSal > 0 ? "#d97706" : "var(--success)" }}>
-                            {data.unpaidSal > 0 ? `${data.unpaidSal.toLocaleString("vi-VN")}đ` : "Đã trả xong ✓"}
-                          </td>
-                          <td style={{ padding: "10px 4px", textAlign: "center" }}>
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                              {data.unpaidRev > 0 && (
+                      return weeksData.flatMap((data, idx) => {
+                        const showDetails = selectedReconcileWeek === idx;
+                        const weekSchedules = monthSchedules.filter(s => {
+                          const day = new Date(s.classDate).getDate();
+                          const matchesWeek = (idx === 0 && day <= 7) ||
+                                              (idx === 1 && day >= 8 && day <= 14) ||
+                                              (idx === 2 && day >= 15 && day <= 21) ||
+                                              (idx === 3 && day >= 22);
+                          return matchesWeek;
+                        });
+
+                        return [
+                          <tr key={`main-${idx}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                            <td style={{ padding: "10px 4px", fontWeight: "700", color: "var(--text-primary)" }}>{data.label}</td>
+                            <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "600", color: "var(--primary)" }}>
+                              {data.expRev.toLocaleString("vi-VN")}đ
+                            </td>
+                            <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidRev > 0 ? "var(--danger)" : "var(--success)" }}>
+                              {data.unpaidRev > 0 ? `${data.unpaidRev.toLocaleString("vi-VN")}đ` : "Đã thu xong ✓"}
+                            </td>
+                            <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "750", color: data.unpaidSal > 0 ? "#d97706" : "var(--success)" }}>
+                              {data.unpaidSal > 0 ? `${data.unpaidSal.toLocaleString("vi-VN")}đ` : "Đã trả xong ✓"}
+                            </td>
+                            <td style={{ padding: "10px 4px", textAlign: "center" }}>
+                              <div style={{ display: "flex", gap: "6px", justifyContent: "center", flexWrap: "wrap" }}>
                                 <button
                                   type="button"
-                                  onClick={() => handleBulkUpdatePaymentByWeek(idx, "customer")}
+                                  onClick={() => setSelectedReconcileWeek(showDetails ? null : idx)}
                                   style={{
-                                    padding: "3px 8px", fontSize: "0.72rem", background: "rgba(220, 38, 38, 0.08)",
-                                    color: "var(--danger)", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
+                                    padding: "3px 8px", fontSize: "0.72rem", background: showDetails ? "var(--text-primary)" : "#f1f5f9",
+                                    color: showDetails ? "white" : "var(--text-primary)", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
                                   }}
                                 >
-                                  Thu nợ 💸
+                                  {showDetails ? "Đóng 🔼" : "Chi tiết 📋"}
                                 </button>
-                              )}
-                              {data.unpaidSal > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleBulkUpdatePaymentByWeek(idx, "ctv")}
-                                  style={{
-                                    padding: "3px 8px", fontSize: "0.72rem", background: "rgba(79, 70, 229, 0.08)",
-                                    color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
-                                  }}
-                                >
-                                  Trả CTV 💳
-                                </button>
-                              )}
-                              {data.unpaidRev === 0 && data.unpaidSal === 0 && (
-                                <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "800" }}>Hoàn thành ✓</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ));
+                                {data.unpaidRev > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBulkUpdatePaymentByWeek(idx, "customer")}
+                                    style={{
+                                      padding: "3px 8px", fontSize: "0.72rem", background: "rgba(220, 38, 38, 0.08)",
+                                      color: "var(--danger)", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
+                                    }}
+                                  >
+                                    Thu nợ 💸
+                                  </button>
+                                )}
+                                {data.unpaidSal > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBulkUpdatePaymentByWeek(idx, "ctv")}
+                                    style={{
+                                      padding: "3px 8px", fontSize: "0.72rem", background: "rgba(79, 70, 229, 0.08)",
+                                      color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: "6px", cursor: "pointer", fontWeight: "750"
+                                    }}
+                                  >
+                                    Trả CTV 💳
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>,
+                          showDetails && (
+                            <tr key={`detail-${idx}`} style={{ background: "#f8fafc" }}>
+                              <td colSpan="5" style={{ padding: "0.75rem" }}>
+                                <div style={{ border: "1px solid #e2e8f0", borderRadius: "12px", background: "white", padding: "10px", maxHeight: "300px", overflowY: "auto" }}>
+                                  <h5 style={{ margin: "0 0 10px 0", fontSize: "0.82rem", fontWeight: "800", color: "var(--text-primary)", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
+                                    📋 Chi tiết các ca trực - {data.label} ({weekSchedules.length} ca)
+                                  </h5>
+                                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.75rem", textAlign: "left" }}>
+                                    <thead>
+                                      <tr style={{ color: "#64748b", borderBottom: "1px solid #e2e8f0" }}>
+                                        <th style={{ padding: "6px 4px" }}>Ngày/Ca</th>
+                                        <th style={{ padding: "6px 4px" }}>Khách học</th>
+                                        <th style={{ padding: "6px 4px", textAlign: "right" }}>Tiền thu</th>
+                                        <th style={{ padding: "6px 4px" }}>Cộng tác viên</th>
+                                        <th style={{ padding: "6px 4px", textAlign: "right" }}>Lương</th>
+                                        <th style={{ padding: "6px 4px", textAlign: "center" }}>Duyệt thu</th>
+                                        <th style={{ padding: "6px 4px", textAlign: "center" }}>Duyệt chi</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {weekSchedules.length === 0 ? (
+                                        <tr>
+                                          <td colSpan="7" style={{ padding: "10px", textAlign: "center", color: "#94a3b8" }}>Không có ca học nào.</td>
+                                        </tr>
+                                      ) : (
+                                        weekSchedules.map(s => {
+                                          const rentAmt = Number(s.rentAmount || 0) + Number(s.tipAmount || 0);
+                                          const salAmt = Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0);
+                                          
+                                          const isRentPaid = s.paymentStatus?.toLowerCase().includes("đã") || s.paymentStatus === "Đã thanh toán";
+                                          const isSalPaid = s.salaryStatus?.toLowerCase().includes("đã") || s.salaryStatus === "Đã trả lương";
+
+                                          return (
+                                            <tr key={s.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                              <td style={{ padding: "6px 4px", fontWeight: "600" }}>
+                                                {s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN", {day: "numeric", month: "numeric"}) : "N/A"} - Ca {s.period}
+                                              </td>
+                                              <td style={{ padding: "6px 4px", fontWeight: "700" }}>{s.studentName}</td>
+                                              <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: "700", color: isRentPaid ? "var(--success)" : "var(--danger)" }}>
+                                                {rentAmt.toLocaleString("vi-VN")}đ
+                                              </td>
+                                              <td style={{ padding: "6px 4px", color: "#4f46e5", fontWeight: "650" }}>{s.helperName || "(Chưa giao)"}</td>
+                                              <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: "700", color: isSalPaid ? "var(--success)" : "#d97706" }}>
+                                                {salAmt.toLocaleString("vi-VN")}đ
+                                              </td>
+                                              <td style={{ padding: "6px 4px", textAlign: "center" }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={async () => {
+                                                    try {
+                                                      const ref = doc(db, "internal_schedules", s.id);
+                                                      await updateDoc(ref, { paymentStatus: isRentPaid ? "ChưaTT" : "Đã thanh toán" });
+                                                      toast.success("Cập nhật thanh toán khách hàng thành công!");
+                                                    } catch (err) {
+                                                      toast.error("Lỗi cập nhật!");
+                                                    }
+                                                  }}
+                                                  style={{
+                                                    padding: "2px 6px", fontSize: "0.68rem", cursor: "pointer", borderRadius: "4px", border: "1px solid #cbd5e1",
+                                                    background: isRentPaid ? "#dcfce7" : "#fee2e2",
+                                                    color: isRentPaid ? "#166534" : "#991b1b",
+                                                    fontWeight: "700"
+                                                  }}
+                                                >
+                                                  {isRentPaid ? "Đã thu ✓" : "Chưa thu"}
+                                                </button>
+                                              </td>
+                                              <td style={{ padding: "6px 4px", textAlign: "center" }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={async () => {
+                                                    try {
+                                                      const ref = doc(db, "internal_schedules", s.id);
+                                                      await updateDoc(ref, { salaryStatus: isSalPaid ? "ChưaTL" : "Đã trả lương" });
+                                                      toast.success("Cập nhật lương CTV thành công!");
+                                                    } catch (err) {
+                                                      toast.error("Lỗi cập nhật!");
+                                                    }
+                                                  }}
+                                                  style={{
+                                                    padding: "2px 6px", fontSize: "0.68rem", cursor: "pointer", borderRadius: "4px", border: "1px solid #cbd5e1",
+                                                    background: isSalPaid ? "#dcfce7" : "#fee2e2",
+                                                    color: isSalPaid ? "#166534" : "#991b1b",
+                                                    fontWeight: "700"
+                                                  }}
+                                                >
+                                                  {isSalPaid ? "Đã trả ✓" : "Chưa trả"}
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          );
+                                        })
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        ];
+                      });
                     })()}
                   </tbody>
                 </table>
@@ -1224,6 +1344,24 @@ function InternalSchedulesManager() {
             </select>
 
             {lookupName && (
+              <>
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-primary)", marginLeft: "10px" }}>Lọc tuần học:</span>
+                <select
+                  value={lookupWeek}
+                  onChange={(e) => setLookupWeek(e.target.value)}
+                  className="form-input"
+                  style={{ maxWidth: "180px", background: "white", cursor: "pointer", fontWeight: "700", border: "1px solid #cbd5e1" }}
+                >
+                  <option value="all">Tất cả các tuần</option>
+                  <option value="1">Tuần 1 (Ngày 1-7)</option>
+                  <option value="2">Tuần 2 (Ngày 8-14)</option>
+                  <option value="3">Tuần 3 (Ngày 15-21)</option>
+                  <option value="4">Tuần 4 (Ngày 22-Hết)</option>
+                </select>
+              </>
+            )}
+
+            {lookupName && (
               <button
                 type="button"
                 onClick={() => handleBulkUpdatePayment(lookupName, lookupType)}
@@ -1247,11 +1385,17 @@ function InternalSchedulesManager() {
           {/* Breakdown results */}
           {lookupName ? (() => {
             const matchedSchedules = schedules.filter(s => {
-              if (lookupType === "customer") {
-                return (s.studentName || "").trim().toLowerCase() === lookupName.trim().toLowerCase();
-              } else {
-                return (s.helperName || "").trim().toLowerCase() === lookupName.trim().toLowerCase();
+              const matchPerson = lookupType === "customer" 
+                ? (s.studentName || "").trim().toLowerCase() === lookupName.trim().toLowerCase()
+                : (s.helperName || "").trim().toLowerCase() === lookupName.trim().toLowerCase();
+              if (!matchPerson) return false;
+
+              if (lookupWeek !== "all") {
+                const day = new Date(s.classDate).getDate();
+                const w = (day <= 7) ? "1" : (day <= 14) ? "2" : (day <= 21) ? "3" : "4";
+                return w === lookupWeek;
               }
+              return true;
             });
 
             const totalSchedulesCount = matchedSchedules.length;
