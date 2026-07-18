@@ -615,3 +615,21 @@ tbody tr:hover {
     width: 275px;
   }
 }
+
+/* Stats Grid 4 Columns Responsive */
+.stats-grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+@media (max-width: 768px) {
+  .stats-grid-4col {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  .stats-grid-4col {
+    grid-template-columns: 1fr !important;
+  }
+}
+

@@ -1872,7 +1872,7 @@ function Dashboard() {
       </div>
 
       {activeTab === "schedules" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: "2.5rem" }}>
       
       {/* LEFT COLUMN: Upload Form */}
       <div className="glass-panel dashboard-panel">
@@ -2154,7 +2154,7 @@ function Dashboard() {
 
         {/* Ô BÁO CÁO THỐNG KÊ ĐỘNG */}
         {history.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px", marginBottom: "1.5rem" }}>
+          <div className="stats-grid-4col" style={{ marginBottom: "1.5rem" }}>
             <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "12px", textAlign: "center", border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)" }}>{stats.total}</div>
               <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", fontWeight: "600", marginTop: "2px" }}>Tổng đơn</div>
@@ -2362,7 +2362,7 @@ function Dashboard() {
       </div>
       ) : (
         /* WALLET & TRANSACTION HISTORY TAB VIEW */
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: "2.5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: "2.5rem" }}>
           {/* Cổng nạp tiền */}
           <div className="glass-panel" style={{ padding: "2rem" }}>
             <h2 style={{ fontSize: "1.5rem", fontWeight: "800", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
