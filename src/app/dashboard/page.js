@@ -75,6 +75,7 @@ function Dashboard() {
   const [myJobs, setMyJobs] = useState([]);
   const [myInternalJobs, setMyInternalJobs] = useState([]);
   const [ctvJobsView, setCtvJobsView] = useState("list"); // "list" or "calendar"
+  const [ctvSearchTerm, setCtvSearchTerm] = useState("");
   const [ctvCurrentDate, setCtvCurrentDate] = useState(new Date());
   const [ctvSelectedDay, setCtvSelectedDay] = useState(new Date());
   const [isMobile, setIsMobile] = useState(false);
@@ -316,7 +317,7 @@ function Dashboard() {
         ...prev,
         name: prev.name || userProfile.studentName || userProfile.displayName || "",
         studentId: prev.studentId || userProfile.studentId || "",
-        className: prev.className || userProfile.className || "",
+        classRegular: prev.classRegular || userProfile.classRegular || "",
         school: prev.school || userProfile.school || "",
         phone: prev.phone || userProfile.phone || ""
       }));
@@ -1144,14 +1145,48 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)" }}>🛒 Chợ đơn thuê học trực tuyến (Sắp học)</h4>
-            {openJobs.length === 0 ? (
-              <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
-                Hiện tại chưa có đơn thuê học mới nào cần cộng tác viên. Hãy quay lại sau!
-              </div>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
-                {openJobs.map((job) => {
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "10px" }}>
+              <h4 style={{ margin: 0, color: "var(--text-primary)" }}>🛒 Chợ đơn thuê học trực tuyến (Sắp học)</h4>
+              <input 
+                type="text"
+                value={ctvSearchTerm}
+                onChange={e => setCtvSearchTerm(e.target.value)}
+                placeholder="🔍 Tìm kiếm môn học, trường..."
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.82rem",
+                  width: "240px",
+                  maxWidth: "100%",
+                  outline: "none"
+                }}
+              />
+            </div>
+            {(() => {
+              const filteredOpenJobs = openJobs.filter(job => {
+                const term = ctvSearchTerm.toLowerCase().trim();
+                if (!term) return true;
+                return (
+                  (job.className || "").toLowerCase().includes(term) ||
+                  (job.school || "").toLowerCase().includes(term) ||
+                  (job.notes || "").toLowerCase().includes(term)
+                );
+              });
+
+              if (filteredOpenJobs.length === 0) {
+                return (
+                  <div className="glass-panel" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                    {openJobs.length === 0 
+                      ? "Hiện tại chưa có đơn thuê học mới nào cần cộng tác viên. Hãy quay lại sau!" 
+                      : "Không tìm thấy ca học nào phù hợp với từ khóa của bạn."}
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.25rem" }}>
+                  {filteredOpenJobs.map((job) => {
                   const proposedPriceNum = job.price ? Number(String(job.price).replace(/\./g, "")) : 0;
                   const helperPayout = job.payoutAmount !== undefined ? Number(job.payoutAmount) : Math.floor(proposedPriceNum * 0.75);
                   return (
@@ -1198,7 +1233,8 @@ function Dashboard() {
                   );
                 })}
               </div>
-            )}
+            );
+          })()}
           </div>
         )}
 

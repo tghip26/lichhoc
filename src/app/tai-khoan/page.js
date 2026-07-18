@@ -14,6 +14,10 @@ export default function TaiKhoan() {
 
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [classRegular, setClassRegular] = useState("");
+  const [school, setSchool] = useState("");
   
   // Password state
   const [oldPassword, setOldPassword] = useState("");
@@ -40,7 +44,12 @@ export default function TaiKhoan() {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
-            setPhone(userDoc.data().phone || "");
+            const data = userDoc.data();
+            setPhone(data.phone || "");
+            setStudentName(data.studentName || "");
+            setStudentId(data.studentId || "");
+            setClassRegular(data.classRegular || data.className || "");
+            setSchool(data.school || "");
           }
         } catch (err) {
           console.error("Lỗi lấy thông tin người dùng từ Firestore:", err);
@@ -68,7 +77,11 @@ export default function TaiKhoan() {
       // 2. Cập nhật trên Firestore
       await setDoc(doc(db, "users", user.uid), {
         displayName: displayName,
-        phone: phone
+        phone: phone,
+        studentName: studentName,
+        studentId: studentId,
+        classRegular: classRegular,
+        school: school
       }, { merge: true });
 
       toast.success("Cập nhật thông tin thành công!", { id: toastId });
@@ -169,6 +182,54 @@ export default function TaiKhoan() {
                 onChange={(e) => setPhone(e.target.value)} 
                 className="form-input" 
                 placeholder="Ví dụ: 0912345678"
+              />
+            </div>
+
+            <div style={{ margin: "1.5rem 0 1rem 0", padding: "10px", background: "#f8fafc", borderRadius: "10px", border: "1px dashed #e2e8f0", textAlign: "left" }}>
+              <span style={{ fontSize: "0.85rem", fontWeight: "800", color: "var(--primary)" }}>🎓 Hồ sơ Học tập mặc định (Tự động điền đơn đặt)</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Họ tên người đi học chính thức</label>
+              <input 
+                type="text" 
+                value={studentName} 
+                onChange={(e) => setStudentName(e.target.value)} 
+                className="form-input" 
+                placeholder="Nhập họ tên đầy đủ"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Mã sinh viên (MSSV)</label>
+              <input 
+                type="text" 
+                value={studentId} 
+                onChange={(e) => setStudentId(e.target.value)} 
+                className="form-input" 
+                placeholder="Nhập MSSV"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Lớp sinh hoạt (chính khóa)</label>
+              <input 
+                type="text" 
+                value={classRegular} 
+                onChange={(e) => setClassRegular(e.target.value)} 
+                className="form-input" 
+                placeholder="Ví dụ: D15CNPM1"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Trường học</label>
+              <input 
+                type="text" 
+                value={school} 
+                onChange={(e) => setSchool(e.target.value)} 
+                className="form-input" 
+                placeholder="Nhập tên trường Đại học/Cao đẳng"
               />
             </div>
 
