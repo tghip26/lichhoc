@@ -311,6 +311,48 @@ function AdminDashboard() {
     }
   };
 
+  const handleResolveDispute = async (schedule, decision) => {
+    if (decision === "refund") {
+      if (!confirm("Bạn có chắc chắn muốn CHẤP NHẬN KHIẾU NẠI và HOÀN TIỀN cho học viên?")) return;
+      try {
+        const priceNum = schedule.price ? Number(String(schedule.price).replace(/\./g, "")) : 0;
+        
+        // Cập nhật trạng thái đơn
+        await updateDoc(doc(db, "schedules", schedule.id), {
+          status: "rejected",
+          disputeResolved: true,
+          disputeResolution: "refunded"
+        });
+
+        // Hoàn tiền vào ví học viên
+        if (schedule.userId && priceNum > 0) {
+          await updateDoc(doc(db, "users", schedule.userId), {
+            balance: increment(priceNum)
+          });
+          
+          await addDoc(collection(db, "transactions"), {
+            userId: schedule.userId,
+            userEmail: schedule.userEmail,
+            amount: priceNum,
+            type: "refund",
+            status: "completed",
+            message: `Hoàn tiền 100% khiếu nại ca học môn ${schedule.className}`,
+            createdAt: serverTimestamp()
+          });
+        }
+
+        toast.success("Đã hoàn tiền khiếu nại cho học viên!");
+        sendTelegramAlert(`⚖️ <b>XỬ LÝ KHIẾU NẠI: HOÀN TIỀN HỌC VIÊN!</b>\n\n• <b>Mã đơn:</b> ${schedule.id.substring(0,8).toUpperCase()}\n• <b>Số tiền hoàn:</b> ${priceNum.toLocaleString("vi-VN")} đ`);
+      } catch (err) {
+        console.error("Lỗi hoàn tiền khiếu nại:", err);
+        toast.error("Không thể xử lý hoàn tiền khiếu nại.");
+      }
+    } else if (decision === "approve") {
+      if (!confirm("Bạn có chắc chắn muốn BÁC KHIẾU NẠI và PHÊ DUYỆT THÙ LAO cho CTV?")) return;
+      handleUpdateStatus(schedule.id, "completed");
+    }
+  };
+
   const handleDelete = async (id) => {
     if (confirm("Chắc chắn xóa lịch này vĩnh viễn?")) {
       try {
@@ -1055,8 +1097,8 @@ function AdminDashboard() {
                     onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                     style={{
                       padding: "4px 10px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                      background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                      color: item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706",
+                      background: item.status === "disputed" ? "rgba(239, 68, 68, 0.2)" : item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                      color: item.status === "disputed" ? "#DC2626" : item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706",
                       boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
                     }}
                   >
@@ -1065,6 +1107,7 @@ function AdminDashboard() {
                     <option value="accepted" style={{color: "black"}}>Sắp học</option>
                     <option value="in_progress" style={{color: "black"}}>Đang học</option>
                     <option value="proof_submitted" style={{color: "black"}}>Chờ duyệt minh chứng</option>
+                    <option value="disputed" style={{color: "red"}}>🚨 Khiếu nại (Disputed)</option>
                     <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                     <option value="rejected" style={{color: "black"}}>Từ chối</option>
                   </select>
@@ -1151,6 +1194,34 @@ function AdminDashboard() {
                           ✓ Duyệt & Trả Thù Lao
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* THÔNG TIN KHIẾU NẠI & XỬ LÝ 2 CẤP */}
+                  {item.status === "disputed" && (
+                    <div style={{ marginTop: "10px", background: "#fef2f2", padding: "10px", borderRadius: "10px", border: "1px solid #fca5a5", textAlign: "left" }}>
+                      <span style={{ fontSize: "0.78rem", color: "#dc2626", fontWeight: "800", display: "block", marginBottom: "4px" }}>
+                        🚨 ĐƠN ĐANG BỊ KHIẾU NẠI
+                      </span>
+                      <p style={{ margin: "0 0 8px 0", fontSize: "0.72rem", color: "#991b1b", fontStyle: "italic" }}>
+                        "{item.disputeReason || "Chất lượng ca học không đạt yêu cầu"}"
+                      </p>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveDispute(item, "refund")}
+                          style={{ flex: 1, padding: "5px 8px", fontSize: "0.7rem", fontWeight: "750", background: "#ef4444", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          💵 Hoàn tiền khách
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveDispute(item, "approve")}
+                          style={{ flex: 1, padding: "5px 8px", fontSize: "0.7rem", fontWeight: "750", background: "var(--success)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          ✓ Bác khiếu nại
+                        </button>
+                      </div>
                     </div>
                   )}
                   
@@ -1307,8 +1378,8 @@ function AdminDashboard() {
                         onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                         style={{
                           padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                          background: item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                          color: item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706"
+                          background: item.status === "disputed" ? "rgba(239, 68, 68, 0.2)" : item.status === "completed" ? "rgba(139, 92, 246, 0.15)" : item.status === "proof_submitted" ? "rgba(217, 119, 6, 0.15)" : item.status === "in_progress" ? "rgba(59, 130, 246, 0.15)" : item.status === "accepted" ? "rgba(16, 185, 129, 0.15)" : item.status === "rejected" ? "rgba(239, 68, 68, 0.15)" : item.status === "paid" ? "rgba(236, 72, 153, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: item.status === "disputed" ? "#DC2626" : item.status === "completed" ? "#8B5CF6" : item.status === "proof_submitted" ? "#D97706" : item.status === "in_progress" ? "#3B82F6" : item.status === "accepted" ? "var(--success)" : item.status === "rejected" ? "var(--danger)" : item.status === "paid" ? "#EC4899" : "#D97706"
                         }}
                       >
                         <option value="pending" style={{color: "black"}}>Chờ nhận</option>
@@ -1316,9 +1387,30 @@ function AdminDashboard() {
                         <option value="accepted" style={{color: "black"}}>Sắp học</option>
                         <option value="in_progress" style={{color: "black"}}>Đang học</option>
                         <option value="proof_submitted" style={{color: "black"}}>Chờ duyệt minh chứng</option>
+                        <option value="disputed" style={{color: "red"}}>🚨 Khiếu nại (Disputed)</option>
                         <option value="completed" style={{color: "black"}}>Hoàn thành</option>
                         <option value="rejected" style={{color: "black"}}>Từ chối</option>
                       </select>
+
+                      {item.status === "disputed" && (
+                        <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <span style={{ fontSize: "0.68rem", color: "#dc2626", fontWeight: "700" }}>Lý do: {item.disputeReason}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleResolveDispute(item, "refund")}
+                            style={{ padding: "3px 6px", fontSize: "0.68rem", fontWeight: "700", background: "#ef4444", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                          >
+                            💵 Hoàn tiền
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResolveDispute(item, "approve")}
+                            style={{ padding: "3px 6px", fontSize: "0.68rem", fontWeight: "700", background: "var(--success)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                          >
+                            ✓ Bác khiếu nại
+                          </button>
+                        </div>
+                      )}
                       {item.status === "paid" && (
                         <button
                           onClick={() => handleUpdateStatus(item.id, "accepted")}

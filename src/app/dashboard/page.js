@@ -29,6 +29,10 @@ function Dashboard() {
     phone: "",
     price: ""
   });
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringWeeks, setRecurringWeeks] = useState(1);
+  const [taskInput, setTaskInput] = useState("");
+  const [sessionTasks, setSessionTasks] = useState([]);
   const [weekday, setWeekday] = useState("");
   const [file, setFile] = useState(null); // Now stores Base64 string
   const [fileName, setFileName] = useState("");
@@ -54,6 +58,7 @@ function Dashboard() {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [selectedBadges, setSelectedBadges] = useState([]);
   const [activeTab, setActiveTab] = useState("schedules"); // "schedules" or "wallet"
   const handleActiveTabChange = (tab) => {
     setActiveTab(tab);
@@ -196,6 +201,28 @@ function Dashboard() {
     if (user) {
       localStorage.removeItem(`booking_draft_${user.uid}`);
       setHasDraft(false);
+    }
+  };
+
+  const handleDisputeOrder = async (orderId) => {
+    const reason = prompt("Vui lòng nhập lý do khiếu nại ca học này (Ví dụ: CTV không đi học hộ, chép bài thiếu...):");
+    if (!reason) return;
+    try {
+      await updateDoc(doc(db, "schedules", orderId), {
+        status: "disputed",
+        disputeReason: reason,
+        disputedAt: serverTimestamp()
+      });
+      setSelectedItem(prev => ({
+        ...prev,
+        status: "disputed",
+        disputeReason: reason
+      }));
+      toast.success("Đã gửi khiếu nại thành công! Nhân viên và Admin sẽ giải quyết trong thời gian sớm nhất.");
+      sendTelegramAlert(`🚨 <b>ĐƠN HÀNG BỊ KHIẾU NẠI!</b>\n\n• <b>Mã đơn:</b> ${orderId.substring(0,8).toUpperCase()}\n• <b>Lý do:</b> ${reason}\n• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`);
+    } catch (err) {
+      console.error("Lỗi khiếu nại:", err);
+      toast.error("Không thể gửi khiếu nại.");
     }
   };
 
@@ -563,9 +590,10 @@ function Dashboard() {
     }
 
     const priceNumeric = formData.price ? Number(formData.price.replace(/\./g, "")) : 0;
+    const totalCost = priceNumeric * (isRecurring ? recurringWeeks : 1);
 
     if (paymentMethod === "wallet") {
-      if ((userProfile?.balance || 0) < priceNumeric) {
+      if ((userProfile?.balance || 0) < totalCost) {
         toast.error("Số dư ví không đủ! Vui lòng nạp thêm tiền hoặc chọn quét QR.");
         return;
       }
@@ -582,47 +610,69 @@ function Dashboard() {
 
     // GIAI ĐOẠN ĐỘT PHÁ: Lưu thẳng chuỗi văn bản ảnh vào CSDL Firestore (Không cần Storage)
     try {
-      // 1. Trừ tiền ví trước nếu chọn thanh toán bằng ví
+      // 1. Trừ tiền ví trước nếu chọn thanh toán bằng ví (Trừ tổng giá trị combo)
       if (paymentMethod === "wallet") {
         await updateDoc(doc(db, "users", user.uid), {
-          balance: increment(-priceNumeric)
+          balance: increment(-totalCost)
         });
         
         // Ghi nhận lịch sử thanh toán ví
         await addDoc(collection(db, "transactions"), {
           userId: user.uid,
           userEmail: user.email,
-          amount: priceNumeric,
+          amount: totalCost,
           type: "payment",
           status: "completed",
-          message: `Thanh toán đơn thuê học môn ${formData.className}`,
+          message: `Thanh toán ${isRecurring ? `combo ${recurringWeeks} tuần` : ""} đơn thuê học môn ${formData.className}`,
           createdAt: serverTimestamp()
         });
       }
 
-      const docRef = await addDoc(collection(db, "schedules"), {
-        userId: user.uid,
-        userEmail: user.email || "No Email",
-        name: formData.name,
-        className: formData.className,
-        classRegular: formData.classRegular || "",
-        studentId: formData.studentId,
-        school: formData.school,
-        classDate: formData.classDate,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        dob: formData.dob,
-        notes: formData.notes,
-        phone: formData.phone,
-        price: formData.price ? formData.price.replace(/\./g, "") : "",
-        weekday: weekday,
-        imageUrl: file, // Lưu trực tiếp chuỗi Base64
-        status: paymentMethod === "wallet" ? "paid" : "pending",
-        paymentMethod: paymentMethod,
-        assignedTo: requestedHelper || "", // Gán thẳng nếu chỉ định CTV
-        requestedHelper: requestedHelper || "",
-        createdAt: serverTimestamp()
-      });
+      // Tạo mã nhóm nếu đặt lịch định kỳ
+      const groupId = isRecurring ? "group_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) : "";
+      const totalLoops = isRecurring ? recurringWeeks : 1;
+      let lastDocRef = null;
+
+      // Chuẩn bị danh sách nhiệm vụ ca học lưu trạng thái completed
+      const formattedTasks = sessionTasks.map(t => ({ task: t, completed: false }));
+
+      // Vòng lặp tạo đơn hàng loạt theo tuần
+      for (let i = 0; i < totalLoops; i++) {
+        const originalDate = new Date(formData.classDate);
+        originalDate.setDate(originalDate.getDate() + i * 7);
+        const finalDateStr = originalDate.toISOString().split("T")[0];
+        
+        const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+        const finalWeekday = daysOfWeek[originalDate.getDay()];
+
+        lastDocRef = await addDoc(collection(db, "schedules"), {
+          userId: user.uid,
+          userEmail: user.email || "No Email",
+          name: formData.name,
+          className: formData.className,
+          classRegular: formData.classRegular || "",
+          studentId: formData.studentId,
+          school: formData.school,
+          classDate: finalDateStr,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          dob: formData.dob,
+          notes: formData.notes,
+          phone: formData.phone,
+          price: priceNumeric.toString(),
+          weekday: finalWeekday,
+          imageUrl: file, // Lưu trực tiếp chuỗi Base64
+          status: paymentMethod === "wallet" ? "paid" : "pending",
+          paymentMethod: paymentMethod,
+          assignedTo: requestedHelper || "", // Gán thẳng nếu chỉ định CTV
+          requestedHelper: requestedHelper || "",
+          groupId: groupId,
+          sessionTasks: formattedTasks,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      const docRef = lastDocRef; // Dùng tham chiếu đơn cuối để hiển thị QR / Lưu trữ thông tin
 
       // Lưu thông tin học sinh vào hồ sơ người dùng để tự điền lần sau
       try {
@@ -721,6 +771,9 @@ function Dashboard() {
       });
       setRequestedHelper("");
       setRequestedHelperEmail("");
+      setIsRecurring(false);
+      setRecurringWeeks(1);
+      setSessionTasks([]);
       
       const daysOfWeek = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
       setWeekday(daysOfWeek[today.getDay()]);
@@ -1010,6 +1063,28 @@ function Dashboard() {
       toast.error("Không thể gửi báo cáo.", { id: "proof" });
     } finally {
       setSubmittingProof(false);
+    }
+  };
+
+  const handleToggleTask = async (jobId, taskIndex, currentStatus) => {
+    try {
+      const updatedTasks = [...(selectedJobForProof.sessionTasks || [])];
+      updatedTasks[taskIndex].completed = !currentStatus;
+      
+      // Cập nhật CSDL Firestore
+      await updateDoc(doc(db, "schedules", jobId), {
+        sessionTasks: updatedTasks
+      });
+      
+      // Cập nhật local state
+      setSelectedJobForProof(prev => ({
+        ...prev,
+        sessionTasks: updatedTasks
+      }));
+      toast.success("Đã cập nhật trạng thái nhiệm vụ!");
+    } catch (err) {
+      console.error("Lỗi cập nhật nhiệm vụ:", err);
+      toast.error("Không thể cập nhật nhiệm vụ.");
     }
   };
 
@@ -2172,19 +2247,24 @@ function Dashboard() {
         school: reviewItem.school,
         rating: rating,
         comment: reviewText,
+        badges: selectedBadges,
         helperName: reviewItem.assignedTo || "",
         createdAt: serverTimestamp()
       });
       
       // Đánh dấu đơn đã được đánh giá
-      await updateDoc(doc(db, "schedules", reviewItem.id), { reviewed: true });
+      await updateDoc(doc(db, "schedules", reviewItem.id), { 
+        reviewed: true,
+        reviewBadges: selectedBadges
+      });
       
       // Đồng bộ state selectedItem nếu đang xem
-      setSelectedItem(prev => prev && prev.id === reviewItem.id ? { ...prev, reviewed: true } : prev);
+      setSelectedItem(prev => prev && prev.id === reviewItem.id ? { ...prev, reviewed: true, reviewBadges: selectedBadges } : prev);
       
       toast.success("Cảm ơn bạn đã gửi đánh giá dịch vụ!", { id: "review" });
       setShowReviewModal(false);
       setReviewText("");
+      setSelectedBadges([]);
     } catch (err) {
       console.error("Lỗi gửi đánh giá:", err);
       toast.error("Không thể gửi đánh giá lúc này!", { id: "review" });
@@ -2806,6 +2886,91 @@ function Dashboard() {
               <span style={{ fontSize: "0.72rem", color: "#d97706", marginTop: "4px", display: "block", fontWeight: "600" }}>* Số tiền này sẽ được tạm giữ từ ví số dư của bạn khi đăng đơn và chỉ thực tế khấu trừ sau khi ca học hoàn tất thành công.</span>
             </div>
 
+            {/* ĐẶT LỊCH ĐỊNH KỲ HÀNG TUẦN (RECURRING BOOKING WIZARD) */}
+            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <input 
+                  type="checkbox" 
+                  id="isRecurring"
+                  checked={isRecurring} 
+                  onChange={(e) => setIsRecurring(e.target.checked)} 
+                  style={{ width: "18px", height: "18px", accentColor: "var(--primary)", cursor: "pointer" }}
+                />
+                <label htmlFor="isRecurring" style={{ fontSize: "0.9rem", fontWeight: "750", color: "var(--text-primary)", cursor: "pointer" }}>
+                  🔁 Đặt lịch định kỳ hàng tuần (Tự động lặp lại)
+                </label>
+              </div>
+              {isRecurring && (
+                <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "12px", animation: "fadeIn 0.2s" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Số tuần lặp lại liên tục:</span>
+                  <select
+                    value={recurringWeeks}
+                    onChange={(e) => setRecurringWeeks(Number(e.target.value))}
+                    className="form-input"
+                    style={{ width: "120px", padding: "4px 8px", fontSize: "0.85rem", background: "white", border: "1px solid #cbd5e1", height: "auto" }}
+                  >
+                    <option value={2}>2 tuần</option>
+                    <option value={3}>3 tuần</option>
+                    <option value={4}>4 tuần</option>
+                    <option value={5}>5 tuần</option>
+                  </select>
+                  {formData.price && (
+                    <span style={{ fontSize: "0.85rem", color: "#8B5CF6", fontWeight: "750" }}>
+                      💵 Tổng thù lao: {Number(Number(formData.price.replace(/\./g, "")) * recurringWeeks).toLocaleString("vi-VN")} đ
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* DANH SÁCH NHIỆM VỤ CA HỌC (HELPER CHECKLIST) */}
+            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <label style={{ fontSize: "0.9rem", fontWeight: "750", color: "var(--text-primary)", display: "block", marginBottom: "8px" }}>
+                📋 Danh sách Nhiệm vụ ca học (Giao cho CTV)
+              </label>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Chép slide chương 3, Điểm danh đầu giờ..."
+                  value={taskInput}
+                  onChange={(e) => setTaskInput(e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, padding: "6px 12px", fontSize: "0.85rem" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (taskInput.trim()) {
+                      setSessionTasks([...sessionTasks, taskInput.trim()]);
+                      setTaskInput("");
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ padding: "6px 16px", borderRadius: "10px", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                >
+                  + Thêm
+                </button>
+              </div>
+              {sessionTasks.length > 0 && (
+                <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {sessionTasks.map((t, idx) => (
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                      <span style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: "600" }}>{idx + 1}. {t}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSessionTasks(sessionTasks.filter((_, i) => i !== idx));
+                        }}
+                        style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: "0.82rem", fontWeight: "700" }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Ghi chú (Không bắt buộc)</label>
               <textarea name="notes" value={formData.notes} onChange={handleChange} className="form-input" rows="3" placeholder="Ghi chú thêm (VD: mang theo thẻ sinh viên...)" style={{ resize: "vertical" }}></textarea>
@@ -3365,7 +3530,23 @@ function Dashboard() {
                   📄 Xuất Biên Lai
                 </button>
               )}
+              {selectedItem.status !== "disputed" && (selectedItem.status === "completed" || selectedItem.status === "proof_submitted" || selectedItem.status === "in_progress") && (
+                <button 
+                  type="button"
+                  onClick={() => handleDisputeOrder(selectedItem.id)}
+                  className="btn"
+                  style={{ background: "#ef4444", color: "white", border: "none", borderRadius: "10px", padding: "8px 16px", fontWeight: "700", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem" }}
+                >
+                  🚨 Khiếu Nại
+                </button>
+              )}
             </div>
+            {selectedItem.status === "disputed" && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", padding: "12px 16px", borderRadius: "14px", color: "#b91c1c", fontSize: "0.85rem", fontWeight: "600", marginBottom: "1.5rem", textAlign: "left" }}>
+                🚨 Đơn hàng đang được giải quyết khiếu nại.<br/>
+                <b>Lý do khiếu nại:</b> <i>{selectedItem.disputeReason}</i>
+              </div>
+            )}
             
             {/* Real-time Order Status Stepper */}
             {renderStatusStepper(selectedItem.status)}
@@ -3509,10 +3690,28 @@ function Dashboard() {
                 </div>
               )}
 
-              <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
+               <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block", marginBottom: "4px" }}>GHI CHÚ HỌC TẬP</strong>
                 <span style={{ fontStyle: "italic" }}>{selectedItem.notes || "Không có ghi chú thêm."}</span>
               </div>
+
+              {selectedItem.sessionTasks && selectedItem.sessionTasks.length > 0 && (
+                <div style={{ gridColumn: "1 / -1", background: "#f0fdf4", padding: "12px", borderRadius: "10px", border: "1px solid #bbf7d0", textAlign: "left" }}>
+                  <strong style={{ color: "#166534", fontSize: "0.8rem", display: "block", marginBottom: "6px" }}>📋 TIẾN ĐỘ NHIỆM VỤ CA HỌC</strong>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {selectedItem.sessionTasks.map((t, idx) => (
+                      <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "0.85rem", color: t.completed ? "var(--success)" : "#94a3b8" }}>
+                          {t.completed ? "✅" : "⏳"}
+                        </span>
+                        <span style={{ fontSize: "0.85rem", textDecoration: t.completed ? "line-through" : "none", color: t.completed ? "#166534" : "var(--text-primary)", fontWeight: "600" }}>
+                          {t.task}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {selectedItem.imageUrl && (
@@ -4003,6 +4202,30 @@ function Dashboard() {
 
             </div>
 
+            {selectedJobForProof.sessionTasks && selectedJobForProof.sessionTasks.length > 0 && (
+              <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "16px", border: "1px solid #e2e8f0", marginBottom: "1.5rem", textAlign: "left" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: "750", color: "var(--primary)", display: "block", marginBottom: "8px" }}>
+                  📋 Nhiệm vụ Học viên yêu cầu hoàn thành:
+                </span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {selectedJobForProof.sessionTasks.map((t, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <input
+                        type="checkbox"
+                        id={`helper-task-${idx}`}
+                        checked={t.completed}
+                        onChange={() => handleToggleTask(selectedJobForProof.id, idx, t.completed)}
+                        style={{ width: "16px", height: "16px", accentColor: "var(--primary)", cursor: "pointer" }}
+                      />
+                      <label htmlFor={`helper-task-${idx}`} style={{ fontSize: "0.8rem", color: "var(--text-primary)", textDecoration: t.completed ? "line-through" : "none", cursor: "pointer" }}>
+                        {t.task}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Close footer */}
             <button 
               type="button" 
@@ -4044,7 +4267,7 @@ function Dashboard() {
               Hãy để lại đánh giá của bạn cho môn <strong>{reviewItem.className}</strong> tại <strong>{reviewItem.school}</strong> để giúp cải thiện dịch vụ.
             </p>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "1.25rem" }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <span 
                   key={star} 
@@ -4054,6 +4277,47 @@ function Dashboard() {
                   ★
                 </span>
               ))}
+            </div>
+
+            {/* HUY HIỆU TẶNG CTV */}
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-primary)", display: "block", marginBottom: "8px" }}>
+                🎖️ Tặng huy hiệu ghi nhận cho CTV:
+              </label>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {[
+                  { id: "punctual", label: "⏰ Đúng giờ xuất sắc" },
+                  { id: "handwriting", label: "📝 Chép bài siêu đẹp" },
+                  { id: "enthusiastic", label: "💬 Hỗ trợ nhiệt tình" }
+                ].map(b => {
+                  const active = selectedBadges.includes(b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        if (active) {
+                          setSelectedBadges(selectedBadges.filter(id => id !== b.id));
+                        } else {
+                          setSelectedBadges([...selectedBadges, b.id]);
+                        }
+                      }}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "20px",
+                        fontSize: "0.78rem",
+                        fontWeight: "600",
+                        border: active ? "1px solid #f59e0b" : "1px solid #e2e8f0",
+                        background: active ? "#fef3c7" : "#f8fafc",
+                        color: active ? "#b45309" : "#475569",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {b.label} {active ? "✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="form-group" style={{ marginBottom: "1.5rem" }}>
