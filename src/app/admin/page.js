@@ -1737,30 +1737,42 @@ function AdminDashboard() {
                         </div>
                       </td>
                       <td>
-                        <select 
-                          value={u.role || "user"} 
-                          onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                          style={{
-                            padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                            background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : u.role === "staff" ? "rgba(59, 130, 246, 0.15)" : u.role === "helper" ? "rgba(139, 92, 246, 0.15)" : "rgba(100, 116, 139, 0.15)",
-                            color: u.role === "admin" ? "var(--primary)" : u.role === "staff" ? "#3b82f6" : u.role === "helper" ? "#8B5CF6" : "var(--text-secondary)"
-                          }}
-                        >
-                          <option value="user" style={{color: "black"}}>Khách hàng</option>
-                          <option value="helper" style={{color: "black"}}>Cộng tác viên</option>
-                          <option value="staff" style={{color: "black"}}>Nhân viên (Staff)</option>
-                          <option value="admin" style={{color: "black"}}>Quản trị viên</option>
-                        </select>
+                        {u.email?.toLowerCase() === "hiplaika263@gmail.com" ? (
+                          <span style={{ padding: "6px 12px", borderRadius: "20px", fontSize: "0.82rem", fontWeight: "800", background: "linear-gradient(90deg, #dc2626, #ef4444)", color: "white", boxShadow: "0 2px 6px rgba(220, 38, 38, 0.3)", display: "inline-block" }}>
+                            👑 Admin Tối Cao
+                          </span>
+                        ) : (
+                          <select 
+                            value={u.role || "user"} 
+                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                            style={{
+                              padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
+                              background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : u.role === "staff" ? "rgba(59, 130, 246, 0.15)" : u.role === "helper" ? "rgba(139, 92, 246, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                              color: u.role === "admin" ? "var(--primary)" : u.role === "staff" ? "#3b82f6" : u.role === "helper" ? "#8B5CF6" : "var(--text-secondary)"
+                            }}
+                          >
+                            <option value="user" style={{color: "black"}}>Khách hàng</option>
+                            <option value="helper" style={{color: "black"}}>Cộng tác viên</option>
+                            <option value="staff" style={{color: "black"}}>Nhân viên (Staff)</option>
+                            <option value="admin" style={{color: "black"}}>Quản trị viên</option>
+                          </select>
+                        )}
                       </td>
                       <td style={{ padding: "1rem 1.5rem" }}>
-                        <button 
-                          onClick={() => handleDeleteUser(u.id)} 
-                          style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: "600", padding: "8px 12px", borderRadius: "8px", transition: "all 0.2s" }} 
-                          onMouseOver={(e) => { e.target.style.background = "var(--danger)"; e.target.style.color = "white"; }} 
-                          onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.1)"; e.target.style.color = "var(--danger)"; }}
-                        >
-                          Khóa/Xóa
-                        </button>
+                        {u.email?.toLowerCase() === "hiplaika263@gmail.com" ? (
+                          <span style={{ fontSize: "0.78rem", color: "#94a3b8", fontStyle: "italic" }}>
+                            Bảo vệ hệ thống
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => handleDeleteUser(u.id)} 
+                            style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "var(--danger)", cursor: "pointer", fontWeight: "600", padding: "8px 12px", borderRadius: "8px", transition: "all 0.2s" }} 
+                            onMouseOver={(e) => { e.target.style.background = "var(--danger)"; e.target.style.color = "white"; }} 
+                            onMouseOut={(e) => { e.target.style.background = "rgba(239, 68, 68, 0.1)"; e.target.style.color = "var(--danger)"; }}
+                          >
+                            Khóa/Xóa
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
