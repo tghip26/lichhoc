@@ -44,6 +44,91 @@ function AdminDashboard() {
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
+  const getSortedHelpersForJob = (job) => {
+    if (!job || !helpers) return [];
+    
+    // Đọc Thứ trong tuần của ngày học
+    const daysEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    let weekdayEn = "";
+    if (job.classDate) {
+      const d = new Date(job.classDate);
+      weekdayEn = daysEn[d.getDay()];
+    }
+    
+    // Phân tích ca trực (Sáng/Chiều/Tối) dựa trên startTime
+    let period = "Morning";
+    const startHour = job.startTime ? Number(job.startTime.split(":")[0]) : 8;
+    if (startHour >= 12 && startHour < 17) {
+      period = "Afternoon";
+    } else if (startHour >= 17) {
+      period = "Evening";
+    }
+
+    const scoredHelpers = helpers
+      .filter(h => h && (h.status === 'approved' || h.role === 'helper'))
+      .map(h => {
+        let score = 50; // base score
+        let reasons = [];
+
+        // 1. Kiểm tra lịch bận chính khóa
+        const slotKey = `${weekdayEn}_${period}`;
+        const isBusy = h.busyTimeSlots && h.busyTimeSlots[slotKey] === true;
+        if (isBusy) {
+          score -= 40;
+          reasons.push("Trùng lịch học");
+        } else {
+          score += 20;
+          reasons.push("Trống lịch");
+        }
+
+        // 2. Kiểm tra môn thế mạnh sở trường
+        if (h.preferredSubjects && (job.className || job.subject)) {
+          const subjects = h.preferredSubjects.toLowerCase().split(/[,,;]/).map(s => s.trim()).filter(Boolean);
+          const classClean = (job.className || job.subject || "").toLowerCase();
+          const isMatch = subjects.some(s => classClean.includes(s) || s.includes(classClean));
+          if (isMatch) {
+            score += 30;
+            reasons.push("Môn thế mạnh");
+          }
+        }
+
+        return {
+          ...h,
+          matchScore: Math.max(0, Math.min(100, score)),
+          reasons: reasons.join(", ")
+        };
+      });
+
+    // Sắp xếp giảm dần theo điểm độ tương hợp
+    return scoredHelpers.sort((a, b) => b.matchScore - a.matchScore);
+  };
+
+  const handleTelegramBroadcast = async (job) => {
+    if (!job) return;
+    if (!confirm(`Bạn có chắc chắn muốn phát sóng tin tuyển dụng CTV cho môn "${job.className}" lên nhóm Telegram không?`)) {
+      return;
+    }
+    const toastId = toast.loading("Đang phát sóng tin tuyển dụng...");
+    try {
+      const formattedSalary = job.price ? `${Number(Math.floor(job.price * 0.75)).toLocaleString("vi-VN")} đ` : "N/A";
+      const broadcastMsg = 
+        `⚡ <b>TÌM CỘNG TÁC VIÊN NHẬN LỚP GẤP!</b> ⚡\n\n` +
+        `• <b>Môn học:</b> ${job.className}\n` +
+        `• <b>Trường:</b> ${job.school || "N/A"}\n` +
+        `• <b>Ngày học:</b> ${job.classDate ? new Date(job.classDate).toLocaleDateString("vi-VN") : "N/A"} (${job.weekday || "N/A"})\n` +
+        `• <b>Thời gian:</b> ${job.startTime || "N/A"} - ${job.endTime || "N/A"}\n` +
+        `• <b>Thù lao CTV:</b> ${formattedSalary}\n` +
+        `• <b>Ghi chú:</b> <i>${job.notes || "Không có"}</i>\n\n` +
+        `👉 <i>Vui lòng truy cập Chợ nhận lớp trên Website để ứng tuyển nhận lớp ngay!</i>`;
+      
+      await sendTelegramAlert(broadcastMsg);
+      toast.success("Đã phát sóng tin tuyển dụng lên Telegram thành công!", { id: toastId });
+    } catch (err) {
+      console.error("Lỗi phát sóng Telegram:", err);
+      toast.error("Không thể gửi tin phát sóng.", { id: toastId });
+    }
+  };
+
   useEffect(() => {
     if (tabParam) {
       setActiveTab(tabParam);
@@ -1078,15 +1163,26 @@ function AdminDashboard() {
                       style={{ padding: "4px 8px", fontSize: "0.8rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                     >
                       <option value="">-- Chưa giao việc --</option>
-                      {helpers.filter(h => h.status === 'approved').map(h => {
+                      {getSortedHelpersForJob(item).map(h => {
                         const isOnline = getHelperShiftStatus(h.email);
+                        const isRec = h.matchScore >= 70;
                         return (
                           <option key={h.id} value={h.name}>
-                            {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : "(Nghỉ)"}
+                            {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ Đề cử: ${h.matchScore}%]` : `[${h.matchScore}%]`}
                           </option>
                         );
                       })}
                     </select>
+                    {!item.assignedTo && item.status !== "completed" && item.status !== "rejected" && (
+                      <button
+                        type="button"
+                        onClick={() => handleTelegramBroadcast(item)}
+                        className="btn"
+                        style={{ width: "100%", padding: "6px 8px", fontSize: "0.72rem", borderRadius: "8px", background: "linear-gradient(90deg, #3b82f6, #1d4ed8)", color: "white", border: "none", fontWeight: "750", marginTop: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+                      >
+                        📢 Phát sóng CTV tuyển dụng
+                      </button>
+                    )}
                   </div>
 
                   {item.status === "paid" && (
@@ -1165,22 +1261,33 @@ function AdminDashboard() {
                         
                         <div style={{ marginTop: "6px", maxWidth: "160px" }}>
                           <span style={{ fontSize: "0.72rem", fontWeight: "700", color: "#8B5CF6" }}>Giao việc:</span>
-                          <select
+                           <select
                             value={item.assignedTo || ""}
                             onChange={(e) => handleAssignHelper(item.id, e.target.value)}
                             className="form-input"
                             style={{ padding: "2px 4px", fontSize: "0.75rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "6px", width: "100%", marginTop: "2px", border: "1px solid #cbd5e1" }}
                           >
                             <option value="">-- Chưa giao --</option>
-                             {helpers.filter(h => h.isApproved || h.status === 'approved').map(h => {
-                               const isOnline = getHelperShiftStatus(h.email);
-                               return (
-                                 <option key={h.id} value={h.name}>
-                                   {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
-                                 </option>
-                               );
-                             })}
+                            {getSortedHelpersForJob(item).map(h => {
+                              const isOnline = getHelperShiftStatus(h.email);
+                              const isRec = h.matchScore >= 70;
+                              return (
+                                <option key={h.id} value={h.name}>
+                                  {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ Đề cử: ${h.matchScore}%]` : `[${h.matchScore}%]`}
+                                </option>
+                              );
+                            })}
                           </select>
+                           {!item.assignedTo && item.status !== "completed" && item.status !== "rejected" && (
+                             <button
+                               type="button"
+                               onClick={() => handleTelegramBroadcast(item)}
+                               className="btn"
+                               style={{ width: "100%", padding: "4px 6px", fontSize: "0.68rem", borderRadius: "6px", background: "linear-gradient(90deg, #3b82f6, #1d4ed8)", color: "white", border: "none", fontWeight: "750", marginTop: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "2px" }}
+                             >
+                               📢 Phát sóng Telegram
+                             </button>
+                           )}
                         </div>
                       </div>
                     </td>
@@ -2327,7 +2434,7 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
 
               <div style={{ marginTop: "8px" }}>
                 <label style={{ fontWeight: "700", display: "block", marginBottom: "6px", fontSize: "0.85rem" }}>Giao việc CTV:</label>
-                <select
+                 <select
                   value={selectedItem.assignedTo || ""}
                   onChange={(e) => {
                     if (typeof handleAssignHelper === "function") {
@@ -2339,15 +2446,26 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                   style={{ background: "white", cursor: "pointer" }}
                 >
                   <option value="">-- Chưa giao --</option>
-                  {(helpers || []).filter(h => h && (h.isApproved || h.status === 'approved')).map(h => {
+                  {getSortedHelpersForJob(selectedItem).map(h => {
                     const isOnline = typeof getHelperShiftStatus === "function" ? getHelperShiftStatus(h.email) : false;
+                    const isRec = h.matchScore >= 70;
                     return (
                       <option key={h.id} value={h.name}>
-                        {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isOnline ? "(Đang trực ca)" : ""}
+                        {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ Đề cử: ${h.matchScore}%]` : `[${h.matchScore}%]`}
                       </option>
                     );
                   })}
                 </select>
+                {!selectedItem.assignedTo && selectedItem.status !== "completed" && selectedItem.status !== "rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => handleTelegramBroadcast(selectedItem)}
+                    className="btn btn-primary"
+                    style={{ width: "100%", padding: "8px", borderRadius: "12px", background: "linear-gradient(90deg, #3b82f6, #1d4ed8)", color: "white", border: "none", fontWeight: "750", marginTop: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+                  >
+                    📢 Phát sóng CTV tuyển dụng lên Telegram
+                  </button>
+                )}
               </div>
             </div>
           </div>

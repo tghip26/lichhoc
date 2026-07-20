@@ -98,6 +98,8 @@ function Dashboard() {
   const [proofFile, setProofFile] = useState(null);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
+  const [showLiveTrackerModal, setShowLiveTrackerModal] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -3164,6 +3166,30 @@ function Dashboard() {
               </button>
             </div>
             
+            {/* ACTION BAR FOR PREMIUM UTILITIES */}
+            <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+              {(selectedItem.status === "in_progress" || selectedItem.status === "proof_submitted" || selectedItem.status === "completed") && (
+                <button 
+                  type="button"
+                  onClick={() => setShowLiveTrackerModal(true)}
+                  className="btn"
+                  style={{ background: "#3b82f6", color: "white", border: "none", borderRadius: "10px", padding: "8px 16px", fontWeight: "700", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem" }}
+                >
+                  👁️ Theo dõi ca trực trực tuyến
+                </button>
+              )}
+              {(selectedItem.status === "approved" || selectedItem.status === "in_progress" || selectedItem.status === "completed" || selectedItem.paymentStatus === "Đã thanh toán") && (
+                <button 
+                  type="button"
+                  onClick={() => setShowReceiptModal(true)}
+                  className="btn"
+                  style={{ background: "white", color: "var(--text-primary)", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "8px 16px", fontWeight: "700", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem" }}
+                >
+                  📄 Xuất Biên Lai
+                </button>
+              )}
+            </div>
+            
             {/* Real-time Order Status Stepper */}
             {renderStatusStepper(selectedItem.status)}
             
@@ -3875,6 +3901,298 @@ function Dashboard() {
               {submittingReview ? "Đang gửi nhận xét..." : "Gửi Đánh Giá Ngay"}
             </button>
           </form>
+        </div>
+      )}
+
+      {/* OVERLAY MODAL: THEO DÕI CA TRỰC TRỰC TUYẾN (DÀNH CHO HỌC VIÊN) */}
+      {showLiveTrackerModal && selectedItem && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1002, padding: "1rem"
+          }}
+          onClick={() => setShowLiveTrackerModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "500px", width: "100%", maxHeight: "85vh", overflowY: "auto",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", border: "1px solid #cbd5e1"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid #f1f5f9", paddingBottom: "1rem" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "850", color: "var(--text-primary)" }}>
+                  👁️ Theo Dõi Ca Trực Trực Tuyến
+                </h3>
+                <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                  Mã đơn: <b>{selectedItem.id.substring(0, 8).toUpperCase()}</b> | Môn: <b>{selectedItem.className}</b>
+                </span>
+              </div>
+              <button type="button" onClick={() => setShowLiveTrackerModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
+            </div>
+
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.5rem", textAlign: "left" }}>
+              Trạng thái điểm danh lớp học của bạn được đồng bộ tức thì dưới đây.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", position: "relative" }}>
+              
+              {/* Step 1 */}
+              <div style={{ display: "flex", gap: "12px", textAlign: "left" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedItem.checkinStartImage ? "var(--success)" : "#e2e8f0",
+                    color: selectedItem.checkinStartImage ? "white" : "#94a3b8",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem"
+                  }}>
+                    {selectedItem.checkinStartImage ? "✓" : "1"}
+                  </div>
+                  <div style={{ width: "2px", flex: 1, background: "#e2e8f0", margin: "4px 0", minHeight: "35px" }}></div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 1: Check-in đầu ca 🏫</strong>
+                  {selectedItem.checkinStartImage ? (
+                    <div style={{ marginTop: "6px" }}>
+                      <img 
+                        src={selectedItem.checkinStartImage} 
+                        alt="Đầu ca" 
+                        style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0", cursor: "pointer" }}
+                        onClick={() => setLightboxImage(selectedItem.checkinStartImage)}
+                      />
+                      <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600", marginTop: "4px" }}>
+                        Đã check-in lúc: {new Date(selectedItem.checkinStartAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", display: "block", fontStyle: "italic", marginTop: "2px" }}>Chờ CTV vào lớp...</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div style={{ display: "flex", gap: "12px", textAlign: "left" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedItem.checkinMiddleImage ? "var(--success)" : "#e2e8f0",
+                    color: selectedItem.checkinMiddleImage ? "white" : "#94a3b8",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem"
+                  }}>
+                    {selectedItem.checkinMiddleImage ? "✓" : "2"}
+                  </div>
+                  <div style={{ width: "2px", flex: 1, background: "#e2e8f0", margin: "4px 0", minHeight: "35px" }}></div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 2: Học tập & thảo luận giữa ca 📝</strong>
+                  {selectedItem.checkinMiddleImage ? (
+                    <div style={{ marginTop: "6px" }}>
+                      <img 
+                        src={selectedItem.checkinMiddleImage} 
+                        alt="Giữa ca" 
+                        style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0", cursor: "pointer" }}
+                        onClick={() => setLightboxImage(selectedItem.checkinMiddleImage)}
+                      />
+                      <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600", marginTop: "4px" }}>
+                        Đã xác thực lúc: {new Date(selectedItem.checkinMiddleAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", display: "block", fontStyle: "italic", marginTop: "2px" }}>Chờ minh chứng giữa ca...</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div style={{ display: "flex", gap: "12px", textAlign: "left" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedItem.checkinEndImage ? "var(--success)" : "#e2e8f0",
+                    color: selectedItem.checkinEndImage ? "white" : "#94a3b8",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem"
+                  }}>
+                    {selectedItem.checkinEndImage ? "✓" : "3"}
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 3: Hoàn thành & Check-out 🚗</strong>
+                  {selectedItem.checkinEndImage ? (
+                    <div style={{ marginTop: "6px" }}>
+                      <img 
+                        src={selectedItem.checkinEndImage} 
+                        alt="Tan học" 
+                        style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0", cursor: "pointer" }}
+                        onClick={() => setLightboxImage(selectedItem.checkinEndImage)}
+                      />
+                      <div style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600", marginTop: "4px" }}>
+                        Tan học ra về lúc: {new Date(selectedItem.checkinEndAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", display: "block", fontStyle: "italic", marginTop: "2px" }}>Chờ hoàn thành buổi học...</span>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            <button 
+              type="button" 
+              onClick={() => setShowLiveTrackerModal(false)}
+              className="btn btn-primary"
+              style={{ width: "100%", marginTop: "1.5rem", padding: "0.8rem", borderRadius: "12px" }}
+            >
+              Đóng cửa sổ
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY MODAL: XUẤT BIÊN LAI ĐÓNG TIỀN (PRINTABLE E-RECEIPT) */}
+      {showReceiptModal && selectedItem && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1003, padding: "1rem"
+          }}
+          onClick={() => setShowReceiptModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2.5rem",
+              maxWidth: "520px", width: "100%", maxHeight: "90vh", overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", position: "relative"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Style for printing */}
+            <style dangerouslySetInnerHTML={{__html: `
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                #print-receipt-area, #print-receipt-area * {
+                  visibility: visible;
+                }
+                #print-receipt-area {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  box-shadow: none !important;
+                  border: none !important;
+                  padding: 20px !important;
+                  background: white !important;
+                }
+              }
+            `}} />
+
+            {/* Printable Area */}
+            <div id="print-receipt-area" style={{ textAlign: "left", background: "#ffffff" }}>
+              
+              {/* Logo / Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #1e293b", paddingBottom: "1rem", marginBottom: "1.5rem" }}>
+                <div>
+                  <h2 style={{ margin: 0, color: "var(--primary)", fontSize: "1.5rem", fontWeight: "900", letterSpacing: "-0.5px" }}>THUÊ HỌC PRO</h2>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600" }}>HỆ THỐNG QUẢN LÝ LÀM BÀI & TRỰC LỚP CHUYÊN NGHIỆP</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "800", color: "#64748b", display: "block" }}>BIÊN LAI THANH TOÁN</span>
+                  <span style={{ fontSize: "0.72rem", color: "#94a3b8", fontFamily: "monospace" }}>#INV-{selectedItem.id.substring(0, 8).toUpperCase()}</span>
+                </div>
+              </div>
+
+              {/* Bill to */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1.5rem", fontSize: "0.82rem" }}>
+                <div>
+                  <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: "3px" }}>NGƯỜI THANH TOÁN:</strong>
+                  <span style={{ fontWeight: "750", color: "var(--text-primary)", fontSize: "0.9rem" }}>{selectedItem.name}</span><br/>
+                  <span>MSSV: {selectedItem.studentId}</span><br/>
+                  <span>Lớp: {selectedItem.classRegular || "N/A"}</span><br/>
+                  <span>Trường: {selectedItem.school}</span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: "3px" }}>THÔNG TIN ĐƠN:</strong>
+                  <span>Ngày in: {new Date().toLocaleDateString("vi-VN")}</span><br/>
+                  <span>Ngày học: {selectedItem.classDate}</span><br/>
+                  <span>Thời gian: {selectedItem.startTime} - {selectedItem.endTime}</span>
+                </div>
+              </div>
+
+              {/* Main Service description */}
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "1.5rem", fontSize: "0.85rem" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "1px solid #cbd5e1" }}>
+                    <th style={{ padding: "8px", textAlign: "left", fontWeight: "700", color: "var(--text-primary)" }}>Mô tả dịch vụ</th>
+                    <th style={{ padding: "8px", textAlign: "right", fontWeight: "700", color: "var(--text-primary)" }}>Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: "1px solid #cbd5e1" }}>
+                    <td style={{ padding: "12px 8px" }}>
+                      <strong style={{ display: "block", color: "var(--text-primary)" }}>Dịch vụ học hộ môn: {selectedItem.className}</strong>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Hỗ trợ trực lớp thực tế và ghi chú nội dung giảng dạy.</span>
+                    </td>
+                    <td style={{ padding: "12px 8px", textAlign: "right", fontWeight: "750" }}>
+                      {Number(selectedItem.price || 0).toLocaleString("vi-VN")} đ
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Total Block */}
+              <div style={{ borderTop: "2px dashed #cbd5e1", paddingTop: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+                <div>
+                  <span style={{
+                    fontSize: "0.75rem", padding: "4px 10px", borderRadius: "20px", fontWeight: "800",
+                    background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", letterSpacing: "1px", textTransform: "uppercase"
+                  }}>
+                    ✓ Đã Thanh Toán
+                  </span>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Tổng số tiền thanh toán:</span>
+                  <div style={{ fontSize: "1.4rem", fontWeight: "900", color: "var(--primary)" }}>
+                    {Number(selectedItem.price || 0).toLocaleString("vi-VN")} đ
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer text */}
+              <div style={{ borderTop: "1px solid #cbd5e1", paddingTop: "1rem", textAlign: "center", fontSize: "0.72rem", color: "var(--text-secondary)" }}>
+                Cảm ơn bạn đã lựa chọn Thuê Học Pro. Mọi thắc mắc liên hệ hotro@thuehoc.pro.<br/>
+                <i>Hóa đơn điện tử được ký và xác nhận thanh toán tự động bởi hệ thống tài chính THUEHOCPRO.</i>
+              </div>
+            </div>
+
+            {/* Print action buttons */}
+            <div style={{ display: "flex", gap: "10px", marginTop: "2rem" }}>
+              <button 
+                type="button" 
+                onClick={() => window.print()}
+                className="btn btn-primary"
+                style={{ flex: 1, padding: "0.8rem", borderRadius: "12px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontWeight: "750" }}
+              >
+                🖨️ In Biên Lai (Print / PDF)
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setShowReceiptModal(false)}
+                className="btn"
+                style={{ padding: "0.8rem 1.5rem", borderRadius: "12px", background: "#f1f5f9", color: "var(--text-primary)", border: "none", fontWeight: "700", cursor: "pointer" }}
+              >
+                Đóng
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
