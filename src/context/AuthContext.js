@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserProfile(data);
-            setIsStaff(data.role === "staff" || data.role === "admin");
+            setIsStaff(data.role === "staff");
             if (data.role === "admin") {
               setIsAdmin(true);
             }
