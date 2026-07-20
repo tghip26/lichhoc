@@ -3142,6 +3142,21 @@ function InternalSchedulesManager() {
                         <span style={{ fontSize: "0.78rem", color: "#6366f1", fontWeight: "600" }}>
                           📅 {o.weekday} ({o.classDate ? new Date(o.classDate).toLocaleDateString("vi-VN") : "N/A"}) | 🕒 {o.startTime} - {o.endTime}
                         </span>
+                        {o.groupId && (
+                          <span style={{ fontSize: "0.72rem", color: "#4338ca", background: "#e0e7ff", padding: "1px 6px", borderRadius: "6px", fontWeight: "750" }}>
+                            🔁 Đơn định kỳ hàng tuần
+                          </span>
+                        )}
+                        {o.sessionTasks && o.sessionTasks.length > 0 && (
+                          <span style={{ fontSize: "0.72rem", color: "#166534" }}>
+                            📋 Nhiệm vụ ca học: {o.sessionTasks.filter(t => t.completed).length}/{o.sessionTasks.length} hoàn thành
+                          </span>
+                        )}
+                        {o.status === "disputed" && (
+                          <span style={{ fontSize: "0.72rem", color: "#dc2626", background: "#fef2f2", padding: "2px 6px", borderRadius: "6px", fontWeight: "800" }}>
+                            🚨 KHIẾU NẠI: {o.disputeReason}
+                          </span>
+                        )}
                         <span style={{ fontSize: "0.75rem", color: "#10b981", fontWeight: "700" }}>
                           💵 Thuê: {rentVal.toLocaleString("vi-VN")} đ | 💰 Payout: {payoutVal.toLocaleString("vi-VN")} đ
                         </span>

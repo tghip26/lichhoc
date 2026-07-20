@@ -1176,8 +1176,41 @@ function AdminDashboard() {
                   {item.classDate && <><span style={{color: "var(--primary)"}}>Học:</span> {item.weekday ? `${item.weekday} ` : ''}({new Date(item.classDate).toLocaleDateString("vi-VN")})<br/></>}
                   {item.startTime && item.endTime && <><span style={{color: "var(--primary)"}}>Giờ:</span> {item.startTime} - {item.endTime}<br/></>}
                   {item.notes && <><span style={{color: "var(--primary)"}}>Ghi chú:</span> {item.notes}<br/></>}
+                  {item.groupId && (
+                    <div style={{ marginTop: "4px" }}>
+                      <span style={{ background: "#e0e7ff", color: "#4338ca", padding: "2px 8px", borderRadius: "10px", fontSize: "0.72rem", fontWeight: "750" }}>
+                        🔁 Đơn định kỳ hàng tuần
+                      </span>
+                    </div>
+                  )}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+
+                  {/* SESSION TASKS CHECKLIST */}
+                  {item.sessionTasks && item.sessionTasks.length > 0 && (
+                    <div style={{ marginTop: "8px", background: "#f0fdf4", padding: "6px 10px", borderRadius: "8px", border: "1px solid #bbf7d0", textAlign: "left" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: "750", color: "#166534", display: "block" }}>📋 Nhiệm vụ ca học:</span>
+                      {item.sessionTasks.map((t, idx) => (
+                        <div key={idx} style={{ fontSize: "0.7rem", color: t.completed ? "#15803d" : "#64748b", textDecoration: t.completed ? "line-through" : "none" }}>
+                          {t.completed ? "✅" : "⏳"} {t.task}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* REVIEW BADGES */}
+                  {item.reviewBadges && item.reviewBadges.length > 0 && (
+                    <div style={{ marginTop: "6px", display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                      {item.reviewBadges.map(bId => {
+                        const labels = { punctual: "⏰ Đúng giờ", handwriting: "📝 Chép đẹp", enthusiastic: "💬 Nhiệt tình" };
+                        return (
+                          <span key={bId} style={{ fontSize: "0.68rem", background: "#fef3c7", color: "#b45309", padding: "2px 6px", borderRadius: "10px", fontWeight: "700" }}>
+                            {labels[bId] || bId}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                   
                   {item.helperProofImage && (
                     <div style={{ marginTop: "10px", background: "rgba(79,70,229,0.05)", padding: "8px", borderRadius: "10px", border: "1px solid rgba(79,70,229,0.1)", textAlign: "left" }}>
@@ -1372,6 +1405,30 @@ function AdminDashboard() {
                         {item.startTime && item.endTime && <><br/>Giờ: {item.startTime} - {item.endTime}</>}
                         {item.price && <><br/>Giá: <strong style={{color: "var(--primary)"}}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}</strong></>}
                         {item.notes && <><br/><i style={{ color: "var(--primary)" }}>Ghi chú: {item.notes}</i></>}
+                        {item.groupId && (
+                          <div style={{ marginTop: "2px" }}>
+                            <span style={{ background: "#e0e7ff", color: "#4338ca", padding: "1px 6px", borderRadius: "8px", fontSize: "0.68rem", fontWeight: "750" }}>
+                              🔁 Định kỳ
+                            </span>
+                          </div>
+                        )}
+                        {item.sessionTasks && item.sessionTasks.length > 0 && (
+                          <div style={{ marginTop: "4px", fontSize: "0.72rem", color: "#166534" }}>
+                            📋 Tasks: {item.sessionTasks.filter(t => t.completed).length}/{item.sessionTasks.length} hoàn thành
+                          </div>
+                        )}
+                        {item.reviewBadges && item.reviewBadges.length > 0 && (
+                          <div style={{ marginTop: "4px", display: "flex", gap: "2px", flexWrap: "wrap" }}>
+                            {item.reviewBadges.map(bId => {
+                              const labels = { punctual: "⏰ Đúng giờ", handwriting: "📝 Chép đẹp", enthusiastic: "💬 Nhiệt tình" };
+                              return (
+                                <span key={bId} style={{ fontSize: "0.65rem", background: "#fef3c7", color: "#b45309", padding: "1px 4px", borderRadius: "6px", fontWeight: "700" }}>
+                                  {labels[bId] || bId}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         
                         <div style={{ marginTop: "6px", maxWidth: "160px" }}>
                           <span style={{ fontSize: "0.72rem", fontWeight: "700", color: "#8B5CF6" }}>Giao việc:</span>
