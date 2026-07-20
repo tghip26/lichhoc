@@ -90,7 +90,10 @@ export function AuthProvider({ children }) {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserProfile(data);
-            setIsStaff(data.role === "staff");
+            setIsStaff(data.role === "staff" || data.role === "admin");
+            if (data.role === "admin") {
+              setIsAdmin(true);
+            }
           } else {
             setUserProfile(null);
             setIsStaff(false);
@@ -137,11 +140,11 @@ export function AuthProvider({ children }) {
           let finalRole = "user";
           if (userDocSnap.exists()) {
             const currentRole = userDocSnap.data().role;
-            if (currentRole === "admin" || currentRole === "helper") {
+            if (["admin", "staff", "helper", "user"].includes(currentRole)) {
               finalRole = currentRole;
             }
           }
-          if (helperApproved) {
+          if (helperApproved && finalRole === "user") {
             finalRole = "helper";
           }
           if (adminStatus) {

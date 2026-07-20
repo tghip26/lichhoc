@@ -858,6 +858,7 @@ function AdminDashboard() {
     
     const matchesRole = userFilterRole === "all" || 
                         (userFilterRole === "admin" && u.role === "admin") ||
+                        (userFilterRole === "staff" && u.role === "staff") ||
                         (userFilterRole === "helper" && u.role === "helper") ||
                         (userFilterRole === "user" && (u.role === "user" || !u.role));
 
@@ -1582,6 +1583,7 @@ function AdminDashboard() {
                     <option value="all">Tất cả vai trò</option>
                     <option value="user">Học viên (User)</option>
                     <option value="helper">Cộng tác viên (Helper)</option>
+                    <option value="staff">Nhân viên (Staff)</option>
                     <option value="admin">Quản trị viên (Admin)</option>
                   </select>
 
@@ -1740,12 +1742,13 @@ function AdminDashboard() {
                           onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
                           style={{
                             padding: "6px 12px", borderRadius: "20px", fontSize: "0.85rem", fontWeight: "700", border: "none", outline: "none", cursor: "pointer",
-                            background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : u.role === "helper" ? "rgba(139, 92, 246, 0.15)" : "rgba(100, 116, 139, 0.15)",
-                            color: u.role === "admin" ? "var(--primary)" : u.role === "helper" ? "#8B5CF6" : "var(--text-secondary)"
+                            background: u.role === "admin" ? "rgba(22, 163, 74, 0.15)" : u.role === "staff" ? "rgba(59, 130, 246, 0.15)" : u.role === "helper" ? "rgba(139, 92, 246, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                            color: u.role === "admin" ? "var(--primary)" : u.role === "staff" ? "#3b82f6" : u.role === "helper" ? "#8B5CF6" : "var(--text-secondary)"
                           }}
                         >
                           <option value="user" style={{color: "black"}}>Khách hàng</option>
                           <option value="helper" style={{color: "black"}}>Cộng tác viên</option>
+                          <option value="staff" style={{color: "black"}}>Nhân viên (Staff)</option>
                           <option value="admin" style={{color: "black"}}>Quản trị viên</option>
                         </select>
                       </td>
