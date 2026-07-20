@@ -85,26 +85,25 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       setUser(authUser);
       if (authUser) {
+        // Kiểm tra xem user có phải là admin không
+        const envAdmins = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
+        const allAdmins = [...envAdmins, "hiplaika263@gmail.com"];
+        const adminStatus = allAdmins.includes(authUser.email.toLowerCase());
+
         // Listen to user profile document
         unsubProfile = onSnapshot(doc(db, "users", authUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUserProfile(data);
-            setIsStaff(data.role === "staff");
-            if (data.role === "admin") {
-              setIsAdmin(true);
-            }
+            const isUserAdmin = adminStatus || data.role === "admin";
+            setIsAdmin(isUserAdmin);
+            setIsStaff(data.role === "staff" && !isUserAdmin);
           } else {
             setUserProfile(null);
+            setIsAdmin(adminStatus);
             setIsStaff(false);
           }
         });
-
-        // Kiểm tra xem user có phải là admin không
-        const envAdmins = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
-        const allAdmins = [...envAdmins, "hiplaika263@gmail.com"];
-        const adminStatus = allAdmins.includes(authUser.email.toLowerCase());
-        setIsAdmin(adminStatus);
         
         // Kiểm tra và đồng bộ thông tin tài khoản trên Firestore
         try {

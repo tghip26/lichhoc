@@ -933,7 +933,7 @@ function AdminDashboard() {
             <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
             Quản lý Lịch Nội Bộ 📅
           </Link>
-          {!isStaff && (
+          {(isAdmin || !isStaff) && (
             <Link 
               href="/admin/thong-ke"
               style={{ 
@@ -945,7 +945,7 @@ function AdminDashboard() {
               📊 Thống kê tài chính
             </Link>
           )}
-          {!isStaff && (
+          {(isAdmin || !isStaff) && (
             <button 
               onClick={() => setActiveTab("users")}
               style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "users" ? "var(--primary)" : "transparent", color: activeTab === "users" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "users" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
@@ -961,7 +961,7 @@ function AdminDashboard() {
             <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
             Quản lý CTV
           </button>
-          {!isStaff && (
+          {(isAdmin || !isStaff) && (
             <button 
               onClick={() => setActiveTab("transactions")}
               style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "transactions" ? "var(--primary)" : "transparent", color: activeTab === "transactions" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "transactions" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
@@ -977,7 +977,7 @@ function AdminDashboard() {
             <svg style={{ width: "16px", height: "16px", inlineSize: "16px", verticalAlign: "middle", marginRight: "6px" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.242.588 1.81l-3.97 2.883a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.971-2.883a1 1 0 00-1.175 0l-3.97 2.883c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.98 12.1c-.773-.569-.375-1.81.588-1.81h4.906a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
             Quản lý Đánh Giá
           </button>
-          {!isStaff && (
+          {(isAdmin || !isStaff) && (
             <button 
               onClick={() => setActiveTab("settings")}
               style={{ flexShrink: 0, padding: "0.6rem 1.2rem", border: "none", background: activeTab === "settings" ? "var(--primary)" : "transparent", color: activeTab === "settings" ? "white" : "var(--text-secondary)", borderRadius: "8px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s", boxShadow: activeTab === "settings" ? "0 4px 12px rgba(22, 163, 74, 0.3)" : "none", fontSize: "0.82rem" }}
