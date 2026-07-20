@@ -92,8 +92,17 @@ function AdminDashboard() {
           }
         }
 
+        // 3. Phân hạng CTV (Tier)
+        const completedCount = schedules.filter(s => (s.helperId === h.id || (s.assignedTo && s.assignedTo.toLowerCase() === h.name?.toLowerCase())) && s.status === "completed").length;
+        let tierBadge = "🥉 Tân thủ";
+        if (completedCount >= 30) tierBadge = "💎 Kim Cương";
+        else if (completedCount >= 15) tierBadge = "🥇 Vàng";
+        else if (completedCount >= 5) tierBadge = "🥈 Bạc";
+
         return {
           ...h,
+          completedCount,
+          tierBadge,
           matchScore: Math.max(0, Math.min(100, score)),
           reasons: reasons.join(", ")
         };
@@ -426,6 +435,40 @@ function AdminDashboard() {
 
   const handleAssignHelper = async (scheduleId, helperName) => {
     try {
+      if (helperName) {
+        const targetSchedule = schedules.find(s => s.id === scheduleId);
+        if (targetSchedule && targetSchedule.classDate && targetSchedule.startTime && targetSchedule.endTime) {
+          const parseMinutes = (timeStr) => {
+            if (!timeStr) return 0;
+            const parts = timeStr.replace(/[^0-9:]/g, "").split(":");
+            if (parts.length < 2) return 0;
+            return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+          };
+
+          const newStart = parseMinutes(targetSchedule.startTime);
+          const newEnd = parseMinutes(targetSchedule.endTime);
+
+          const conflict = schedules.find(s => {
+            if (s.id === scheduleId) return false;
+            if (s.status === "rejected" || s.status === "cancelled") return false;
+            if (s.classDate !== targetSchedule.classDate) return false;
+            if (!s.assignedTo || s.assignedTo.toLowerCase() !== helperName.toLowerCase()) return false;
+
+            const sStart = parseMinutes(s.startTime);
+            const sEnd = parseMinutes(s.endTime);
+            if (sStart === 0 || sEnd === 0) return false;
+
+            return Math.max(newStart, sStart) < Math.min(newEnd, sEnd) + 30;
+          });
+
+          if (conflict) {
+            if (!confirm(`🛡️ CẢNH BÁO TRÙNG LỊCH: CTV ${helperName} đã có ca học môn "${conflict.className}" (${conflict.startTime} - ${conflict.endTime}) cùng ngày! Bạn vẫn muốn giao việc?`)) {
+              return;
+            }
+          }
+        }
+      }
+
       await updateDoc(doc(db, "schedules", scheduleId), { assignedTo: helperName });
       toast.success("Đã giao việc thành công!");
     } catch (error) {
@@ -1239,7 +1282,7 @@ function AdminDashboard() {
                         const isRec = h.matchScore >= 70;
                         return (
                           <option key={h.id} value={h.name}>
-                            {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ Đề cử: ${h.matchScore}%]` : `[${h.matchScore}%]`}
+                            {isOnline ? "🟢 " : "⚪ "} {h.tierBadge} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ ${h.matchScore}%]` : `[${h.matchScore}%]`}
                           </option>
                         );
                       })}
@@ -1344,7 +1387,7 @@ function AdminDashboard() {
                               const isRec = h.matchScore >= 70;
                               return (
                                 <option key={h.id} value={h.name}>
-                                  {isOnline ? "🟢 " : "⚪ "} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ Đề cử: ${h.matchScore}%]` : `[${h.matchScore}%]`}
+                                  {isOnline ? "🟢 " : "⚪ "} {h.tierBadge} {h.alias ? `${h.alias} (${h.name})` : h.name} {isRec ? `[⭐️ ${h.matchScore}%]` : `[${h.matchScore}%]`}
                                 </option>
                               );
                             })}

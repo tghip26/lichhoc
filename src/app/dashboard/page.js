@@ -967,10 +967,55 @@ function Dashboard() {
     }
   };
 
+  const checkScheduleConflict = (schedulesList, helperId, helperName, targetClassDate, startTime, endTime, currentScheduleId) => {
+    if (!targetClassDate || !startTime || !endTime) return null;
+    
+    const parseMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const parts = timeStr.replace(/[^0-9:]/g, "").split(":");
+      if (parts.length < 2) return 0;
+      return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    };
+
+    const newStart = parseMinutes(startTime);
+    const newEnd = parseMinutes(endTime);
+
+    for (const s of schedulesList) {
+      if (s.id === currentScheduleId) continue;
+      if (s.status === "rejected" || s.status === "cancelled") continue;
+      if (s.classDate !== targetClassDate) continue;
+
+      const isSameHelper = 
+        (s.helperId && helperId && s.helperId === helperId) ||
+        (s.assignedTo && helperName && s.assignedTo.toLowerCase() === helperName.toLowerCase());
+
+      if (!isSameHelper) continue;
+
+      const sStart = parseMinutes(s.startTime);
+      const sEnd = parseMinutes(s.endTime);
+
+      if (sStart === 0 || sEnd === 0) continue;
+
+      // Trùng giờ hoặc cách nhau dưới 30 phút
+      if (Math.max(newStart, sStart) < Math.min(newEnd, sEnd) + 30) {
+        return s;
+      }
+    }
+    return null;
+  };
+
   const handleGrabJob = async (job) => {
+    const helperName = userProfile?.name || userProfile?.displayName || user.displayName || user.email;
+    
+    // CONFLICT SHIELD: Kiểm tra trùng ca
+    const conflict = checkScheduleConflict(history, user.uid, helperName, job.classDate, job.startTime, job.endTime, job.id);
+    if (conflict) {
+      toast.error(`🛡️ CẢNH BÁO TRÙNG LỊCH: Bạn đã có ca học môn "${conflict.className}" (${conflict.startTime} - ${conflict.endTime}) cùng ngày!`, { duration: 6000 });
+      return;
+    }
+
     if (!confirm(`Bạn có chắc chắn muốn nhận lớp học hộ này không?`)) return;
     try {
-      const helperName = userProfile?.name || userProfile?.displayName || user.displayName || user.email;
       await updateDoc(doc(db, "schedules", job.id), {
         helperId: user.uid,
         assignedTo: helperName,
@@ -2365,6 +2410,55 @@ function Dashboard() {
     );
   };
 
+  const handleAddToGoogleCalendar = (item) => {
+    if (!item || !item.classDate) return;
+    const dateStr = item.classDate.replace(/-/g, "");
+    const startStr = item.startTime ? item.startTime.replace(/[^0-9]/g, "") + "00" : "080000";
+    const endStr = item.endTime ? item.endTime.replace(/[^0-9]/g, "") + "00" : "110000";
+    
+    const startISO = `${dateStr}T${startStr}`;
+    const endISO = `${dateStr}T${endStr}`;
+    
+    const title = `Học hộ: ${item.className || "Lớp học"}`;
+    const details = `Thuê Học Pro - Lớp học hộ môn ${item.className || ""}\nTrường: ${item.school || ""}\nGhi chú: ${item.notes || "Không có"}`;
+    const location = item.school || "";
+
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startISO}/${endISO}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleDownloadICS = (item) => {
+    if (!item || !item.classDate) return;
+    const dateStr = item.classDate.replace(/-/g, "");
+    const startStr = item.startTime ? item.startTime.replace(/[^0-9]/g, "") + "00" : "080000";
+    const endStr = item.endTime ? item.endTime.replace(/[^0-9]/g, "") + "00" : "110000";
+    
+    const startICS = `${dateStr}T${startStr}`;
+    const endICS = `${dateStr}T${endStr}`;
+
+    const icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//ThueHocPro//LichHocHo//VI",
+      "BEGIN:VEVENT",
+      `SUMMARY:Học hộ: ${item.className || "Lớp học"}`,
+      `DESCRIPTION:Lớp: ${item.className || ""} - Trường: ${item.school || ""}\\nGhi chú: ${item.notes || ""}`,
+      `LOCATION:${item.school || ""}`,
+      `DTSTART:${startICS}`,
+      `DTEND:${endICS}`,
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute("download", `LichHoc_${item.className || "Ho"}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleConfirmPayment = async (orderId, orderName, orderPrice) => {
     if (!confirm(`Bạn đã chắc chắn chuyển khoản đúng số tiền ${Number(orderPrice).toLocaleString("vi-VN")} đ và đúng nội dung QR chưa?`)) {
       return;
@@ -2440,6 +2534,33 @@ function Dashboard() {
     }
   };
 
+  const getUpcomingShiftReminder = () => {
+    if (!history || history.length === 0) return null;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const todayStr = `${year}-${month}-${day}`;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    for (const item of history) {
+      if (item.classDate !== todayStr) continue;
+      if (["completed", "rejected", "cancelled"].includes(item.status)) continue;
+      if (!item.startTime) continue;
+
+      const parts = item.startTime.replace(/[^0-9:]/g, "").split(":");
+      if (parts.length < 2) continue;
+      const startMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+
+      const diff = startMin - currentMinutes;
+      if (diff >= -15 && diff <= 60) {
+        return { item, diffMinutes: diff };
+      }
+    }
+    return null;
+  };
+  const upcomingShift = getUpcomingShiftReminder();
+
   // Tính các chỉ số thống kê động
   const stats = {
     total: history.length,
@@ -2508,6 +2629,56 @@ function Dashboard() {
           boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)"
         }}>
           <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
+        </div>
+      )}
+
+      {/* 1-HOUR SHIFT REMINDER BANNER */}
+      {upcomingShift && (
+        <div style={{
+          background: "linear-gradient(90deg, #f59e0b, #d97706)",
+          color: "white",
+          padding: "12px 20px",
+          borderRadius: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 10px 15px -3px rgba(245, 158, 11, 0.3)",
+          animation: "pulse 2s infinite",
+          textAlign: "left"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "1.5rem" }}>⏰</span>
+            <div>
+              <strong style={{ fontSize: "0.95rem", display: "block" }}>
+                CA HỌC SẮP DIỄN RA: Môn {upcomingShift.item.className}
+              </strong>
+              <span style={{ fontSize: "0.8rem", opacity: 0.9 }}>
+                {upcomingShift.diffMinutes > 0
+                  ? `Sẽ bắt đầu sau khoảng ${upcomingShift.diffMinutes} phút (Khung giờ: ${upcomingShift.item.startTime} - ${upcomingShift.item.endTime})`
+                  : `Ca học đang diễn ra! (Bắt đầu lúc ${upcomingShift.item.startTime})`}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedItem(upcomingShift.item);
+              setShowDetailModal(true);
+            }}
+            style={{
+              background: "white",
+              color: "#d97706",
+              border: "none",
+              padding: "6px 14px",
+              borderRadius: "10px",
+              fontSize: "0.8rem",
+              fontWeight: "800",
+              cursor: "pointer",
+              whiteSpace: "nowrap"
+            }}
+          >
+            Xem Chi Tiết
+          </button>
         </div>
       )}
 
@@ -3510,6 +3681,24 @@ function Dashboard() {
             
             {/* ACTION BAR FOR PREMIUM UTILITIES */}
             <div style={{ display: "flex", gap: "10px", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => handleAddToGoogleCalendar(selectedItem)}
+                className="btn"
+                style={{ background: "#4285F4", color: "white", border: "none", borderRadius: "10px", padding: "8px 16px", fontWeight: "700", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem" }}
+              >
+                📅 Thêm Google Calendar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadICS(selectedItem)}
+                className="btn"
+                style={{ background: "#f8fafc", color: "var(--text-primary)", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "8px 16px", fontWeight: "700", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.85rem" }}
+              >
+                📥 Tải file .ics
+              </button>
+
               {(selectedItem.status === "in_progress" || selectedItem.status === "proof_submitted" || selectedItem.status === "completed") && (
                 <button 
                   type="button"
