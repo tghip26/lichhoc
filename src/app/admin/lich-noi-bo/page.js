@@ -458,6 +458,15 @@ function InternalSchedulesManager() {
         await addDoc(collection(db, "internal_schedules"), sanitizedData);
         if (!isAdmin) {
           toast.success("Yêu cầu thêm lịch đã gửi tới Admin chờ phê duyệt!");
+          // Gửi thông báo in-app cho Admin
+          await addDoc(collection(db, "notifications"), {
+            userId: "admin",
+            title: "🔔 Yêu cầu thêm lịch nội bộ mới",
+            content: `Nhân viên ${user.email} đề xuất lịch học môn ${sanitizedData.subject || "N/A"} ngày ${sanitizedData.classDate || "N/A"}.`,
+            link: "/admin/lich-noi-bo",
+            read: false,
+            createdAt: serverTimestamp()
+          });
           // Gửi thông báo tự động tới Telegram Admin
           await sendTelegramAlert(
             `🔔 <b>NHÂN VIÊN YÊU CẦU THÊM LỊCH MỚI!</b>\n\n` +
@@ -2176,12 +2185,44 @@ function InternalSchedulesManager() {
           {item.proofImage && (
             <div style={{ marginTop: "5px" }}>
               <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)", display: "block", marginBottom: "2px" }}>📸 Minh chứng:</span>
-              <img 
-                src={item.proofImage} 
-                alt="Minh chứng" 
-                style={{ width: "100%", height: "60px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
-                onClick={() => setLightboxImage(item.proofImage)}
-              />
+              {item.checkinStartImage || item.checkinMiddleImage || item.checkinEndImage ? (
+                <div style={{ display: "flex", gap: "4px", overflowX: "auto", paddingBottom: "2px" }}>
+                  {item.checkinStartImage && (
+                    <img 
+                      src={item.checkinStartImage} 
+                      alt="Đầu giờ" 
+                      style={{ width: "35px", height: "35px", objectFit: "cover", borderRadius: "4px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                      onClick={() => setLightboxImage(item.checkinStartImage)}
+                      title="1. Check-in đầu giờ"
+                    />
+                  )}
+                  {item.checkinMiddleImage && (
+                    <img 
+                      src={item.checkinMiddleImage} 
+                      alt="Giữa giờ" 
+                      style={{ width: "35px", height: "35px", objectFit: "cover", borderRadius: "4px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                      onClick={() => setLightboxImage(item.checkinMiddleImage)}
+                      title="2. Giữa ca"
+                    />
+                  )}
+                  {item.checkinEndImage && (
+                    <img 
+                      src={item.checkinEndImage} 
+                      alt="Cuối giờ" 
+                      style={{ width: "35px", height: "35px", objectFit: "cover", borderRadius: "4px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                      onClick={() => setLightboxImage(item.checkinEndImage)}
+                      title="3. Check-out ra về"
+                    />
+                  )}
+                </div>
+              ) : (
+                <img 
+                  src={item.proofImage} 
+                  alt="Minh chứng" 
+                  style={{ width: "100%", height: "60px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                  onClick={() => setLightboxImage(item.proofImage)}
+                />
+              )}
             </div>
           )}
         </div>
@@ -2664,13 +2705,38 @@ function InternalSchedulesManager() {
                           {s.checkinStatus === "checked_in" ? "✓ Đã Checkin" : "✗ Chưa"}
                         </span>
                         {s.proofImage && (
-                          <div style={{ marginTop: "4px" }}>
-                            <span 
-                              onClick={() => setLightboxImage(s.proofImage)}
-                              style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
-                            >
-                              📷 Xem ảnh
-                            </span>
+                          <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px", alignItems: "center" }}>
+                            {s.checkinStartImage ? (
+                              <span 
+                                onClick={() => setLightboxImage(s.checkinStartImage)}
+                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                              >
+                                📷 1. Đầu ca
+                              </span>
+                            ) : (
+                              <span 
+                                onClick={() => setLightboxImage(s.proofImage)}
+                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                              >
+                                📷 Xem ảnh
+                              </span>
+                            )}
+                            {s.checkinMiddleImage && (
+                              <span 
+                                onClick={() => setLightboxImage(s.checkinMiddleImage)}
+                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                              >
+                                📷 2. Giữa ca
+                              </span>
+                            )}
+                            {s.checkinEndImage && (
+                              <span 
+                                onClick={() => setLightboxImage(s.checkinEndImage)}
+                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                              >
+                                📷 3. Cuối ca
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>

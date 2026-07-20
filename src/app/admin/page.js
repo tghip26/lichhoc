@@ -1010,13 +1010,52 @@ function AdminDashboard() {
                   
                   {item.helperProofImage && (
                     <div style={{ marginTop: "10px", background: "rgba(79,70,229,0.05)", padding: "8px", borderRadius: "10px", border: "1px solid rgba(79,70,229,0.1)", textAlign: "left" }}>
-                      <span style={{ fontSize: "0.72rem", color: "#4F46E5", fontWeight: "700", display: "block", marginBottom: "4px" }}>📸 Minh chứng hoàn thành từ CTV:</span>
-                      <img 
-                        src={item.helperProofImage} 
-                        alt="Ảnh minh chứng hoàn thành" 
-                        style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "8px", cursor: "pointer", border: "1px solid #cbd5e1" }}
-                        onClick={() => setLightboxImage(item.helperProofImage)}
-                      />
+                      <span style={{ fontSize: "0.72rem", color: "#4F46E5", fontWeight: "700", display: "block", marginBottom: "6px" }}>📸 Minh chứng check-in 3 bước:</span>
+                      
+                      {item.checkinStartImage || item.checkinMiddleImage || item.checkinEndImage ? (
+                        <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px", marginBottom: "4px" }}>
+                          {item.checkinStartImage && (
+                            <div style={{ textAlign: "center", flexShrink: 0 }}>
+                              <img 
+                                src={item.checkinStartImage} 
+                                alt="Check-in 1" 
+                                style={{ width: "65px", height: "65px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                                onClick={() => setLightboxImage(item.checkinStartImage)}
+                              />
+                              <span style={{ fontSize: "0.58rem", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>1. Đầu ca</span>
+                            </div>
+                          )}
+                          {item.checkinMiddleImage && (
+                            <div style={{ textAlign: "center", flexShrink: 0 }}>
+                              <img 
+                                src={item.checkinMiddleImage} 
+                                alt="Check-in 2" 
+                                style={{ width: "65px", height: "65px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                                onClick={() => setLightboxImage(item.checkinMiddleImage)}
+                              />
+                              <span style={{ fontSize: "0.58rem", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>2. Giữa ca</span>
+                            </div>
+                          )}
+                          {item.checkinEndImage && (
+                            <div style={{ textAlign: "center", flexShrink: 0 }}>
+                              <img 
+                                src={item.checkinEndImage} 
+                                alt="Check-in 3" 
+                                style={{ width: "65px", height: "65px", objectFit: "cover", borderRadius: "6px", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                                onClick={() => setLightboxImage(item.checkinEndImage)}
+                              />
+                              <span style={{ fontSize: "0.58rem", color: "var(--text-secondary)", display: "block", marginTop: "2px" }}>3. Cuối ca</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <img 
+                          src={item.helperProofImage} 
+                          alt="Ảnh minh chứng hoàn thành" 
+                          style={{ width: "100%", height: "80px", objectFit: "cover", borderRadius: "8px", cursor: "pointer", border: "1px solid #cbd5e1", marginBottom: "4px" }}
+                          onClick={() => setLightboxImage(item.helperProofImage)}
+                        />
+                      )}
                       {item.status === "proof_submitted" && (
                         <button
                           type="button"

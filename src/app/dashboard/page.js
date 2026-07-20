@@ -911,6 +911,91 @@ function Dashboard() {
     }
   };
 
+  const handleUploadStepImage = async (stepNum, file) => {
+    if (!file) return;
+    toast.loading(`Đang tải ảnh bước ${stepNum}...`, { id: "step-upload" });
+    
+    // Nén ảnh bằng Canvas trước khi lưu vào Firestore dạng base64
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = async () => {
+      const canvas = document.createElement("canvas");
+      const MAX_WIDTH = 1280;
+      const MAX_HEIGHT = 1280;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      const base64String = canvas.toDataURL("image/jpeg", 0.7);
+
+      try {
+        const timeNow = new Date().toISOString();
+        const updates = {};
+        
+        if (stepNum === 1) {
+          updates.checkinStartImage = base64String;
+          updates.checkinStartAt = timeNow;
+        } else if (stepNum === 2) {
+          updates.checkinMiddleImage = base64String;
+          updates.checkinMiddleAt = timeNow;
+        } else if (stepNum === 3) {
+          updates.checkinEndImage = base64String;
+          updates.checkinEndAt = timeNow;
+          
+          // Khi hoàn tất bước 3, tự động cập nhật trường hoàn thành chính để duy trì tính tương thích ngược
+          if (selectedJobForProof.isInternal) {
+            updates.proofImage = base64String;
+            updates.checkinStatus = "checked_in";
+            updates.studyStatus = "da_hoc";
+          } else {
+            updates.helperProofImage = base64String;
+            updates.helperProofTime = serverTimestamp();
+            updates.status = "proof_submitted";
+          }
+        }
+
+        const docCollection = selectedJobForProof.isInternal ? "internal_schedules" : "schedules";
+        await updateDoc(doc(db, docCollection, selectedJobForProof.id), updates);
+        
+        // Cập nhật selectedJobForProof để giao diện thay đổi lập tức
+        setSelectedJobForProof(prev => ({
+          ...prev,
+          ...updates
+        }));
+        
+        toast.success(`Đã lưu ảnh minh chứng Bước ${stepNum}!`, { id: "step-upload" });
+
+        // Nếu đã hoàn thành Bước 3, bắn thông báo Telegram
+        if (stepNum === 3) {
+          const isInternalStr = selectedJobForProof.isInternal ? " [LỊCH NỘI BỘ]" : "";
+          const proofText = `📸 <b>CTV BÁO CÁO HOÀN THÀNH LỚP${isInternalStr} (3 BƯỚC)!</b>\n\n` +
+            `• <b>CTV:</b> ${userProfile?.name || user.email}\n` +
+            `• <b>Môn học:</b> ${selectedJobForProof.className || selectedJobForProof.subject}\n` +
+            `• <b>Ngày học:</b> ${new Date(selectedJobForProof.classDate).toLocaleDateString("vi-VN")}\n\n` +
+            `<i>CTV đã hoàn thành đầy đủ 3 bước điểm danh thành công! Vui lòng duyệt thù lao.</i>`;
+          await sendTelegramAlert(proofText);
+          setShowProofModal(false);
+        }
+      } catch (err) {
+        console.error("Lỗi lưu ảnh check-in:", err);
+        toast.error("Không thể lưu ảnh minh chứng.", { id: "step-upload" });
+      }
+    };
+  };
+
   const handlePayoutRequest = async (e) => {
     e.preventDefault();
     const amountNum = Number(payoutAmount);
@@ -3535,71 +3620,194 @@ function Dashboard() {
         </div>
       )}
 
-      {/* POPUP NỘP MINH CHỨNG HOÀN THÀNH ĐƠN (CTV) */}
+      {/* POPUP NỘP MINH CHỨNG HOÀN THÀNH ĐƠN (CTV 3 BƯỚC) */}
       {showProofModal && selectedJobForProof && (
         <div 
           style={{
             position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(8px)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 1001, padding: "1.5rem"
+            zIndex: 1001, padding: "1rem"
           }}
           onClick={() => setShowProofModal(false)}
         >
           <div 
             style={{
-              background: "white", borderRadius: "24px", padding: "2rem",
-              maxWidth: "450px", width: "100%", border: "1px solid #e2e8f0"
+              background: "white", borderRadius: "24px", padding: "1.75rem",
+              maxWidth: "500px", width: "100%", border: "1px solid #e2e8f0",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
             }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)" }}>📸 Nộp ảnh thù lao/Minh chứng</h3>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "850", color: "var(--text-primary)" }}>
+                  📝 Nhật Ký Điểm Danh 3 Bước
+                </h3>
+                <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                  Môn: <b>{selectedJobForProof.className || selectedJobForProof.subject}</b> | Phòng: <b>{selectedJobForProof.classroom || "N/A"}</b>
+                </span>
+              </div>
               <button type="button" onClick={() => setShowProofModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
             </div>
 
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-              Vui lòng đính kèm ảnh chụp chứng thực tại phòng học (ảnh check-in phòng học hoặc bảng điểm danh) để gửi Admin phê duyệt hoàn thành đơn.
-            </p>
-
-            <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-              <label 
-                htmlFor="proof-file-input" 
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  border: "2px dashed #cbd5e1", borderRadius: "16px", padding: "2rem", cursor: "pointer",
-                  background: "#f8fafc", transition: "all 0.2s"
-                }}
-              >
-                {proofFile ? (
-                  <div style={{ position: "relative", width: "100%", height: "150px" }}>
-                    <img src={proofFile} alt="Minh chứng" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "12px" }} />
-                    <span style={{ position: "absolute", bottom: "5px", right: "5px", background: "rgba(0,0,0,0.5)", color: "white", padding: "2px 6px", borderRadius: "6px", fontSize: "0.7rem" }}>Thay đổi ảnh</span>
+            {/* Timeline steps */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", marginBottom: "1.5rem", position: "relative" }}>
+              
+              {/* Step 1 */}
+              <div style={{ display: "flex", gap: "12px", position: "relative" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedJobForProof.checkinStartImage ? "var(--success)" : "var(--primary-light)",
+                    color: selectedJobForProof.checkinStartImage ? "white" : "var(--primary)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem"
+                  }}>
+                    {selectedJobForProof.checkinStartImage ? "✓" : "1"}
                   </div>
-                ) : (
-                  <>
-                    <svg style={{ width: "40px", height: "40px", color: "#94a3b8", marginBottom: "8px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Chọn ảnh chụp thực tế ca học</span>
-                  </>
-                )}
-              </label>
-              <input 
-                type="file" 
-                id="proof-file-input" 
-                accept="image/*" 
-                onChange={handleProofFileChange} 
-                style={{ display: "none" }} 
-              />
+                  <div style={{ width: "2px", flex: 1, background: "#cbd5e1", margin: "4px 0", minHeight: "25px" }}></div>
+                </div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 1: Check-in đầu giờ 🏫</strong>
+                  <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>Chụp ảnh phòng học hoặc bảng viết lúc bắt đầu ca học.</p>
+                  
+                  {selectedJobForProof.checkinStartImage ? (
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <img src={selectedJobForProof.checkinStartImage} alt="Start Check-in" style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                      <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600" }}>
+                        Đã điểm danh: {new Date(selectedJobForProof.checkinStartAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ) : (
+                    <label className="btn" style={{ display: "inline-block", background: "var(--primary)", color: "white", padding: "4px 10px", fontSize: "0.72rem", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}>
+                      📸 Chụp ảnh Check-in
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e => {
+                          if (e.target.files?.[0]) handleUploadStepImage(1, e.target.files[0]);
+                        }} 
+                        style={{ display: "none" }} 
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div style={{ display: "flex", gap: "12px", position: "relative" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedJobForProof.checkinMiddleImage ? "var(--success)" : "var(--primary-light)",
+                    color: selectedJobForProof.checkinMiddleImage ? "white" : "var(--primary)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem",
+                    opacity: selectedJobForProof.checkinStartImage ? 1 : 0.5
+                  }}>
+                    {selectedJobForProof.checkinMiddleImage ? "✓" : "2"}
+                  </div>
+                  <div style={{ width: "2px", flex: 1, background: "#cbd5e1", margin: "4px 0", minHeight: "25px" }}></div>
+                </div>
+                <div style={{ flex: 1, textAlign: "left", opacity: selectedJobForProof.checkinStartImage ? 1 : 0.5 }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 2: Minh chứng giữa ca 📝</strong>
+                  <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>Chụp ảnh tài liệu học tập hoặc nội dung trên bảng giảng dạy.</p>
+                  
+                  {selectedJobForProof.checkinMiddleImage ? (
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <img src={selectedJobForProof.checkinMiddleImage} alt="Middle Check-in" style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                      <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600" }}>
+                        Đã nộp lúc: {new Date(selectedJobForProof.checkinMiddleAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ) : (
+                    <label 
+                      className="btn" 
+                      style={{ 
+                        display: "inline-block", 
+                        background: selectedJobForProof.checkinStartImage ? "var(--primary)" : "#cbd5e1", 
+                        color: "white", padding: "4px 10px", fontSize: "0.72rem", borderRadius: "6px", 
+                        cursor: selectedJobForProof.checkinStartImage ? "pointer" : "not-allowed", 
+                        fontWeight: "700" 
+                      }}
+                    >
+                      📸 Nộp ảnh Giữa giờ
+                      {selectedJobForProof.checkinStartImage && (
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={e => {
+                            if (e.target.files?.[0]) handleUploadStepImage(2, e.target.files[0]);
+                          }} 
+                          style={{ display: "none" }} 
+                        />
+                      )}
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div style={{ display: "flex", gap: "12px", position: "relative" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{
+                    width: "28px", height: "28px", borderRadius: "50%",
+                    background: selectedJobForProof.checkinEndImage ? "var(--success)" : "var(--primary-light)",
+                    color: selectedJobForProof.checkinEndImage ? "white" : "var(--primary)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "750", fontSize: "0.85rem",
+                    opacity: selectedJobForProof.checkinMiddleImage ? 1 : 0.5
+                  }}>
+                    {selectedJobForProof.checkinEndImage ? "✓" : "3"}
+                  </div>
+                </div>
+                <div style={{ flex: 1, textAlign: "left", opacity: selectedJobForProof.checkinMiddleImage ? 1 : 0.5 }}>
+                  <strong style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>Bước 3: Check-out tan học 🚗</strong>
+                  <p style={{ margin: "2px 0 6px 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>Chụp ảnh phòng học kết thúc để nộp báo cáo hoàn thành đơn.</p>
+                  
+                  {selectedJobForProof.checkinEndImage ? (
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <img src={selectedJobForProof.checkinEndImage} alt="End Check-in" style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                      <span style={{ fontSize: "0.7rem", color: "var(--success)", fontWeight: "600" }}>
+                        Đã tan học lúc: {new Date(selectedJobForProof.checkinEndAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ) : (
+                    <label 
+                      className="btn" 
+                      style={{ 
+                        display: "inline-block", 
+                        background: selectedJobForProof.checkinMiddleImage ? "var(--success)" : "#cbd5e1", 
+                        color: "white", padding: "4px 10px", fontSize: "0.72rem", borderRadius: "6px", 
+                        cursor: selectedJobForProof.checkinMiddleImage ? "pointer" : "not-allowed", 
+                        fontWeight: "700" 
+                      }}
+                    >
+                      📸 Check-out Tan học
+                      {selectedJobForProof.checkinMiddleImage && (
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={e => {
+                            if (e.target.files?.[0]) handleUploadStepImage(3, e.target.files[0]);
+                          }} 
+                          style={{ display: "none" }} 
+                        />
+                      )}
+                    </label>
+                  )}
+                </div>
+              </div>
+
             </div>
 
+            {/* Close footer */}
             <button 
               type="button" 
-              onClick={handleUploadProof}
+              onClick={() => setShowProofModal(false)}
               className="btn"
-              disabled={submittingProof || !proofFile}
-              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", background: "var(--success)", color: "white", border: "none", fontWeight: "700", cursor: "pointer" }}
+              style={{ width: "100%", padding: "0.75rem", borderRadius: "12px", background: "#f1f5f9", color: "var(--text-primary)", border: "none", fontWeight: "700", cursor: "pointer", fontSize: "0.85rem" }}
             >
-              {submittingProof ? "Đang gửi báo cáo..." : "Nộp báo cáo hoàn thành đơn"}
+              Đóng cửa sổ
             </button>
           </div>
         </div>
