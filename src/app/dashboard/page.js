@@ -100,6 +100,104 @@ function Dashboard() {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLiveTrackerModal, setShowLiveTrackerModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // 1. Tự động điền (Smart Autofill) thông tin cá nhân từ lịch sử đặt lịch gần nhất hoặc hồ sơ
+  useEffect(() => {
+    if (history && history.length > 0) {
+      const latest = history[0];
+      setFormData(prev => {
+        return {
+          ...prev,
+          name: prev.name || latest.name || userProfile?.name || "",
+          studentId: prev.studentId || latest.studentId || userProfile?.studentId || "",
+          classRegular: prev.classRegular || latest.classRegular || userProfile?.classRegular || "",
+          school: prev.school || latest.school || userProfile?.school || "",
+          phone: prev.phone || latest.phone || userProfile?.phone || "",
+          dob: prev.dob || latest.dob || userProfile?.dob || ""
+        };
+      });
+    } else if (userProfile) {
+      setFormData(prev => {
+        return {
+          ...prev,
+          name: prev.name || userProfile.name || "",
+          studentId: prev.studentId || userProfile.studentId || "",
+          classRegular: prev.classRegular || userProfile.classRegular || "",
+          school: prev.school || userProfile.school || "",
+          phone: prev.phone || userProfile.phone || "",
+          dob: prev.dob || userProfile.dob || ""
+        };
+      });
+    }
+  }, [history, userProfile]);
+
+  // 2. Lưu trữ bản nháp (Preserve Draft) tự động vào localStorage khi người dùng nhập liệu
+  useEffect(() => {
+    if (user && (formData.className || formData.notes || formData.price)) {
+      localStorage.setItem(`booking_draft_${user.uid}`, JSON.stringify(formData));
+    }
+  }, [formData, user]);
+
+  // 3. Kiểm tra sự tồn tại của bản nháp khi tải trang
+  useEffect(() => {
+    if (user) {
+      const saved = localStorage.getItem(`booking_draft_${user.uid}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.className || parsed.notes || parsed.price) {
+            setHasDraft(true);
+          }
+        } catch (e) {
+          console.error("Lỗi đọc bản nháp:", e);
+        }
+      }
+    }
+  }, [user]);
+
+  // 4. Trích xuất danh sách môn học đã đặt gần đây của học viên
+  const getRecentSubjects = () => {
+    const subjects = [];
+    const seen = new Set();
+    for (const h of history) {
+      if (h.className && !seen.has(h.className.toLowerCase())) {
+        seen.add(h.className.toLowerCase());
+        subjects.push({
+          className: h.className,
+          startTime: h.startTime || "",
+          endTime: h.endTime || "",
+          school: h.school || "",
+          classRegular: h.classRegular || "",
+          price: h.price || ""
+        });
+        if (subjects.length >= 4) break;
+      }
+    }
+    return subjects;
+  };
+
+  // 5. Khôi phục bản nháp
+  const handleRestoreDraft = () => {
+    if (user) {
+      const saved = localStorage.getItem(`booking_draft_${user.uid}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setFormData(parsed);
+          setHasDraft(false);
+        } catch (e) {}
+      }
+    }
+  };
+
+  // 6. Xóa bản nháp
+  const handleClearDraft = () => {
+    if (user) {
+      localStorage.removeItem(`booking_draft_${user.uid}`);
+      setHasDraft(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -580,6 +678,8 @@ function Dashboard() {
       // Ghi nhớ thời gian gửi đơn học thành công để chống spam
       if (typeof window !== "undefined") {
         localStorage.setItem("lastOrderTime", Date.now().toString());
+        localStorage.removeItem(`booking_draft_${user.uid}`);
+        setHasDraft(false);
       }
 
       if (paymentMethod === "wallet") {
@@ -2497,6 +2597,41 @@ function Dashboard() {
             Vui lòng điền thông tin và đính kèm ảnh chụp lịch cần học hộ rõ nét.
           </p>
         </div>
+
+        {/* DRAFT RECOVERY BANNER (SESSION PRESERVATION) */}
+        {hasDraft && (
+          <div style={{
+            background: "#fffbeb", border: "1px solid #fef3c7", padding: "12px 16px", borderRadius: "14px",
+            marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", animation: "slideDown 0.3s ease", textAlign: "left"
+          }}>
+            <div style={{ fontSize: "0.85rem", color: "#b45309", fontWeight: "600" }}>
+              ⚡ Bạn có một bản nháp đơn chưa hoàn thành. Bạn muốn khôi phục không?
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                style={{
+                  background: "#d97706", color: "white", border: "none", padding: "4px 10px",
+                  borderRadius: "8px", fontSize: "0.75rem", fontWeight: "750", cursor: "pointer"
+                }}
+              >
+                Khôi phục
+              </button>
+              <button
+                type="button"
+                onClick={handleClearDraft}
+                style={{
+                  background: "transparent", color: "#92400e", border: "1px solid #f59e0b",
+                  padding: "3px 9px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer"
+                }}
+              >
+                Xóa nháp
+              </button>
+            </div>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
@@ -2516,6 +2651,48 @@ function Dashboard() {
               <input type="text" name="classRegular" value={formData.classRegular} onChange={handleChange} required className="form-input" placeholder="Ví dụ: D15CNPM5" />
               <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Lớp sinh hoạt chính của bạn trên trường.</span>
             </div>
+
+            {getRecentSubjects().length > 0 && (
+              <div className="form-group" style={{ gridColumn: "1 / -1", background: "rgba(22, 163, 74, 0.05)", padding: "12px", borderRadius: "12px", border: "1px dashed var(--primary)", textAlign: "left" }}>
+                <span style={{ fontSize: "0.78rem", fontWeight: "750", color: "var(--primary)", display: "block", marginBottom: "6px" }}>📚 Chọn nhanh môn học đã đặt gần đây (Hiểu thói quen):</span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {getRecentSubjects().map((sub, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          className: sub.className,
+                          startTime: sub.startTime,
+                          endTime: sub.endTime,
+                          school: sub.school,
+                          classRegular: sub.classRegular || prev.classRegular,
+                          price: sub.price || prev.price
+                        }));
+                        toast.success(`Đã tự động điền thông tin môn "${sub.className}"!`);
+                      }}
+                      style={{
+                        background: "white",
+                        border: "1px solid var(--primary)",
+                        color: "var(--primary)",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        fontSize: "0.75rem",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.background = "var(--primary)"; e.currentTarget.style.color = "white"; }}
+                      onMouseOut={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "var(--primary)"; }}
+                    >
+                      📖 {sub.className}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Lớp cần học hộ</label>
