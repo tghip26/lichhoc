@@ -11,21 +11,22 @@ import {
 import toast from "react-hot-toast";
 
 function InternalSchedulesManager() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isStaff, sendTelegramAlert } = useAuth();
   const router = useRouter();
 
   // Route security guard
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    if (!loading && (!user || (!isAdmin && !isStaff))) {
       router.push("/");
     }
-  }, [user, loading, isAdmin, router]);
+  }, [user, loading, isAdmin, isStaff, router]);
 
   // Data state
   const [schedules, setSchedules] = useState([]);
   const [helpers, setHelpers] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showPendingModal, setShowPendingModal] = useState(false);
 
   // Filter & Navigation states
   const [viewMode, setViewMode] = useState("grid"); // "grid", "table" or "analytics"
@@ -142,7 +143,7 @@ function InternalSchedulesManager() {
 
   // Load Firestore Data
   useEffect(() => {
-    if (!user || !isAdmin) return;
+    if (!user || (!isAdmin && !isStaff)) return;
 
     // Load Internal Schedules
     const qSchedules = query(
@@ -151,7 +152,9 @@ function InternalSchedulesManager() {
     );
     const unsubscribeSchedules = onSnapshot(qSchedules, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSchedules(data);
+      // Nhân viên chỉ được làm việc và thao tác trên lịch riêng của chính họ
+      const filtered = isAdmin ? data : data.filter(s => s.createdBy === user.uid);
+      setSchedules(filtered);
       setLoadingData(false);
     }, (err) => {
       console.error("Lỗi tải lịch học nội bộ:", err);
@@ -210,15 +213,23 @@ function InternalSchedulesManager() {
       unsubscribeCustomers();
       unsubscribeClientOrders();
     };
-  }, [user, isAdmin]);
+  }, [user, isAdmin, isStaff]);
 
-  if (loading || loadingData || !user || !isAdmin) {
+  if (loading || loadingData || !user || (!isAdmin && !isStaff)) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#f8fafc", color: "var(--text-secondary)" }}>
         Đang tải cấu hình quản lý lịch...
       </div>
     );
   }
+
+  const activeSchedules = isAdmin
+    ? schedules.filter(s => s.isApprovedByAdmin !== false)
+    : schedules;
+
+  const pendingStaffSchedules = isAdmin
+    ? schedules.filter(s => s.isApprovedByAdmin === false)
+    : [];
 
   // Study Status Config Mapping (matching image 2 aesthetics)
   const studyStatuses = {
@@ -288,9 +299,8 @@ function InternalSchedulesManager() {
     return `${year}-${month}-${day}`;
   };
 
-  // Get active schedule cards for a weekday and slot period (sang, chieu, toi)
   const getSchedulesForCell = (dateString, period) => {
-    return schedules.filter(s => s.classDate === dateString && s.period === period);
+    return activeSchedules.filter(s => s.classDate === dateString && s.period === period);
   };
 
   // CRUD actions
@@ -406,6 +416,15 @@ function InternalSchedulesManager() {
       }
     });
 
+    // Xác định người tạo và tình trạng kiểm duyệt của lịch học
+    if (!isEditing) {
+      sanitizedData.createdBy = user.uid;
+      sanitizedData.createdByEmail = user.email;
+      sanitizedData.createdByRole = isAdmin ? "admin" : "staff";
+      sanitizedData.isApprovedByAdmin = isAdmin ? true : false;
+      sanitizedData.status = isAdmin ? "approved" : "pending_admin";
+    }
+
     // Check payout logic
     let payoutCompleted = false;
     if (isEditing && editingId) {
@@ -437,7 +456,24 @@ function InternalSchedulesManager() {
       } else {
         sanitizedData.createdAt = serverTimestamp();
         await addDoc(collection(db, "internal_schedules"), sanitizedData);
-        toast.success("Đã thêm lịch học nội bộ mới!");
+        if (!isAdmin) {
+          toast.success("Yêu cầu thêm lịch đã gửi tới Admin chờ phê duyệt!");
+          // Gửi thông báo tự động tới Telegram Admin
+          await sendTelegramAlert(
+            `🔔 <b>NHÂN VIÊN YÊU CẦU THÊM LỊCH MỚI!</b>\n\n` +
+            `• <b>Nhân viên:</b> ${user.email}\n` +
+            `• <b>Môn học:</b> ${sanitizedData.subject || "N/A"}\n` +
+            `• <b>Ngày học:</b> ${sanitizedData.classDate || "N/A"}\n` +
+            `• <b>Khung giờ:</b> ${sanitizedData.timeSlot || "N/A"}\n` +
+            `• <b>Phòng học:</b> ${sanitizedData.classroom || "N/A"}\n` +
+            `• <b>CTV đi học:</b> ${sanitizedData.helperName || "N/A"}\n` +
+            `• <b>Lương CTV:</b> ${(Number(sanitizedData.salaryAmount) || 0).toLocaleString("vi-VN")} đ\n` +
+            `• <b>Thu khách hàng:</b> ${(Number(sanitizedData.rentAmount) || 0).toLocaleString("vi-VN")} đ\n` +
+            `• <b>Thời gian:</b> ${new Date().toLocaleString("vi-VN")}`
+          );
+        } else {
+          toast.success("Đã thêm lịch học nội bộ mới!");
+        }
       }
 
       // Trigger auto payout if marked completed
@@ -589,6 +625,66 @@ function InternalSchedulesManager() {
     }
   };
 
+  const handleApproveSchedule = async (schedule) => {
+    if (!confirm(`Bạn có chắc chắn muốn duyệt & thêm lịch học "${schedule.subject}" vào bảng lịch chính không?`)) {
+      return;
+    }
+    try {
+      const docRef = doc(db, "internal_schedules", schedule.id);
+      const updates = {
+        isApprovedByAdmin: true,
+        status: "approved",
+        approvedAt: serverTimestamp()
+      };
+      
+      // Kích hoạt thanh toán tự động nếu lịch được đánh dấu "Đã trả lương" và chưa quyết toán
+      if (schedule.salaryStatus === "Đã trả lương" && !schedule.payoutDone) {
+        updates.payoutDone = true;
+        const helperNameClean = (schedule.helperName || "").trim().toLowerCase();
+        if (helperNameClean) {
+          const helperObj = helpers.find(h => 
+            !h.isManual && 
+            ((h.alias && h.alias.trim().toLowerCase() === helperNameClean) ||
+             (h.name && h.name.trim().toLowerCase() === helperNameClean))
+          );
+          if (helperObj && helperObj.userId) {
+            const payoutVal = (Number(schedule.salaryAmount) || 0) + (Number(schedule.staffTipAmount) || 0);
+            if (payoutVal > 0) {
+              await updateDoc(doc(db, "users", helperObj.userId), {
+                helperBalance: increment(payoutVal)
+              });
+              await addDoc(collection(db, "transactions"), {
+                userId: helperObj.userId,
+                userName: helperObj.name,
+                email: helperObj.email || "",
+                amount: payoutVal,
+                type: "payout",
+                status: "completed",
+                description: `Thù lao tự động trực lớp: ${schedule.subject} (${schedule.classDate})`,
+                createdAt: serverTimestamp()
+              });
+            }
+          }
+        }
+      }
+      
+      await updateDoc(docRef, updates);
+      toast.success(`Đã duyệt và thêm lịch học: ${schedule.subject}`);
+      
+      // Bắn thông báo Telegram xác nhận đã duyệt
+      await sendTelegramAlert(
+        `✅ <b>ĐÃ DUYỆT LỊCH HỌC NỘI BỘ TỪ NHÂN VIÊN!</b>\n\n` +
+        `• <b>Môn học:</b> ${schedule.subject}\n` +
+        `• <b>Lập lịch bởi:</b> ${schedule.createdByEmail || "Nhân viên"}\n` +
+        `• <b>Ngày học:</b> ${schedule.classDate}\n` +
+        `• <b>Thời gian duyệt:</b> ${new Date().toLocaleString("vi-VN")}`
+      );
+    } catch (err) {
+      console.error("Lỗi duyệt lịch nhân viên:", err);
+      toast.error("Không thể duyệt lịch học!");
+    }
+  };
+
   const handleDeleteManualHelper = async (id, name) => {
     if (!confirm(`Bạn có chắc chắn muốn xóa CTV "${name}" khỏi danh sách tự thêm không?`)) {
       return;
@@ -683,17 +779,17 @@ function InternalSchedulesManager() {
 
   const renderAnalyticsView = () => {
     // 1. Calculate debt amounts across ALL schedules
-    const unpaidCustomerTotal = schedules
+    const unpaidCustomerTotal = activeSchedules
       .filter(s => !s.paymentStatus?.toLowerCase().includes("đã") && s.paymentStatus !== "Đã thanh toán")
       .reduce((sum, s) => sum + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0);
 
-    const unpaidHelperSalaryTotal = schedules
+    const unpaidHelperSalaryTotal = activeSchedules
       .filter(s => !s.salaryStatus?.toLowerCase().includes("đã") && s.salaryStatus !== "Đã trả lương")
       .reduce((sum, s) => sum + Number(s.salaryAmount || 0) + Number(s.staffTipAmount || 0), 0);
 
     // 2. Guest stats (sorted high to low)
     const guestStats = {};
-    schedules.forEach(s => {
+    activeSchedules.forEach(s => {
       const name = s.studentName ? s.studentName.trim() : "Khách ẩn danh";
       if (!guestStats[name]) {
         guestStats[name] = { name, total: 0, paid: 0, unpaid: 0, count: 0 };
@@ -711,7 +807,7 @@ function InternalSchedulesManager() {
 
     // 3. CTV stats (salary paid/unpaid and count of finished classes)
     const ctvStats = {};
-    schedules.forEach(s => {
+    activeSchedules.forEach(s => {
       const name = s.helperName ? s.helperName.trim() : "";
       if (!name || name === "(Chưa giao CTV)") return;
       if (!ctvStats[name]) {
@@ -737,7 +833,7 @@ function InternalSchedulesManager() {
     const selectedYear = currentWeekStart.getFullYear();
     const monthName = currentWeekStart.toLocaleString("vi-VN", { month: "long" });
 
-    const monthSchedules = schedules.filter(s => {
+    const monthSchedules = activeSchedules.filter(s => {
       if (!s.classDate) return false;
       const d = new Date(s.classDate);
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
@@ -1960,7 +2056,7 @@ function InternalSchedulesManager() {
   };
 
   // Filtered list for Spreadsheet mode
-  const filteredTableList = schedules.filter(item => {
+  const filteredTableList = activeSchedules.filter(item => {
     const matchText = 
       (item.studentName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1976,14 +2072,14 @@ function InternalSchedulesManager() {
   });
 
   // Extract unique past values for autocomplete datalists
-  const uniqueSubjects = Array.from(new Set(schedules.map(s => s.subject).filter(Boolean)));
-  const uniqueClassrooms = Array.from(new Set(schedules.map(s => s.classroom).filter(Boolean)));
-  const uniqueLecturers = Array.from(new Set(schedules.map(s => s.lecturer).filter(Boolean)));
+  const uniqueSubjects = Array.from(new Set(activeSchedules.map(s => s.subject).filter(Boolean)));
+  const uniqueClassrooms = Array.from(new Set(activeSchedules.map(s => s.classroom).filter(Boolean)));
+  const uniqueLecturers = Array.from(new Set(activeSchedules.map(s => s.lecturer).filter(Boolean)));
 
   // Financial summary computation
   const startStr = formatLocalDate(currentWeekStart);
   const endStr = formatLocalDate(getDateOfWeekday(6));
-  const weeklySchedules = schedules.filter(s => s.classDate >= startStr && s.classDate <= endStr);
+  const weeklySchedules = activeSchedules.filter(s => s.classDate >= startStr && s.classDate <= endStr);
   const selectedSchedules = viewMode === "grid" ? weeklySchedules : filteredTableList;
 
   const totalTenantIncome = selectedSchedules.reduce((acc, s) => acc + Number(s.rentAmount || 0) + Number(s.tipAmount || 0), 0);
@@ -2171,7 +2267,16 @@ function InternalSchedulesManager() {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          {isAdmin && pendingStaffSchedules.length > 0 && (
+            <button 
+              onClick={() => setShowPendingModal(true)} 
+              className="btn animate-pulse"
+              style={{ background: "#d97706", color: "white", padding: "0.6rem 1.2rem", borderRadius: "10px", fontWeight: "750", border: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              🔔 Lịch chờ duyệt ({pendingStaffSchedules.length})
+            </button>
+          )}
           <button 
             onClick={() => setShowImportModal(true)} 
             className="btn"
@@ -2800,6 +2905,94 @@ function InternalSchedulesManager() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODAL PHÊ DUYỆT YÊU CẦU TỪ NHÂN VIÊN */}
+      {showPendingModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1003, padding: "1rem"
+          }}
+          onClick={() => setShowPendingModal(false)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "2rem",
+              maxWidth: "800px", width: "100%", maxHeight: "85vh", overflowY: "auto",
+              position: "relative", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <h3 style={{ fontSize: "1.3rem", fontWeight: "800", color: "var(--text-primary)", margin: 0 }}>
+                🔔 Lịch học từ Nhân viên chờ duyệt
+              </h3>
+              <button 
+                onClick={() => setShowPendingModal(false)} 
+                style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--text-secondary)" }}
+              >
+                &times;
+              </button>
+            </div>
+
+            {pendingStaffSchedules.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-secondary)", fontStyle: "italic" }}>
+                Không có yêu cầu chờ duyệt nào từ nhân viên.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {pendingStaffSchedules.map(item => (
+                  <div key={item.id} style={{ border: "1px solid #cbd5e1", borderRadius: "12px", padding: "1.25rem", background: "#f8fafc", textAlign: "left" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
+                      <div>
+                        <strong style={{ fontSize: "1.05rem", color: "var(--primary)" }}>{item.subject}</strong>
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "2px" }}>
+                          Yêu cầu bởi: <span style={{ fontWeight: "700", color: "var(--text-primary)" }}>{item.createdByEmail || "Nhân viên"}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button 
+                          onClick={() => {
+                            handleApproveSchedule(item);
+                          }}
+                          className="btn btn-primary"
+                          style={{ padding: "6px 12px", fontSize: "0.8rem", borderRadius: "8px" }}
+                        >
+                          Duyệt & Thêm Lịch
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (confirm("Bạn có chắc chắn muốn từ chối yêu cầu lịch học này?")) {
+                              deleteDoc(doc(db, "internal_schedules", item.id))
+                                .then(() => toast.success("Đã từ chối và xóa lịch học!"))
+                                .catch(err => console.error(err));
+                            }
+                          }}
+                          className="btn"
+                          style={{ padding: "6px 12px", fontSize: "0.8rem", borderRadius: "8px", background: "#ef4444", color: "white" }}
+                        >
+                          Từ chối
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px", fontSize: "0.82rem", color: "var(--text-secondary)", borderTop: "1px dashed #cbd5e1", paddingTop: "8px", marginTop: "8px" }}>
+                      <span>📅 Ngày học: <b>{item.classDate}</b></span>
+                      <span>🕒 Giờ: <b>{item.timeSlot}</b></span>
+                      <span>🚪 Phòng: <b>{item.classroom || "N/A"}</b></span>
+                      <span>👤 CTV: <b>{item.helperName || "N/A"}</b></span>
+                      <span>💵 Lương CTV: <b>{Number(item.salaryAmount || 0).toLocaleString("vi-VN")} đ</b></span>
+                      <span>💰 Thu khách: <b>{Number(item.rentAmount || 0).toLocaleString("vi-VN")} đ</b></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

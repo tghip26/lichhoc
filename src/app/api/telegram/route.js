@@ -10,6 +10,36 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing message text' }, { status: 400 });
     }
 
+    // Xác minh danh tính người gọi API để tránh bị spam/tấn công
+    const authHeader = request.headers.get("authorization");
+    const clientKey = request.headers.get("x-public-client-key");
+    let isAuthorized = false;
+
+    if (clientKey === "THUEHOCPRO_PUBLIC_ALERT_2026") {
+      isAuthorized = true;
+    } else if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ")[1];
+      const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyB3R7ar7W3BXIKmcGo0Zc4U5oOUl4mg44c";
+      try {
+        const validationRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ idToken: token })
+        });
+        if (validationRes.ok) {
+          isAuthorized = true;
+        }
+      } catch (err) {
+        console.warn("Lỗi xác minh token trên máy chủ:", err.message);
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: "Unauthorized access blocked by Web Security System" }, { status: 401 });
+    }
+
     // Đọc từ biến môi trường (Khuyến nghị - Bảo mật tuyệt đối)
     let token = process.env.TELEGRAM_BOT_TOKEN;
     let chatId = process.env.TELEGRAM_CHAT_ID;

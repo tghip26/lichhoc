@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
   const [systemSettings, setSystemSettings] = useState(() => {
     // Thử đọc từ bộ nhớ đệm để cấu hình load lập tức
     if (typeof window !== "undefined") {
@@ -39,11 +40,21 @@ export function AuthProvider({ children }) {
 
   const sendTelegramAlert = async (text) => {
     try {
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Public-Client-Key": "THUEHOCPRO_PUBLIC_ALERT_2026"
+      };
+      if (auth.currentUser) {
+        try {
+          const token = await auth.currentUser.getIdToken();
+          headers["Authorization"] = `Bearer ${token}`;
+        } catch (tokenErr) {
+          console.warn("Lỗi lấy ID Token:", tokenErr);
+        }
+      }
       const res = await fetch("/api/telegram", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers,
         body: JSON.stringify({ text })
       });
       if (!res.ok) {
@@ -77,9 +88,12 @@ export function AuthProvider({ children }) {
         // Listen to user profile document
         unsubProfile = onSnapshot(doc(db, "users", authUser.uid), (docSnap) => {
           if (docSnap.exists()) {
-            setUserProfile(docSnap.data());
+            const data = docSnap.data();
+            setUserProfile(data);
+            setIsStaff(data.role === "staff");
           } else {
             setUserProfile(null);
+            setIsStaff(false);
           }
         });
 
@@ -157,6 +171,7 @@ export function AuthProvider({ children }) {
         }
       } else {
         setIsAdmin(false);
+        setIsStaff(false);
         setUserProfile(null);
         if (unsubProfile) unsubProfile();
       }
@@ -227,7 +242,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, isAdmin, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings, sendTelegramAlert }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isAdmin, isStaff, loginWithGoogle, registerWithEmail, loginWithEmail, logout, systemSettings, sendTelegramAlert }}>
       {children}
     </AuthContext.Provider>
   );
