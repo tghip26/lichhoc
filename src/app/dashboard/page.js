@@ -99,7 +99,7 @@ function Dashboard() {
   const [payoutBankAccount, setPayoutBankAccount] = useState("");
   const [payoutBankOwner, setPayoutBankOwner] = useState("");
   const [showProofModal, setShowProofModal] = useState(false);
-  const [selectedJobForProof, setSelectedJobForProof] = useState(null);
+  const [selectedJobForProofState, setSelectedJobForProof] = useState(null);
   const [proofFile, setProofFile] = useState(null);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
@@ -1113,19 +1113,17 @@ function Dashboard() {
 
   const handleToggleTask = async (jobId, taskIndex, currentStatus) => {
     try {
-      const updatedTasks = [...(selectedJobForProof.sessionTasks || [])];
-      updatedTasks[taskIndex].completed = !currentStatus;
+      const updatedTasks = (selectedJobForProof.sessionTasks || []).map((t, idx) => 
+        idx === taskIndex ? { ...t, completed: !currentStatus } : t
+      );
+      
+      const docCollection = selectedJobForProof.isInternal ? "internal_schedules" : "schedules";
       
       // Cập nhật CSDL Firestore
-      await updateDoc(doc(db, "schedules", jobId), {
+      await updateDoc(doc(db, docCollection, jobId), {
         sessionTasks: updatedTasks
       });
       
-      // Cập nhật local state
-      setSelectedJobForProof(prev => ({
-        ...prev,
-        sessionTasks: updatedTasks
-      }));
       toast.success("Đã cập nhật trạng thái nhiệm vụ!");
     } catch (err) {
       console.error("Lỗi cập nhật nhiệm vụ:", err);
@@ -2625,6 +2623,14 @@ function Dashboard() {
        openJobs.find(s => s.id === selectedItemState.id) ||
        (typeof internalSchedules !== "undefined" ? internalSchedules.find(s => s.id === selectedItemState.id) : null) ||
        selectedItemState)
+    : null;
+
+  const selectedJobForProof = selectedJobForProofState
+    ? (myJobs.find(s => s.id === selectedJobForProofState.id) ||
+       history.find(s => s.id === selectedJobForProofState.id) ||
+       openJobs.find(s => s.id === selectedJobForProofState.id) ||
+       (typeof internalSchedules !== "undefined" ? internalSchedules.find(s => s.id === selectedJobForProofState.id) : null) ||
+       selectedJobForProofState)
     : null;
 
   return (
