@@ -43,7 +43,7 @@ function Dashboard() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItemState, setSelectedItem] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [newOrderInfo, setNewOrderInfo] = useState(null);
   const [minDate, setMinDate] = useState("");
@@ -2618,6 +2618,14 @@ function Dashboard() {
     
     return matchesSearch && matchesStatus;
   });
+
+  const selectedItem = selectedItemState
+    ? (history.find(s => s.id === selectedItemState.id) ||
+       myJobs.find(s => s.id === selectedItemState.id) ||
+       openJobs.find(s => s.id === selectedItemState.id) ||
+       (typeof internalSchedules !== "undefined" ? internalSchedules.find(s => s.id === selectedItemState.id) : null) ||
+       selectedItemState)
+    : null;
 
   return (
     <div className="dashboard-main-container" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>

@@ -2346,8 +2346,10 @@ function AdminDashboard() {
 function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignHelper, helpers, setLightboxImage }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItemState, setSelectedItem] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  const selectedItem = selectedItemState ? (schedules.find(s => s.id === selectedItemState.id) || selectedItemState) : null;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
