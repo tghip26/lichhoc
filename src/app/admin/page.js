@@ -1311,6 +1311,11 @@ function AdminDashboard() {
                       style={{ padding: "4px 8px", fontSize: "0.8rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "8px", border: "1px solid #cbd5e1" }}
                     >
                       <option value="">-- Chưa giao việc --</option>
+                      {item.assignedTo && !getSortedHelpersForJob(item).some(h => h.name === item.assignedTo || h.alias === item.assignedTo || h.email === item.assignedTo) && (
+                        <option value={item.assignedTo}>
+                          👤 {item.assignedTo} (Đang trực)
+                        </option>
+                      )}
                       {getSortedHelpersForJob(item).map(h => {
                         const isOnline = getHelperShiftStatus(h.email);
                         const isRec = h.matchScore >= 70;
@@ -1440,6 +1445,11 @@ function AdminDashboard() {
                             style={{ padding: "2px 4px", fontSize: "0.75rem", height: "auto", background: "white", cursor: "pointer", borderRadius: "6px", width: "100%", marginTop: "2px", border: "1px solid #cbd5e1" }}
                           >
                             <option value="">-- Chưa giao --</option>
+                            {item.assignedTo && !getSortedHelpersForJob(item).some(h => h.name === item.assignedTo || h.alias === item.assignedTo || h.email === item.assignedTo) && (
+                              <option value={item.assignedTo}>
+                                👤 {item.assignedTo} (Đang trực)
+                              </option>
+                            )}
                             {getSortedHelpersForJob(item).map(h => {
                               const isOnline = getHelperShiftStatus(h.email);
                               const isRec = h.matchScore >= 70;
@@ -2653,6 +2663,11 @@ function AdminCalendarView({ schedules, users, handleUpdateStatus, handleAssignH
                   style={{ background: "white", cursor: "pointer" }}
                 >
                   <option value="">-- Chưa giao --</option>
+                  {selectedItem.assignedTo && !getSortedHelpersForJob(selectedItem).some(h => h.name === selectedItem.assignedTo || h.alias === selectedItem.assignedTo || h.email === selectedItem.assignedTo) && (
+                    <option value={selectedItem.assignedTo}>
+                      👤 {selectedItem.assignedTo} (Đang trực)
+                    </option>
+                  )}
                   {getSortedHelpersForJob(selectedItem).map(h => {
                     const isOnline = typeof getHelperShiftStatus === "function" ? getHelperShiftStatus(h.email) : false;
                     const isRec = h.matchScore >= 70;

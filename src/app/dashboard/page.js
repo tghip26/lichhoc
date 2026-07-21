@@ -2353,10 +2353,13 @@ function Dashboard() {
     ];
 
     let currentIdx = 0;
-    if (status === "approved" || status === "paid") currentIdx = 1;
-    else if (status === "in_progress") currentIdx = 2;
-    else if (status === "completed") currentIdx = 3;
-    else if (status === "rejected") {
+    if (status === "approved" || status === "paid" || status === "accepted") {
+      currentIdx = 1;
+    } else if (status === "in_progress" || status === "proof_submitted" || status === "disputed") {
+      currentIdx = 2;
+    } else if (status === "completed") {
+      currentIdx = 3;
+    } else if (status === "rejected") {
       return (
         <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px", border: "1px solid #fca5a5", color: "#b91c1c", fontSize: "0.82rem", fontWeight: "600", marginBottom: "1.5rem", textAlign: "center" }}>
           ❌ Đơn hàng này đã bị hủy bỏ hoặc từ chối duyệt.
