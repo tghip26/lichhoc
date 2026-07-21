@@ -2,23 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Hàm phụ trợ kiểm tra vai trò người dùng (Admin/CTV)
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    // Hàm phụ trợ kiểm tra vai trò người dùng an toàn (không bị crash nếu chưa có tài liệu user)
+    function hasRole(role) {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
     
     function isAdmin() {
       return request.auth != null && 
-        (getUserData().role == 'admin' || 
-         request.auth.token.email == 'hiplaika263@gmail.com');
+        (request.auth.token.email == 'hiplaika263@gmail.com' || hasRole('admin'));
     }
     
     function isHelper() {
-      return request.auth != null && getUserData().role == 'helper';
+      return hasRole('helper');
     }
 
     function isStaff() {
-      return request.auth != null && getUserData().role == 'staff';
+      return hasRole('staff');
     }
 
     // 1. Quy tắc cho bộ sưu tập 'users' (Tài khoản người dùng)
@@ -41,8 +42,8 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       // Khách hàng tự xem lịch sử của mình. Admin được xem toàn bộ.
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
-      // Người dùng đã đăng nhập được tạo giao dịch mới ở trạng thái chờ duyệt (pending)
-      allow create: if request.auth != null && request.resource.data.status == 'pending';
+      // Người dùng đã đăng nhập được tạo giao dịch mới ở trạng thái chờ duyệt (pending). Admin được tạo giao dịch trực tiếp.
+      allow create: if request.auth != null && (request.resource.data.status == 'pending' || isAdmin());
       // Chỉ Admin mới được quyền cập nhật hoặc xóa giao dịch
       allow update, delete: if isAdmin();
     }

@@ -248,41 +248,51 @@ function AdminDashboard() {
     }
     try {
       const schedule = schedules.find(s => s.id === id);
-      await updateDoc(doc(db, "schedules", id), { status: newStatus });
+      const isPayingHelper = newStatus === "completed" && schedule && schedule.helperId && !schedule.payoutPaid;
+      
+      const updateFields = { status: newStatus };
+      if (isPayingHelper) {
+        updateFields.payoutPaid = true;
+      }
+      await updateDoc(doc(db, "schedules", id), updateFields);
       toast.success("Cập nhật trạng thái thành công");
 
       // Tự động chuyển thù lao vào ví CTV khi đơn hoàn thành
       if (newStatus === "completed" && schedule && schedule.helperId) {
-        const priceNum = schedule.price ? Number(String(schedule.price).replace(/\./g, "")) : 0;
-        const payoutVal = schedule.payoutAmount !== undefined ? Number(schedule.payoutAmount) : Math.floor(priceNum * 0.75);
+        if (schedule.payoutPaid) {
+          toast.info("Đơn chuyển Hoàn thành. Thù lao đã được thanh toán trước đó.");
+        } else {
+          const priceNum = schedule.price ? Number(String(schedule.price).replace(/\./g, "")) : 0;
+          const payoutVal = schedule.payoutAmount !== undefined ? Number(schedule.payoutAmount) : Math.floor(priceNum * 0.75);
 
-        // Cộng thù lao vào ví CTV (helperBalance)
-        await updateDoc(doc(db, "users", schedule.helperId), {
-          helperBalance: increment(payoutVal)
-        });
+          // Cộng thù lao vào ví CTV (helperBalance)
+          await updateDoc(doc(db, "users", schedule.helperId), {
+            helperBalance: increment(payoutVal)
+          });
 
-        // Tạo lịch sử giao dịch payout_earn
-        await addDoc(collection(db, "transactions"), {
-          userId: schedule.helperId,
-          userEmail: schedule.assignedTo || "ctv",
-          amount: payoutVal,
-          type: "payout_earn",
-          status: "completed",
-          message: `Nhận thù lao trực lớp ${schedule.className} ngày ${new Date(schedule.classDate).toLocaleDateString("vi-VN")}`,
-          createdAt: serverTimestamp()
-        });
+          // Tạo lịch sử giao dịch payout_earn
+          await addDoc(collection(db, "transactions"), {
+            userId: schedule.helperId,
+            userEmail: schedule.assignedTo || "ctv",
+            amount: payoutVal,
+            type: "payout_earn",
+            status: "completed",
+            message: `Nhận thù lao trực lớp ${schedule.className} ngày ${new Date(schedule.classDate).toLocaleDateString("vi-VN")}`,
+            createdAt: serverTimestamp()
+          });
 
-        // Tạo thông báo cho CTV
-        await addDoc(collection(db, "notifications"), {
-          userId: schedule.helperId,
-          title: "Nhận thù lao trực lớp thành công 💰",
-          message: `Ví thù lao CTV của bạn đã được cộng +${payoutVal.toLocaleString("vi-VN")} đ cho ca trực môn ${schedule.className}.`,
-          read: false,
-          link: "/dashboard",
-          createdAt: serverTimestamp()
-        });
+          // Tạo thông báo cho CTV
+          await addDoc(collection(db, "notifications"), {
+            userId: schedule.helperId,
+            title: "Nhận thù lao trực lớp thành công 💰",
+            message: `Ví thù lao CTV của bạn đã được cộng +${payoutVal.toLocaleString("vi-VN")} đ cho ca trực môn ${schedule.className}.`,
+            read: false,
+            link: "/dashboard",
+            createdAt: serverTimestamp()
+          });
 
-        toast.info(`Đã tự động chuyển +${payoutVal.toLocaleString("vi-VN")} đ thù lao vào ví CTV ${schedule.assignedTo}!`);
+          toast.info(`Đã tự động chuyển +${payoutVal.toLocaleString("vi-VN")} đ thù lao vào ví CTV ${schedule.assignedTo}!`);
+        }
 
         // Gửi thông báo Telegram cho Admin
         try {
@@ -351,6 +361,44 @@ function AdminDashboard() {
         }
 
         toast.success("Đã hoàn tiền khiếu nại cho học viên!");
+        
+        // Hỏi xem có thanh toán thù lao cho CTV phụ trách không
+        if (schedule.helperId) {
+          const payHelper = confirm("Bạn có muốn THANH TOÁN thù lao cho CTV phụ trách ca học bị khiếu nại này không?");
+          if (payHelper) {
+            if (schedule.payoutPaid) {
+              alert("CTV này đã nhận thù lao của ca học này trước đó rồi! Hệ thống không phát thêm để tránh trùng lặp thù lao.");
+            } else {
+              const payoutVal = schedule.payoutAmount !== undefined 
+                ? Number(schedule.payoutAmount) 
+                : Math.floor(priceNum * 0.75);
+
+              // Cộng thù lao vào ví CTV (helperBalance)
+              await updateDoc(doc(db, "users", schedule.helperId), {
+                helperBalance: increment(payoutVal)
+              });
+
+              // Tạo lịch sử giao dịch payout_earn
+              await addDoc(collection(db, "transactions"), {
+                userId: schedule.helperId,
+                userEmail: schedule.assignedTo || "ctv",
+                amount: payoutVal,
+                type: "payout_earn",
+                status: "completed",
+                message: `Nhận thù lao ca học khiếu nại hoàn tiền môn ${schedule.className}`,
+                createdAt: serverTimestamp()
+              });
+
+              // Lưu trạng thái đã trả thù lao vào đơn
+              await updateDoc(doc(db, "schedules", schedule.id), {
+                payoutPaid: true
+              });
+              
+              toast.success(`Đã phát thù lao +${payoutVal.toLocaleString("vi-VN")} đ cho CTV ${schedule.assignedTo}!`);
+            }
+          }
+        }
+
         sendTelegramAlert(`⚖️ <b>XỬ LÝ KHIẾU NẠI: HOÀN TIỀN HỌC VIÊN!</b>\n\n• <b>Mã đơn:</b> ${schedule.id.substring(0,8).toUpperCase()}\n• <b>Số tiền hoàn:</b> ${priceNum.toLocaleString("vi-VN")} đ`);
       } catch (err) {
         console.error("Lỗi hoàn tiền khiếu nại:", err);

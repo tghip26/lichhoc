@@ -1717,6 +1717,8 @@ function Dashboard() {
                         <span style={{ color: "var(--success)", fontWeight: "700" }}>Hoàn thành</span>
                       ) : job.status === "proof_submitted" ? (
                         <span style={{ color: "#D97706", fontWeight: "700" }}>Chờ duyệt</span>
+                      ) : job.status === "rejected" ? (
+                        <span style={{ color: "var(--danger)", fontWeight: "700" }}>🚨 Bị hủy</span>
                       ) : (
                         <button
                           type="button"
@@ -2107,6 +2109,8 @@ function Dashboard() {
                             <span style={{ fontSize: "0.75rem", background: "rgba(22,163,74,0.12)", color: "var(--success)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Hoàn thành</span>
                           ) : job.status === "proof_submitted" ? (
                             <span style={{ fontSize: "0.75rem", background: "rgba(217,119,6,0.12)", color: "#D97706", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đã nộp báo cáo</span>
+                          ) : job.status === "rejected" ? (
+                            <span style={{ fontSize: "0.75rem", background: "rgba(239,68,68,0.12)", color: "var(--danger)", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>🚨 Đơn bị hủy</span>
                           ) : (
                             <span style={{ fontSize: "0.75rem", background: "rgba(79,70,229,0.12)", color: "#4F46E5", padding: "2px 8px", borderRadius: "8px", fontWeight: "750" }}>Đang trực lớp</span>
                           )}
@@ -2118,6 +2122,11 @@ function Dashboard() {
                           <span>🕒 Khung giờ: <b>{job.startTime} - {job.endTime}</b></span>
                           {job.classroom && <span>🚪 Phòng học: <b>{job.classroom}</b></span>}
                           <span>👤 Học viên: <b>{job.name}</b></span>
+                          {job.status === "rejected" && (
+                            <div style={{ margin: "5px 0", padding: "8px 10px", background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", color: "#b91c1c", fontSize: "0.75rem", fontWeight: "600", lineHeight: "1.3" }}>
+                              ⚠️ Đơn trực này đã bị hủy/hoàn tiền. Lý do: {job.disputeReason || "Quản trị viên hủy đơn."}
+                            </div>
+                          )}
                           <span>📞 Liên hệ Admin: <a href="https://zalo.me/0852866856" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline", color: "var(--primary)", fontWeight: "bold" }}>0852866856 💬</a></span>
                         </div>
 
@@ -4826,8 +4835,8 @@ function Dashboard() {
 
               {/* Footer text */}
               <div style={{ borderTop: "1px solid #cbd5e1", paddingTop: "1rem", textAlign: "center", fontSize: "0.72rem", color: "var(--text-secondary)" }}>
-                Cảm ơn bạn đã lựa chọn Thuê Học Pro. Mọi thắc mắc liên hệ hotro@thuehoc.pro.<br/>
-                <i>Hóa đơn điện tử được ký và xác nhận thanh toán tự động bởi hệ thống tài chính THUEHOCPRO.</i>
+                Cảm ơn bạn đã lựa chọn Thuê Học Pro. Mọi thắc mắc liên hệ hotro@thuehoc.pro hoặc Zalo: 0852866856.<br/>
+                <i>Chỉ để đối chiếu và lưu trữ.</i>
               </div>
             </div>
 
