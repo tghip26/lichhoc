@@ -3594,7 +3594,7 @@ function Dashboard() {
                         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                           <strong style={{ fontSize: "0.88rem", color: "var(--text-primary)", textAlign: "left" }}>{t.message}</strong>
                           <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textAlign: "left" }}>
-                            {t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                            {t.createdAt ? new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt).toLocaleString("vi-VN") : ""}
                           </span>
                           <span style={{ 
                             fontSize: "0.72rem", 

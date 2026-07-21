@@ -687,7 +687,7 @@ function AdminDashboard() {
     const csvContent = [
       headers.join(","),
       ...schedules.map(s => {
-        const date = s.createdAt ? new Date(s.createdAt.toDate()).toLocaleDateString("vi-VN") : "";
+        const date = s.createdAt ? new Date(s.createdAt?.toDate ? s.createdAt.toDate() : s.createdAt).toLocaleDateString("vi-VN") : "";
         const statusMap = { "approved": "Đã duyệt", "rejected": "Từ chối", "pending": "Chờ duyệt" };
         return [
           `"${s.name || ""}"`,
@@ -703,7 +703,7 @@ function AdminDashboard() {
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }); 
-    const url = URL.createObjectURL(blob);
+    const url = window.URL ? window.URL.createObjectURL(blob) : "";
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", `lich_hoc_${new Date().toISOString().split("T")[0]}.csv`);
@@ -721,7 +721,7 @@ function AdminDashboard() {
     const csvContent = [
       headers.join(","),
       ...users.map(u => {
-        const lastLoginStr = u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString("vi-VN") : "Chưa rõ";
+        const lastLoginStr = u.lastLogin ? new Date(u.lastLogin?.toDate ? u.lastLogin.toDate() : u.lastLogin).toLocaleString("vi-VN") : "Chưa rõ";
         return [
           `"${u.email || ""}"`,
           `"${u.displayName || ""}"`,
@@ -788,7 +788,7 @@ function AdminDashboard() {
       ...transactions.map(t => {
         const typeStr = t.type === "payment" ? "Thanh toán đơn" : "Nạp tiền";
         const statusStr = t.status === "pending" ? "Chờ duyệt" : (t.status === "completed" ? "Thành công" : "Đã từ chối");
-        const dateStr = t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : "";
+        const dateStr = t.createdAt ? new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt).toLocaleString("vi-VN") : "";
         return [
           `"${t.userEmail || ""}"`,
           `"${t.amount || 0}"`,
@@ -1185,7 +1185,7 @@ function AdminDashboard() {
                     </div>
                   )}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
-                  <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                  <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString("vi-VN") : ""}
 
                   {/* SESSION TASKS CHECKLIST */}
                   {item.sessionTasks && item.sessionTasks.length > 0 && (
@@ -1393,7 +1393,7 @@ function AdminDashboard() {
                             </div>
                           ) : null;
                         })()}<br/>
-                        {item.studentId} • {item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString("vi-VN") : ""}
+                        {item.studentId} • {item.createdAt ? new Date(item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString("vi-VN") : ""}
                         {item.phone && <><br/>SĐT: <strong>{item.phone}</strong></>}
                         {item.dob && <><br/>NS: {new Date(item.dob).toLocaleDateString("vi-VN")}</>}
                       </div>
@@ -1697,7 +1697,7 @@ function AdminDashboard() {
                       </td>
                       <td>
                         <div style={{ fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-                          {u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString("vi-VN") : "Chưa rõ"}
+                          {u.lastLogin ? new Date(u.lastLogin?.toDate ? u.lastLogin.toDate() : u.lastLogin).toLocaleString("vi-VN") : "Chưa rõ"}
                         </div>
                       </td>
                       <td style={{ padding: "0.8rem" }}>
@@ -2096,7 +2096,7 @@ function AdminDashboard() {
                         <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "left" }}>Loại: {t.type === "payment" ? "Thanh toán đơn" : "Nạp tiền"}</div>
                       </td>
                       <td style={{ fontSize: "0.85rem" }}>
-                        {t.createdAt ? new Date(t.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                        {t.createdAt ? new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt).toLocaleString("vi-VN") : ""}
                       </td>
                       <td>
                         <span style={{ 
@@ -2298,7 +2298,7 @@ function AdminDashboard() {
                           "{r.comment}"
                         </td>
                         <td>
-                          {r.createdAt ? new Date(r.createdAt.toDate()).toLocaleString("vi-VN") : "N/A"}
+                          {r.createdAt ? new Date(r.createdAt?.toDate ? r.createdAt.toDate() : r.createdAt).toLocaleString("vi-VN") : "N/A"}
                         </td>
                         <td style={{ padding: "1rem 1.5rem", textAlign: "center" }}>
                           <button

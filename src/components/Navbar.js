@@ -350,7 +350,7 @@ export default function Navbar() {
                               </div>
                               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: "1.4" }}>{notif.message}</p>
                               <span style={{ fontSize: "0.68rem", color: "#a1a1aa", display: "block", marginTop: "4px" }}>
-                                {notif.createdAt ? new Date(notif.createdAt.toDate()).toLocaleString("vi-VN") : ""}
+                                {notif.createdAt ? new Date(notif.createdAt?.toDate ? notif.createdAt.toDate() : notif.createdAt).toLocaleString("vi-VN") : ""}
                               </span>
                             </div>
                           ))}
