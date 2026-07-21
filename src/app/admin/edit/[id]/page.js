@@ -182,7 +182,6 @@ export default function AdminEditPage({ params }) {
       alert("Có lỗi xảy ra khi cập nhật!");
     } finally {
       setSaving(false);
-      setProgress(0);
     }
   };
 
