@@ -888,6 +888,12 @@ function Dashboard() {
   };
 
   const handleDelete = async (id) => {
+    const targetSchedule = history.find(s => s.id === id);
+    if (targetSchedule && targetSchedule.status !== "pending" && targetSchedule.status !== "paid" && targetSchedule.status !== "approved") {
+      toast.error("Không thể hủy ca học này vì CTV đã nhận lịch hoặc ca học đã bắt đầu!");
+      return;
+    }
+
     if (confirm("Bạn có chắc chắn muốn xóa đơn thuê học này không?")) {
       try {
         await deleteDoc(doc(db, "schedules", id));
@@ -3471,7 +3477,7 @@ function Dashboard() {
                       Ngày học: {item.classDate ? new Date(item.classDate).toLocaleDateString("vi-VN") : "Chưa chọn"}
                     </p>
                     
-                    {item.status !== "approved" && item.status !== "in_progress" && item.status !== "completed" && (
+                    {(item.status === "pending" || item.status === "paid" || item.status === "approved" || !item.status) && (
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
