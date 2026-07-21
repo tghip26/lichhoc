@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ToastProvider from "@/components/ToastProvider";
 import SupportWidget from "@/components/SupportWidget";
+import SecurityProtector from "@/components/SecurityProtector";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <ToastProvider />
+          <SecurityProtector />
           <Navbar />
           <main className="container" style={{ minHeight: "calc(100vh - 350px)" }}>{children}</main>
           <Footer />

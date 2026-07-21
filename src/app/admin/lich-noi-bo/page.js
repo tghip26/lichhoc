@@ -76,7 +76,6 @@ function InternalSchedulesManager() {
   const [editingId, setEditingId] = useState(null);
 
   const [showAllManualHelpers, setShowAllManualHelpers] = useState(false);
-
   // Form Fields
   const [formData, setFormData] = useState({
     studentName: "",
@@ -99,6 +98,53 @@ function InternalSchedulesManager() {
     timeSlot: "",
     notes: ""
   });
+
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // Auto-save draft when adding a new schedule
+  useEffect(() => {
+    if (!isEditing && showModal && (formData.studentName || formData.subject || formData.classroom || formData.notes)) {
+      localStorage.setItem("lich_noi_bo_draft", JSON.stringify(formData));
+    }
+  }, [formData, isEditing, showModal]);
+
+  // Check if draft exists on mount/modal open
+  useEffect(() => {
+    if (!isEditing && showModal) {
+      const saved = localStorage.getItem("lich_noi_bo_draft");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.studentName || parsed.subject || parsed.classroom || parsed.notes) {
+            setHasDraft(true);
+          }
+        } catch (e) {
+          console.error("Lỗi đọc bản nháp lịch nội bộ:", e);
+        }
+      }
+    } else {
+      setHasDraft(false);
+    }
+  }, [isEditing, showModal]);
+
+  const handleRestoreDraft = () => {
+    const saved = localStorage.getItem("lich_noi_bo_draft");
+    if (saved) {
+      try {
+        setFormData(JSON.parse(saved));
+        toast.success("Đã khôi phục bản nháp!");
+        setHasDraft(false);
+      } catch (e) {
+        toast.error("Không thể khôi phục bản nháp");
+      }
+    }
+  };
+
+  const handleClearDraft = () => {
+    localStorage.removeItem("lich_noi_bo_draft");
+    setHasDraft(false);
+    toast.success("Đã xóa bản nháp");
+  };
 
   // Responsive states
   const [isMobile, setIsMobile] = useState(false);
@@ -558,6 +604,10 @@ function InternalSchedulesManager() {
       }
 
       setShowModal(false);
+      if (!isEditing) {
+        localStorage.removeItem("lich_noi_bo_draft");
+        setHasDraft(false);
+      }
     } catch (err) {
       console.error("Lỗi lưu lịch:", err);
       toast.error("Không thể lưu lịch học!");
@@ -3245,6 +3295,40 @@ function InternalSchedulesManager() {
               </h3>
               <button type="button" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#64748b" }}>&times;</button>
             </div>
+
+            {hasDraft && !isEditing && (
+              <div style={{
+                background: "#fffbeb", border: "1px solid #fef3c7", padding: "10px 14px", borderRadius: "12px",
+                marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center",
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)", textAlign: "left"
+              }}>
+                <div style={{ fontSize: "0.82rem", color: "#b45309", fontWeight: "600" }}>
+                  ⚡ Có bản nháp ca học chưa lưu.
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={handleRestoreDraft}
+                    style={{
+                      background: "#d97706", color: "white", border: "none", padding: "3px 8px",
+                      borderRadius: "6px", fontSize: "0.72rem", fontWeight: "750", cursor: "pointer"
+                    }}
+                  >
+                    Khôi phục
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearDraft}
+                    style={{
+                      background: "transparent", color: "#b45309", border: "1px solid #f59e0b", padding: "2px 6px",
+                      borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer"
+                    }}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* FORM CONTAINER WITH 2 COLUMNS - RESPONSIVE */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "15px", marginBottom: "1.5rem" }}>

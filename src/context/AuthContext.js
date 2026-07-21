@@ -33,8 +33,8 @@ export function AuthProvider({ children }) {
       announcement: "Đặt lịch học hộ -> Chờ thông báo xác nhận lịch qua Zalo theo SĐT đã đăng kí",
       hotline: "0852866856",
       zaloContact: "https://zalo.me/0852866856",
-      telegramBotToken: "8987058324:AAGROX1cy0wWbausiuTKLYQ70AUoyiLEt4Q",
-      telegramChatId: "5484109031"
+      telegramBotToken: "",
+      telegramChatId: ""
     };
   });
 
