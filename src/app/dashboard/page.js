@@ -2506,11 +2506,15 @@ function Dashboard() {
       case "accepted":
         return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Sắp học</span>;
       case "paid":
-        return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt</span>;
+        return <span style={{ background: "rgba(245, 158, 11, 0.15)", color: "#D97706", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt đơn</span>;
       case "in_progress":
         return <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đang học</span>;
+      case "proof_submitted":
+        return <span style={{ background: "rgba(139, 92, 246, 0.15)", color: "#8B5CF6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Chờ duyệt minh chứng</span>;
       case "completed":
-        return <span style={{ background: "rgba(139, 92, 246, 0.15)", color: "#8B5CF6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Hoàn thành</span>;
+        return <span style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--success)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Hoàn thành</span>;
+      case "disputed":
+        return <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Khiếu nại</span>;
       case "rejected":
         return <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "var(--danger)", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Từ chối</span>;
       default:
@@ -2525,6 +2529,8 @@ function Dashboard() {
       case "approved":
       case "accepted":
       case "in_progress":
+      case "proof_submitted":
+      case "disputed":
       case "completed":
         return <span style={{ background: "rgba(16, 185, 129, 0.12)", color: "var(--success)", padding: "3px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "700", border: "1px solid rgba(16, 185, 129, 0.2)" }}>Đã thanh toán</span>;
       case "rejected":
