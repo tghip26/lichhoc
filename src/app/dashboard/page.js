@@ -18,6 +18,7 @@ function Dashboard() {
   const [formData, setFormData] = useState({
     name: "",
     className: "",
+    subjectName: "",
     classRegular: "",
     studentId: "",
     school: "",
@@ -633,6 +634,7 @@ function Dashboard() {
           userEmail: user.email || "No Email",
           name: formData.name,
           className: formData.className,
+          subjectName: formData.subjectName || formData.className,
           classRegular: formData.classRegular || "",
           studentId: formData.studentId,
           school: formData.school,
@@ -748,6 +750,7 @@ function Dashboard() {
         name: userProfile?.studentName || userProfile?.displayName || "",
         studentId: userProfile?.studentId || "",
         className: "",
+        subjectName: "",
         classRegular: "",
         school: userProfile?.school || "",
         classDate: todayStr,
@@ -3110,9 +3113,32 @@ function Dashboard() {
             )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
-              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Lớp / Môn cần học hộ *</label>
-                <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402 (Triết học Mác - Lênin)" style={{ border: "2px solid #bbf7d0", background: "#f0fdf4", fontWeight: "700" }} />
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Lớp cần học hộ (Mã HP/Phòng) *</label>
+                <input 
+                  type="text" 
+                  name="className" 
+                  value={formData.className} 
+                  onChange={handleChange} 
+                  required 
+                  className="form-input" 
+                  placeholder="Ví dụ: CS1.E402" 
+                  style={{ border: "2px solid #bbf7d0", background: "#f0fdf4", fontWeight: "700" }} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Tên môn học *</label>
+                <input 
+                  type="text" 
+                  name="subjectName" 
+                  value={formData.subjectName} 
+                  onChange={handleChange} 
+                  required 
+                  className="form-input" 
+                  placeholder="Ví dụ: Triết học Mác - Lênin" 
+                  style={{ border: "2px solid #bbf7d0", background: "#f0fdf4", fontWeight: "700" }} 
+                />
               </div>
 
               <div className="form-group" style={{ gridColumn: "1 / -1" }}>
