@@ -1253,9 +1253,41 @@ function Dashboard() {
         if (stepNum === 1) {
           updates.checkinStartImage = base64String;
           updates.checkinStartAt = timeNow;
+          
+          if (!selectedJobForProof.isInternal) {
+            updates.status = "in_progress";
+            updates.studyStatus = "dang_hoc";
+          } else {
+            updates.studyStatus = "dang_hoc";
+            updates.checkinStatus = "in_progress";
+          }
+
+          // Gửi thông báo cho học viên
+          if (!selectedJobForProof.isInternal && selectedJobForProof.userId) {
+            try {
+              await addDoc(collection(db, "notifications"), {
+                userId: selectedJobForProof.userId,
+                title: "🏫 CTV đã check-in vào lớp!",
+                message: `CTV vừa điểm danh đầu giờ ca học môn ${selectedJobForProof.className || selectedJobForProof.subject || ""}. Trạng thái tiến độ đã tự động chuyển sang ĐANG HỌC!`,
+                read: false,
+                link: "/dashboard?tab=schedules",
+                createdAt: serverTimestamp()
+              });
+            } catch (notifErr) {
+              console.warn("Lỗi gửi thông báo checkin:", notifErr);
+            }
+          }
         } else if (stepNum === 2) {
           updates.checkinMiddleImage = base64String;
           updates.checkinMiddleAt = timeNow;
+
+          if (!selectedJobForProof.isInternal) {
+            updates.status = "in_progress";
+            updates.studyStatus = "dang_hoc";
+          } else {
+            updates.studyStatus = "dang_hoc";
+            updates.checkinStatus = "in_progress";
+          }
         } else if (stepNum === 3) {
           updates.checkinEndImage = base64String;
           updates.checkinEndAt = timeNow;
@@ -2436,7 +2468,10 @@ function Dashboard() {
     toast.success(`Đã sao chép thông tin lớp "${item.className}". Vui lòng chọn ngày học mới và đính kèm ảnh lịch học.`);
   };
 
-  const renderStatusStepper = (status) => {
+  const renderStatusStepper = (itemOrStatus) => {
+    const status = typeof itemOrStatus === "object" ? itemOrStatus?.status : itemOrStatus;
+    const hasCheckin = typeof itemOrStatus === "object" && (itemOrStatus?.checkinStartImage || itemOrStatus?.checkinStartAt);
+
     const steps = [
       { key: "pending", label: "Đăng đơn" },
       { key: "approved", label: "Giao CTV" },
@@ -2445,12 +2480,12 @@ function Dashboard() {
     ];
 
     let currentIdx = 0;
-    if (status === "approved" || status === "paid" || status === "accepted") {
-      currentIdx = 1;
-    } else if (status === "in_progress" || status === "proof_submitted" || status === "disputed") {
-      currentIdx = 2;
-    } else if (status === "completed") {
+    if (status === "completed") {
       currentIdx = 3;
+    } else if (status === "in_progress" || status === "proof_submitted" || status === "disputed" || hasCheckin) {
+      currentIdx = 2;
+    } else if (status === "approved" || status === "paid" || status === "accepted") {
+      currentIdx = 1;
     } else if (status === "rejected") {
       return (
         <div style={{ background: "#fee2e2", padding: "12px", borderRadius: "12px", border: "1px solid #fca5a5", color: "#b91c1c", fontSize: "0.82rem", fontWeight: "600", marginBottom: "1.5rem", textAlign: "center" }}>
@@ -2594,7 +2629,14 @@ function Dashboard() {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (itemOrStatus) => {
+    const status = typeof itemOrStatus === "object" ? itemOrStatus?.status : itemOrStatus;
+    const hasCheckin = typeof itemOrStatus === "object" && (itemOrStatus?.checkinStartImage || itemOrStatus?.checkinStartAt);
+
+    if (hasCheckin && (status === "accepted" || status === "paid" || status === "approved")) {
+      return <span style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6", padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "700" }}>Đang học</span>;
+    }
+
     switch (status) {
       case "approved":
       case "accepted":
@@ -3634,7 +3676,7 @@ function Dashboard() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem", flexWrap: "wrap", gap: "6px" }}>
                     <h4 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "700", color: "var(--text-primary)" }}>{item.name}</h4>
                     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                      {getStatusBadge(item.status)}
+                      {getStatusBadge(item)}
                       {getPaymentStatusBadge(item.status)}
                     </div>
                   </div>
@@ -3931,7 +3973,7 @@ function Dashboard() {
                 📥 Tải file .ics
               </button>
 
-              {(selectedItem.status === "in_progress" || selectedItem.status === "proof_submitted" || selectedItem.status === "completed") && (
+              {(selectedItem.status === "in_progress" || selectedItem.status === "proof_submitted" || selectedItem.status === "completed" || selectedItem.checkinStartImage) && (
                 <button 
                   type="button"
                   onClick={() => setShowLiveTrackerModal(true)}
@@ -3970,7 +4012,7 @@ function Dashboard() {
             )}
             
             {/* Real-time Order Status Stepper */}
-            {renderStatusStepper(selectedItem.status)}
+            {renderStatusStepper(selectedItem)}
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.2rem", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
@@ -4017,7 +4059,7 @@ function Dashboard() {
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI LỊCH</strong>
-                {getStatusBadge(selectedItem.status)}
+                {getStatusBadge(selectedItem)}
               </div>
               <div style={{ borderBottom: "1px dashed #f1f5f9", paddingBottom: "8px" }}>
                 <strong style={{ color: "var(--text-secondary)", fontSize: "0.8rem", display: "block" }}>TRẠNG THÁI THANH TOÁN</strong>
