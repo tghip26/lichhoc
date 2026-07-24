@@ -2998,29 +2998,83 @@ function Dashboard() {
           </div>
         )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label">Họ và Tên</label>
-              <input type="text" name="name" value={formData.name} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Nguyễn Văn A" />
-            </div>
-            
-            <div className="form-group">
-              <label className="form-label">Mã sinh viên</label>
-              <input type="text" name="studentId" value={formData.studentId} onChange={handleChange} required className="form-input" placeholder="SV123456" />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Mã SV dùng để CTV điểm danh hoặc làm bài kiểm tra giúp bạn.</span>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          
+          {/* STEP 1: THÔNG TIN SINH VIÊN */}
+          <div style={{
+            background: "white",
+            borderRadius: "18px",
+            padding: "1.25rem",
+            border: "1px solid #e2e8f0",
+            borderLeft: "5px solid #2563eb",
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.03)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "850", fontSize: "0.95rem" }}>
+                1
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#1e293b" }}>👤 Thông Tin Sinh Viên</h3>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tên, MSV và Lớp sinh hoạt chính khóa trên trường</span>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Lớp (chính khóa)</label>
-              <input type="text" name="classRegular" value={formData.classRegular} onChange={handleChange} required className="form-input" placeholder="Ví dụ: D15CNPM5" />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Lớp sinh hoạt chính của bạn trên trường.</span>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Họ và Tên sinh viên *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Nguyễn Văn A" />
+              </div>
+              
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Mã sinh viên (MSV) *</label>
+                <input type="text" name="studentId" value={formData.studentId} onChange={handleChange} required className="form-input" placeholder="SV123456" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Lớp chính khóa *</label>
+                <input type="text" name="classRegular" value={formData.classRegular} onChange={handleChange} required className="form-input" placeholder="Ví dụ: D15CNPM5" />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Trường Đại Học / Cao Đẳng *</label>
+                <input type="text" name="school" value={formData.school} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Đại học Công nghệ" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "600", color: "#475569" }}>Số điện thoại liên hệ</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" placeholder="0912345678" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "600", color: "#475569" }}>Ngày sinh</label>
+                <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 2: THÔNG TIN CA HỌC HỘ */}
+          <div style={{
+            background: "white",
+            borderRadius: "18px",
+            padding: "1.25rem",
+            border: "1px solid #e2e8f0",
+            borderLeft: "5px solid #16a34a",
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.03)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "#f0fdf4", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "850", fontSize: "0.95rem" }}>
+                2
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#1e293b" }}>📚 Thông Tin Ca Học Cần Thuê</h3>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tên môn, ngày học và khung giờ ca trực</span>
+              </div>
             </div>
 
             {getRecentSubjects().length > 0 && (
-              <div className="form-group" style={{ gridColumn: "1 / -1", background: "rgba(22, 163, 74, 0.05)", padding: "12px", borderRadius: "12px", border: "1px dashed var(--primary)", textAlign: "left" }}>
-                <span style={{ fontSize: "0.78rem", fontWeight: "750", color: "var(--primary)", display: "block", marginBottom: "6px" }}>📚 Chọn nhanh môn học đã đặt gần đây (Hiểu thói quen):</span>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div style={{ background: "#f0fdf4", padding: "10px 12px", borderRadius: "12px", border: "1px dashed #16a34a", marginBottom: "1rem", textAlign: "left" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: "750", color: "#15803d", display: "block", marginBottom: "6px" }}>⚡ Chọn nhanh môn vừa đặt gần đây:</span>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                   {getRecentSubjects().map((sub, idx) => (
                     <button
                       key={idx}
@@ -3035,22 +3089,18 @@ function Dashboard() {
                           classRegular: sub.classRegular || prev.classRegular,
                           price: sub.price || prev.price
                         }));
-                        toast.success(`Đã tự động điền thông tin môn "${sub.className}"!`);
+                        toast.success(`Đã tự động điền môn "${sub.className}"!`);
                       }}
                       style={{
                         background: "white",
-                        border: "1px solid var(--primary)",
-                        color: "var(--primary)",
-                        padding: "4px 10px",
+                        border: "1px solid #16a34a",
+                        color: "#15803d",
+                        padding: "3px 9px",
                         borderRadius: "8px",
                         fontSize: "0.75rem",
                         fontWeight: "700",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-                        transition: "all 0.2s"
+                        cursor: "pointer"
                       }}
-                      onMouseOver={e => { e.currentTarget.style.background = "var(--primary)"; e.currentTarget.style.color = "white"; }}
-                      onMouseOut={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "var(--primary)"; }}
                     >
                       📖 {sub.className}
                     </button>
@@ -3059,122 +3109,144 @@ function Dashboard() {
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Lớp cần học hộ</label>
-              <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402" />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Mã lớp học phần hoặc phòng học cụ thể cần người đi học hộ.</span>
-            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Lớp / Môn cần học hộ *</label>
+                <input type="text" name="className" value={formData.className} onChange={handleChange} required className="form-input" placeholder="Ví dụ: CS1.E402 (Triết học Mác - Lênin)" style={{ border: "2px solid #bbf7d0", background: "#f0fdf4", fontWeight: "700" }} />
+              </div>
 
-            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label">Trường</label>
-              <input type="text" name="school" value={formData.school} onChange={handleChange} required className="form-input" placeholder="Ví dụ: Đại học Công nghệ" />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Tên trường Đại học/Cao đẳng nơi có lớp học.</span>
-            </div>
+              <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>
+                  Ngày học *
+                  {weekday && <span style={{ marginLeft: "8px", color: "#16a34a", fontSize: "0.85rem", fontWeight: "800" }}>({weekday})</span>}
+                </label>
+                <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" min={minDate} required />
+              </div>
 
-            {/* Người đi học (CTV Chỉ định) */}
-            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <label className="form-label" style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "5px", fontWeight: "700" }}>
-                <span>👤 Người đi học (CTV chỉ định)</span>
-              </label>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "5px" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: "700", color: requestedHelper ? "var(--primary)" : "var(--text-secondary)" }}>
-                  {requestedHelper ? `🟢 ${requestedHelper}` : "⚪ Chưa chỉ định (CTV tự chọn nhận đơn / Admin duyệt)"}
-                </span>
-                {requestedHelper && (
-                  <button 
-                    type="button" 
-                    onClick={() => { setRequestedHelper(""); setRequestedHelperEmail(""); }}
-                    style={{ background: "#fee2e2", border: "none", color: "#b91c1c", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
-                  >
-                    Hủy chỉ định
-                  </button>
-                )}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Từ mấy giờ *</label>
+                <input 
+                  type="text" 
+                  name="startTime" 
+                  value={formData.startTime} 
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9:]/g, "");
+                    if (val.length === 2 && !val.includes(":")) val += ":";
+                    if (val.length <= 5) setFormData({ ...formData, startTime: val });
+                  }} 
+                  className="form-input" 
+                  placeholder="Ví dụ: 07:00" 
+                  required
+                />
+                <span style={{ fontSize: "0.7rem", color: "#64748b" }}>* Định dạng 24h</span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Đến mấy giờ *</label>
+                <input 
+                  type="text" 
+                  name="endTime" 
+                  value={formData.endTime} 
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9:]/g, "");
+                    if (val.length === 2 && !val.includes(":")) val += ":";
+                    if (val.length <= 5) setFormData({ ...formData, endTime: val });
+                  }} 
+                  className="form-input" 
+                  placeholder="Ví dụ: 11:30" 
+                  required
+                />
+                <span style={{ fontSize: "0.7rem", color: "#64748b" }}>* Định dạng 24h</span>
+              </div>
+
+              {/* Người đi học (CTV Chỉ định) */}
+              <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "10px 14px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#1e293b" }}>
+                    👤 CTV Chỉ định: <span style={{ color: requestedHelper ? "#16a34a" : "#64748b" }}>{requestedHelper ? `🟢 ${requestedHelper}` : "⚪ CTV tự chọn / Admin duyệt"}</span>
+                  </span>
+                  {requestedHelper && (
+                    <button 
+                      type="button" 
+                      onClick={() => { setRequestedHelper(""); setRequestedHelperEmail(""); }}
+                      style={{ background: "#fee2e2", border: "none", color: "#b91c1c", padding: "3px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}
+                    >
+                      Hủy chỉ định
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* STEP 3: GIÁ ĐỀ XUẤT & PHƯƠNG THỨC THANH TOÁN */}
+          <div style={{
+            background: "white",
+            borderRadius: "18px",
+            padding: "1.25rem",
+            border: "1px solid #e2e8f0",
+            borderLeft: "5px solid #d97706",
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.03)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "850", fontSize: "0.95rem" }}>
+                3
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#1e293b" }}>💰 Giá Đề Xuất & Thanh Toán</h3>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Mức giá dự kiến và phương thức chi trả</span>
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Ngày tháng năm sinh</label>
-              <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Số điện thoại</label>
-              <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" placeholder="Ví dụ: 0912345678" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                Ngày học
-                {weekday && <span style={{ marginLeft: "10px", color: "var(--primary)", fontSize: "0.85rem", fontWeight: "bold" }}>({weekday})</span>}
-              </label>
-              <input type="date" name="classDate" value={formData.classDate} onChange={handleChange} className="form-input" min={minDate} />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Lựa chọn ngày cụ thể của buổi trực lớp cần đặt lịch.</span>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Từ mấy giờ</label>
-              <input 
-                type="text" 
-                name="startTime" 
-                value={formData.startTime} 
-                onChange={(e) => {
-                  let val = e.target.value.replace(/[^0-9:]/g, "");
-                  if (val.length === 2 && !val.includes(":")) {
-                    val += ":";
-                  }
-                  if (val.length <= 5) {
-                    setFormData({ ...formData, startTime: val });
-                  }
-                }} 
-                onBlur={(e) => {
-                  const regex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
-                  if (e.target.value && !regex.test(e.target.value)) {
-                    toast.error("Giờ bắt đầu phải đúng định dạng 24h (Ví dụ: 08:30 hoặc 14:00)");
-                  }
-                }}
-                className="form-input" 
-                placeholder="Ví dụ: 14:30" 
-              />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Định dạng 24h (ví dụ: 12:30 hoặc 07:45).</span>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Đến mấy giờ</label>
-              <input 
-                type="text" 
-                name="endTime" 
-                value={formData.endTime} 
-                onChange={(e) => {
-                  let val = e.target.value.replace(/[^0-9:]/g, "");
-                  if (val.length === 2 && !val.includes(":")) {
-                    val += ":";
-                  }
-                  if (val.length <= 5) {
-                    setFormData({ ...formData, endTime: val });
-                  }
-                }} 
-                onBlur={(e) => {
-                  const regex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
-                  if (e.target.value && !regex.test(e.target.value)) {
-                    toast.error("Giờ kết thúc phải đúng định dạng 24h (Ví dụ: 17:30 hoặc 20:00)");
-                  }
-                }}
-                className="form-input" 
-                placeholder="Ví dụ: 17:00" 
-              />
-              <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "4px", display: "block" }}>* Định dạng 24h (ví dụ: 14:00 hoặc 21:00).</span>
-            </div>
-
-            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label">Mức giá đề xuất (VNĐ)</label>
-              <input type="text" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50.000" />
-              <span style={{ fontSize: "0.75rem", color: "#2563eb", marginTop: "4px", display: "block", fontWeight: "650" }}>
-                * Mức giá này là tiền dự kiến tham khảo bạn có thể chi trả. Admin sẽ xem xét ca học, cài giá cụ thể và gửi thông báo để bạn xác nhận thanh toán.
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "750", color: "#d97706" }}>Mức giá đề xuất (VNĐ) *</label>
+              <div style={{ position: "relative" }}>
+                <input 
+                  type="text" 
+                  name="price" 
+                  value={formData.price} 
+                  onChange={handleChange} 
+                  className="form-input" 
+                  placeholder="Ví dụ: 100.000" 
+                  style={{ fontSize: "1.05rem", fontWeight: "700", paddingRight: "60px", border: "2px solid #fde68a" }} 
+                  required
+                />
+                <span style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "0.85rem", fontWeight: "800", color: "#d97706" }}>
+                  VNĐ
+                </span>
+              </div>
+              <span style={{ fontSize: "0.74rem", color: "#2563eb", marginTop: "6px", display: "block", fontWeight: "650", lineHeight: "1.4" }}>
+                ℹ️ Mức giá này là tiền dự kiến tham khảo bạn có thể chi trả. Admin sẽ kiểm tra ca học, cài giá cụ thể và gửi thông báo để bạn xác nhận thanh toán.
               </span>
             </div>
 
-            {/* ĐẶT LỊCH ĐỊNH KỲ HÀNG TUẦN (RECURRING BOOKING WIZARD) */}
-            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            {/* PHƯƠNG THỨC THANH TOÁN */}
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "750", display: "block", marginBottom: "6px", color: "#334155" }}>Chọn Phương thức thanh toán *</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div 
+                  onClick={() => setPaymentMethod("qr")}
+                  style={{ 
+                    padding: "12px", border: paymentMethod === "qr" ? "2px solid #16a34a" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "qr" ? "#f0fdf4" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
+                  }}
+                >
+                  <span style={{ fontSize: "0.88rem", fontWeight: "800", color: paymentMethod === "qr" ? "#16a34a" : "#1e293b" }}>📸 Chuyển khoản VietQR</span>
+                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Quét VietQR sau khi Admin cài giá</span>
+                </div>
+                <div 
+                  onClick={() => setPaymentMethod("wallet")}
+                  style={{ 
+                    padding: "12px", border: paymentMethod === "wallet" ? "2px solid #2563eb" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "wallet" ? "#eff6ff" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
+                  }}
+                >
+                  <span style={{ fontSize: "0.88rem", fontWeight: "800", color: paymentMethod === "wallet" ? "#2563eb" : "#1e293b" }}>💳 Ví tài khoản</span>
+                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>Tự trừ ví sau khi Admin chốt giá (Ví: {(userProfile?.balance || 0).toLocaleString("vi-VN")} đ)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* RECURRING BOOKING */}
+            <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <input 
                   type="checkbox" 
@@ -3183,46 +3255,102 @@ function Dashboard() {
                   onChange={(e) => setIsRecurring(e.target.checked)} 
                   style={{ width: "18px", height: "18px", accentColor: "var(--primary)", cursor: "pointer" }}
                 />
-                <label htmlFor="isRecurring" style={{ fontSize: "0.9rem", fontWeight: "750", color: "var(--text-primary)", cursor: "pointer" }}>
+                <label htmlFor="isRecurring" style={{ fontSize: "0.85rem", fontWeight: "750", color: "var(--text-primary)", cursor: "pointer" }}>
                   🔁 Đặt lịch định kỳ hàng tuần (Tự động lặp lại)
                 </label>
               </div>
               {isRecurring && (
-                <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "12px", animation: "fadeIn 0.2s" }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Số tuần lặp lại liên tục:</span>
+                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Số tuần lặp lại:</span>
                   <select
                     value={recurringWeeks}
                     onChange={(e) => setRecurringWeeks(Number(e.target.value))}
                     className="form-input"
-                    style={{ width: "120px", padding: "4px 8px", fontSize: "0.85rem", background: "white", border: "1px solid #cbd5e1", height: "auto" }}
+                    style={{ width: "110px", padding: "4px 8px", fontSize: "0.85rem", background: "white", border: "1px solid #cbd5e1" }}
                   >
                     <option value={2}>2 tuần</option>
                     <option value={3}>3 tuần</option>
                     <option value={4}>4 tuần</option>
                     <option value={5}>5 tuần</option>
                   </select>
-                  {formData.price && (
-                    <span style={{ fontSize: "0.85rem", color: "#8B5CF6", fontWeight: "750" }}>
-                      💵 Tổng thù lao: {Number(Number(formData.price.replace(/\./g, "")) * recurringWeeks).toLocaleString("vi-VN")} đ
-                    </span>
-                  )}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* DANH SÁCH NHIỆM VỤ CA HỌC (HELPER CHECKLIST) */}
-            <div className="form-group" style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <label style={{ fontSize: "0.9rem", fontWeight: "750", color: "var(--text-primary)", display: "block", marginBottom: "8px" }}>
-                📋 Danh sách Nhiệm vụ ca học (Giao cho CTV)
+          {/* STEP 4: 📸 MINH CHỨNG & GHI CHÚ CA HỌC */}
+          <div style={{
+            background: "white",
+            borderRadius: "18px",
+            padding: "1.25rem",
+            border: "1px solid #e2e8f0",
+            borderLeft: "5px solid #8b5cf6",
+            boxShadow: "0 4px 15px rgba(0, 0, 0, 0.03)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "#f3e8ff", color: "#7c3aed", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "850", fontSize: "0.95rem" }}>
+                4
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#1e293b" }}>📸 Ảnh Lịch Học & Nhiệm Vụ Ca Trực</h3>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Đính kèm ảnh thời khóa biểu và danh sách cần CTV hỗ trợ</span>
+              </div>
+            </div>
+
+            {/* UPLOAD BOX */}
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label" style={{ fontWeight: "750", color: "#334155" }}>Ảnh thời khóa biểu / lịch học (Bắt buộc) *</label>
+              <label 
+                htmlFor="file-input" 
+                style={{ 
+                  padding: filePreview ? "0.5rem" : "1.8rem 1rem", 
+                  border: filePreview ? "2px solid #8b5cf6" : "2px dashed #cbd5e1",
+                  borderRadius: "14px",
+                  background: filePreview ? "#faf5ff" : "#f8fafc",
+                  display: "flex", 
+                  flexDirection: "column", 
+                  alignItems: "center", 
+                  justifyContent: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                {filePreview ? (
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <img src={filePreview} alt="Preview" style={{ width: "100%", height: "180px", objectFit: "cover", borderRadius: "10px" }} />
+                    <div style={{ position: "absolute", bottom: "8px", left: "8px", right: "8px", background: "rgba(0,0,0,0.65)", color: "white", padding: "4px 8px", borderRadius: "6px", fontSize: "0.78rem" }}>
+                      {fileName || "Đã chọn ảnh thành công"}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ width: "42px", height: "42px", background: "#f3e8ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#7c3aed" }}>
+                      <svg style={{ width: "22px", height: "22px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    </div>
+                    <div style={{ color: "#334155", fontSize: "0.88rem", fontWeight: "700" }}>
+                      Nhấn chọn ảnh hoặc dán <kbd style={{ padding: "2px 6px", background: "white", borderRadius: "4px", border: "1px solid #cbd5e1", fontSize: "0.78rem", color: "#7c3aed" }}>Ctrl + V</kbd>
+                    </div>
+                    <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>Hỗ trợ JPG, PNG (tự động nén siêu nhanh)</span>
+                  </>
+                )}
+                <input type="file" id="file-input" accept="image/*" onChange={handleFileChange} required style={{ display: "none" }} />
+              </label>
+            </div>
+
+            {/* TASKS CHECKLIST */}
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: "750", color: "#1e293b", display: "block", marginBottom: "6px" }}>
+                📋 Giao nhiệm vụ cụ thể cho CTV (Nếu có)
               </label>
               <div style={{ display: "flex", gap: "8px" }}>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Chép slide chương 3, Điểm danh đầu giờ..."
+                  placeholder="Ví dụ: Chép bài slide 3, Điểm danh ca 1..."
                   value={taskInput}
                   onChange={(e) => setTaskInput(e.target.value)}
                   className="form-input"
-                  style={{ flex: 1, padding: "6px 12px", fontSize: "0.85rem" }}
+                  style={{ flex: 1, padding: "6px 12px", fontSize: "0.82rem" }}
                 />
                 <button
                   type="button"
@@ -3233,22 +3361,20 @@ function Dashboard() {
                     }
                   }}
                   className="btn btn-primary"
-                  style={{ padding: "6px 16px", borderRadius: "10px", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                  style={{ padding: "6px 14px", borderRadius: "10px", fontSize: "0.82rem" }}
                 >
                   + Thêm
                 </button>
               </div>
               {sessionTasks.length > 0 && (
-                <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {sessionTasks.map((t, idx) => (
-                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "6px 12px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
-                      <span style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: "600" }}>{idx + 1}. {t}</span>
+                    <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "4px 10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                      <span style={{ fontSize: "0.8rem", color: "#334155", fontWeight: "600" }}>{idx + 1}. {t}</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSessionTasks(sessionTasks.filter((_, i) => i !== idx));
-                        }}
-                        style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: "0.82rem", fontWeight: "700" }}
+                        onClick={() => setSessionTasks(sessionTasks.filter((_, i) => i !== idx))}
+                        style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}
                       >
                         Xóa
                       </button>
@@ -3258,96 +3384,36 @@ function Dashboard() {
               )}
             </div>
 
-            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-              <label className="form-label">Ghi chú (Không bắt buộc)</label>
-              <textarea name="notes" value={formData.notes} onChange={handleChange} className="form-input" rows="3" placeholder="Ghi chú thêm (VD: mang theo thẻ sinh viên...)" style={{ resize: "vertical" }}></textarea>
+            {/* NOTES */}
+            <div className="form-group">
+              <label className="form-label" style={{ fontWeight: "700", color: "#334155" }}>Ghi chú thêm (Không bắt buộc)</label>
+              <textarea name="notes" value={formData.notes} onChange={handleChange} className="form-input" rows="2" placeholder="Ghi chú vị trí chỗ ngồi, dặn dò khác..." style={{ resize: "vertical" }}></textarea>
             </div>
           </div>
 
-          <div className="form-group" style={{ marginTop: "0.5rem" }}>
-            <label className="form-label">Ảnh lịch cần học hộ</label>
-            <label 
-              htmlFor="file-input" 
-              className="file-input" 
-              style={{ 
-                padding: filePreview ? "0.5rem" : "2.5rem 1rem", 
-                border: filePreview ? "2px solid var(--primary-light)" : "2px dashed #cbd5e1",
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center", 
-                justifyContent: "center",
-                gap: "10px",
-                position: "relative",
-                overflow: "hidden"
-              }}
-            >
-              {filePreview ? (
-                <div style={{ position: "relative", width: "100%" }}>
-                  <img src={filePreview} alt="Preview" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
-                  <div style={{ position: "absolute", bottom: "10px", left: "10px", right: "10px", background: "rgba(0,0,0,0.6)", color: "white", padding: "5px 10px", borderRadius: "6px", fontSize: "0.85rem", backdropFilter: "blur(4px)" }}>
-                    {fileName || "Đang xử lý ảnh..."}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div style={{ width: "50px", height: "50px", background: "var(--primary-light)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)", marginBottom: "8px" }}>
-                    <svg style={{ width: "24px", height: "24px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                  </div>
-                  <div style={{ color: "var(--text-secondary)", fontSize: "0.95rem", fontWeight: "600", marginBottom: "4px" }}>
-                    Nhấn chọn ảnh hoặc <kbd style={{ padding: "3px 8px", background: "#f1f5f9", borderRadius: "4px", border: "1px solid #cbd5e1", fontSize: "0.85rem", color: "var(--primary)", fontFamily: "monospace", margin: "0 4px", boxShadow: "0 2px 0 #cbd5e1" }}>Ctrl + V</kbd> để dán
-                  </div>
-                  <div style={{ color: "#9CA3AF", fontSize: "0.8rem" }}>
-                    Hỗ trợ JPG, PNG (tự động nén siêu tốc)
-                  </div>
-                </>
-              )}
-              <input type="file" id="file-input" accept="image/*" onChange={handleFileChange} required style={{ display: "none" }} />
-            </label>
-          </div>
-          
-          <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-            <label className="form-label" style={{ fontWeight: "700", display: "block", marginBottom: "6px" }}>Phương thức thanh toán</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-              <div 
-                onClick={() => setPaymentMethod("qr")}
-                style={{ 
-                  padding: "10px 15px", border: paymentMethod === "qr" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "qr" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
-                }}
-              >
-                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "qr" ? "var(--primary)" : "var(--text-primary)" }}>📸 Chuyển khoản QR</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Quét VietQR sau khi Admin cài giá</span>
-              </div>
-              <div 
-                onClick={() => setPaymentMethod("wallet")}
-                style={{ 
-                  padding: "10px 15px", border: paymentMethod === "wallet" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "wallet" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
-                }}
-              >
-                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "wallet" ? "var(--primary)" : "var(--text-primary)" }}>💳 Ví tài khoản</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Tự trừ ví sau khi Admin chốt giá (Ví: {(userProfile?.balance || 0).toLocaleString("vi-VN")} đ)</span>
-              </div>
-            </div>
-          </div>
-          
-          {uploading && (
-            <div style={{ marginBottom: "1.5rem", background: "#f8fafc", padding: "1rem", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", fontSize: "0.85rem", fontWeight: "600", color: "var(--primary)" }}>
-                <span>Đang xử lý và tải lên...</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div style={{ height: "8px", background: "#E5E7EB", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, var(--primary), var(--secondary))", transition: "width 0.2s" }}></div>
-              </div>
-            </div>
-          )}
-
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "1rem", fontSize: "1.05rem", borderRadius: "12px" }} disabled={uploading}>
+          {/* SUBMIT BUTTON */}
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            style={{ 
+              width: "100%", 
+              padding: "1rem", 
+              fontSize: "1.05rem", 
+              borderRadius: "14px",
+              fontWeight: "850",
+              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+              boxShadow: "0 10px 20px -5px rgba(22, 163, 74, 0.4)",
+              cursor: "pointer",
+              letterSpacing: "0.3px"
+            }} 
+            disabled={uploading}
+          >
             {uploading ? (
-              <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
                 <svg className="animate-spin" style={{ width: "20px", height: "20px", animation: "spin 1s linear infinite" }} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }}></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" style={{ opacity: 0.75 }}></path></svg>
                 Hệ thống đang xử lý...
               </span>
-            ) : "Gửi đơn thuê học"}
+            ) : "🚀 Nộp Đơn Thuê Học Ngay"}
           </button>
         </form>
       </div>
