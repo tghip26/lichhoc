@@ -3586,147 +3586,194 @@ function InternalSchedulesManager() {
                   })()}
                 </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái checkin</label>
-                  <select
-                    value={formData.checkinStatus}
-                    onChange={e => setFormData({ ...formData, checkinStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    <option value="not_checked_in">Chưa checkin</option>
-                    <option value="checked_in">Đã checkin ✓</option>
-                  </select>
+                {/* TRẠNG THÁI CHECKIN & HỌC */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "1rem" }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái checkin</label>
+                    <select
+                      value={formData.checkinStatus}
+                      onChange={e => setFormData({ ...formData, checkinStatus: e.target.value })}
+                      className="form-input"
+                      style={{ background: "white" }}
+                    >
+                      <option value="not_checked_in">Chưa checkin</option>
+                      <option value="checked_in">Đã checkin ✓</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái học (studyStatus)</label>
+                    <select
+                      value={formData.studyStatus}
+                      onChange={e => setFormData({ ...formData, studyStatus: e.target.value })}
+                      className="form-input"
+                      style={{ background: "white" }}
+                    >
+                      {Object.keys(studyStatuses).map(k => (
+                        <option key={k} value={k}>{studyStatuses[k].label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái học (studyStatus)</label>
-                  <select
-                    value={formData.studyStatus}
-                    onChange={e => setFormData({ ...formData, studyStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    {Object.keys(studyStatuses).map(k => (
-                      <option key={k} value={k}>{studyStatuses[k].label}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* KHU VỰC 1: THU TỪ KHÁCH HÀNG (CUSTOMER INFLOW) */}
+                <div style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "14px",
+                  padding: "1rem",
+                  marginBottom: "1rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                }}>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "#166534", marginBottom: "0.8rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>💵</span> TÀI CHÍNH THU TỪ KHÁCH HÀNG
+                  </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền thuê học (rentAmount)</label>
-                  <input
-                    type="text"
-                    value={formData.rentAmount}
-                    onChange={e => setFormData({ ...formData, rentAmount: e.target.value.replace(/\D/g, "") })}
-                    placeholder="Ví dụ: 100000"
-                    className="form-input"
-                  />
-                  {formData.rentAmount && (
-                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
-                      Hiển thị: {Number(formData.rentAmount).toLocaleString("vi-VN")}đ
+                  {/* 1. Tiền thuê học + Trạng thái thanh toán người thuê */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền thuê học (rentAmount)</label>
+                      <input
+                        type="text"
+                        value={formData.rentAmount}
+                        onChange={e => setFormData({ ...formData, rentAmount: e.target.value.replace(/\D/g, "") })}
+                        placeholder="Ví dụ: 100000"
+                        className="form-input"
+                        style={{ background: "white" }}
+                      />
+                      {formData.rentAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--success)", marginTop: "3px", fontWeight: "700" }}>
+                          Hiển thị: {Number(formData.rentAmount).toLocaleString("vi-VN")}đ
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip kiểm tra/thuyết trình (tipAmount)</label>
-                  <input
-                    type="text"
-                    value={formData.tipAmount}
-                    onChange={e => setFormData({ ...formData, tipAmount: e.target.value.replace(/\D/g, "") })}
-                    placeholder="Ví dụ: 30000"
-                    className="form-input"
-                  />
-                  {formData.tipAmount && (
-                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
-                      Hiển thị: {Number(formData.tipAmount).toLocaleString("vi-VN")}đ
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái thanh toán khách</label>
+                      <select
+                        value={formData.paymentStatus}
+                        onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
+                        className="form-input"
+                        style={{ background: "white" }}
+                      >
+                        <option value="ChưaTT">Chưa thanh toán</option>
+                        <option value="Đã thanh toán">Đã thanh toán ✓</option>
+                      </select>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền tip khách (tipStatus)</label>
-                  <select
-                    value={formData.tipStatus}
-                    onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    <option value="Chưa gửi">Chưa gửi</option>
-                    <option value="Đã gửi">Đã gửi ✓</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền người thuê</label>
-                  <select
-                    value={formData.paymentStatus}
-                    onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    <option value="ChưaTT">Chưa thanh toán</option>
-                    <option value="Đã thanh toán">Đã thanh toán ✓</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền trả lương CTV</label>
-                  <input
-                    type="text"
-                    value={formData.salaryAmount}
-                    onChange={e => setFormData({ ...formData, salaryAmount: e.target.value.replace(/\D/g, "") })}
-                    placeholder="Ví dụ: 75000"
-                    className="form-input"
-                  />
-                  {formData.salaryAmount && (
-                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
-                      Hiển thị: {Number(formData.salaryAmount).toLocaleString("vi-VN")}đ
+                  {/* 2. Tiền tip kiểm tra + Trạng thái gửi tiền tip khách */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip kiểm tra/thuyết trình</label>
+                      <input
+                        type="text"
+                        value={formData.tipAmount}
+                        onChange={e => setFormData({ ...formData, tipAmount: e.target.value.replace(/\D/g, "") })}
+                        placeholder="Ví dụ: 30000"
+                        className="form-input"
+                        style={{ background: "white" }}
+                      />
+                      {formData.tipAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--success)", marginTop: "3px", fontWeight: "700" }}>
+                          Hiển thị: {Number(formData.tipAmount).toLocaleString("vi-VN")}đ
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái trả lương CTV</label>
-                  <select
-                    value={formData.salaryStatus}
-                    onChange={e => setFormData({ ...formData, salaryStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    <option value="ChưaTL">Chưa trả lương</option>
-                    <option value="Đã trả lương">Đã trả lương ✓</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Tiền tip cho nhân viên/CTV</label>
-                  <input
-                    type="text"
-                    value={formData.staffTipAmount}
-                    onChange={e => setFormData({ ...formData, staffTipAmount: e.target.value.replace(/\D/g, "") })}
-                    placeholder="Ví dụ: 15000"
-                    className="form-input"
-                  />
-                  {formData.staffTipAmount && (
-                    <div style={{ fontSize: "0.75rem", color: "var(--success)", marginTop: "4px", fontWeight: "600" }}>
-                      Hiển thị: {Number(formData.staffTipAmount).toLocaleString("vi-VN")}đ
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách (tipStatus)</label>
+                      <select
+                        value={formData.tipStatus}
+                        onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
+                        className="form-input"
+                        style={{ background: "white" }}
+                      >
+                        <option value="Chưa gửi">Chưa gửi</option>
+                        <option value="Đã gửi">Đã gửi ✓</option>
+                      </select>
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái gửi tiền tip CTV (staffTipStatus)</label>
-                  <select
-                    value={formData.staffTipStatus}
-                    onChange={e => setFormData({ ...formData, staffTipStatus: e.target.value })}
-                    className="form-input"
-                    style={{ background: "white" }}
-                  >
-                    <option value="Chưa gửi">Chưa gửi</option>
-                    <option value="Đã gửi">Đã gửi ✓</option>
-                  </select>
+                {/* KHU VỰC 2: CHI TRẢ CHO CTV / NHÂN VIÊN (CTV OUTFLOW) */}
+                <div style={{
+                  background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+                  border: "1px solid #ddd6fe",
+                  borderRadius: "14px",
+                  padding: "1rem",
+                  marginBottom: "1rem",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+                }}>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "800", color: "#5b21b6", marginBottom: "0.8rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>💸</span> THÙ LAO & TIP CHI TRẢ CTV / NHÂN VIÊN
+                  </div>
+
+                  {/* 1. Tiền trả lương CTV + Trạng thái trả lương CTV */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền trả lương CTV (salaryAmount)</label>
+                      <input
+                        type="text"
+                        value={formData.salaryAmount}
+                        onChange={e => setFormData({ ...formData, salaryAmount: e.target.value.replace(/\D/g, "") })}
+                        placeholder="Ví dụ: 75000"
+                        className="form-input"
+                        style={{ background: "white" }}
+                      />
+                      {formData.salaryAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "#6d28d9", marginTop: "3px", fontWeight: "700" }}>
+                          Hiển thị: {Number(formData.salaryAmount).toLocaleString("vi-VN")}đ
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái trả lương CTV</label>
+                      <select
+                        value={formData.salaryStatus}
+                        onChange={e => setFormData({ ...formData, salaryStatus: e.target.value })}
+                        className="form-input"
+                        style={{ background: "white" }}
+                      >
+                        <option value="ChưaTL">Chưa trả lương</option>
+                        <option value="Đã trả lương">Đã trả lương ✓</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 2. Tiền tip CTV + Trạng thái gửi tiền tip CTV */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip CTV (staffTipAmount)</label>
+                      <input
+                        type="text"
+                        value={formData.staffTipAmount}
+                        onChange={e => setFormData({ ...formData, staffTipAmount: e.target.value.replace(/\D/g, "") })}
+                        placeholder="Ví dụ: 15000"
+                        className="form-input"
+                        style={{ background: "white" }}
+                      />
+                      {formData.staffTipAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "#6d28d9", marginTop: "3px", fontWeight: "700" }}>
+                          Hiển thị: {Number(formData.staffTipAmount).toLocaleString("vi-VN")}đ
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái gửi tip CTV</label>
+                      <select
+                        value={formData.staffTipStatus}
+                        onChange={e => setFormData({ ...formData, staffTipStatus: e.target.value })}
+                        className="form-input"
+                        style={{ background: "white" }}
+                      >
+                        <option value="Chưa gửi">Chưa gửi</option>
+                        <option value="Đã gửi">Đã gửi ✓</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
 
