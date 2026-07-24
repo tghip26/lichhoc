@@ -3417,7 +3417,7 @@ function InternalSchedulesManager() {
                 </div>
 
                 <div className="form-group" style={{ marginBottom: "1rem" }}>
-                  <label className="form-label" style={{ fontWeight: "700" }}>Giờ học cụ thể (timeSlot)</label>
+                  <label className="form-label" style={{ fontWeight: "700" }}>Giờ học cụ thể</label>
                   <input
                     type="text"
                     value={formData.timeSlot}
@@ -3602,7 +3602,7 @@ function InternalSchedulesManager() {
                   </div>
 
                   <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái học (studyStatus)</label>
+                    <label className="form-label" style={{ fontWeight: "700" }}>Trạng thái học</label>
                     <select
                       value={formData.studyStatus}
                       onChange={e => setFormData({ ...formData, studyStatus: e.target.value })}
@@ -3632,7 +3632,7 @@ function InternalSchedulesManager() {
                   {/* 1. Tiền thuê học + Trạng thái thanh toán người thuê */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền thuê học (rentAmount)</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền thuê học</label>
                       <input
                         type="text"
                         value={formData.rentAmount}
@@ -3682,7 +3682,7 @@ function InternalSchedulesManager() {
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách (tipStatus)</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách</label>
                       <select
                         value={formData.tipStatus}
                         onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
@@ -3712,7 +3712,7 @@ function InternalSchedulesManager() {
                   {/* 1. Tiền trả lương CTV + Trạng thái trả lương CTV */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền trả lương CTV (salaryAmount)</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền trả lương CTV</label>
                       <input
                         type="text"
                         value={formData.salaryAmount}
@@ -3745,7 +3745,7 @@ function InternalSchedulesManager() {
                   {/* 2. Tiền tip CTV + Trạng thái gửi tiền tip CTV */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip CTV (staffTipAmount)</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip CTV</label>
                       <input
                         type="text"
                         value={formData.staffTipAmount}
@@ -3781,7 +3781,7 @@ function InternalSchedulesManager() {
 
             {/* Ghi chú buổi học */}
             <div className="form-group" style={{ marginBottom: "1.5rem" }}>
-              <label className="form-label" style={{ fontWeight: "700" }}>Ghi chú buổi học (notes)</label>
+              <label className="form-label" style={{ fontWeight: "700" }}>Ghi chú buổi học</label>
               <textarea
                 value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
