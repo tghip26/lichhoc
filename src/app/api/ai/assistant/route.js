@@ -13,7 +13,7 @@ export async function POST(request) {
     const lowerMsg = message.toLowerCase().trim();
 
     // -----------------------------------------------------------------
-    // 🧠 1. THÔNG MINH TRA CỨU ĐƠN HÀNG MULTI-SOURCE (SCHEDULES & INTERNAL)
+    // 🔒 1. TRA CỨU ĐƠN HÀNG AN TOÀN BẢO MẬT (CHỈ TRA CỨU ĐƠN CỦA CHÍNH MÌNH)
     // -----------------------------------------------------------------
     const isOrderLookupQuery = 
       lowerMsg.includes("tra cứu") || 
@@ -29,144 +29,133 @@ export async function POST(request) {
     if (isOrderLookupQuery) {
       let foundOrders = [];
 
-      // Extract potential order ID / word from query (e.g. "mã ca 12345" or "đơn ABC")
+      // Extract potential order ID from query (e.g. "mã ca abc123xyz")
       const words = message.split(/\s+/);
       let targetDocId = null;
       words.forEach(w => {
-        if (w.length >= 5 && /^[a-zA-Z0-9_-]+$/.test(w)) {
+        if (w.length >= 6 && /^[a-zA-Z0-9_-]+$/.test(w)) {
           targetDocId = w;
         }
       });
 
-      // Search by specific Document ID first if available
+      // Nếu tra cứu theo Mã đơn cụ thể
       if (targetDocId) {
         try {
           const docRef = doc(db, "schedules", targetDocId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            foundOrders.push({ id: docSnap.id, source: "Portal", ...docSnap.data() });
-          } else {
-            const intDocRef = doc(db, "internal_schedules", targetDocId);
-            const intDocSnap = await getDoc(intDocRef);
-            if (intDocSnap.exists()) {
-              foundOrders.push({ id: intDocSnap.id, source: "Nội bộ", ...intDocSnap.data() });
+            const data = docSnap.data();
+            // BẢO MẬT TUYỆT ĐỐI: Kiểm tra xem mã đơn này có thuộc về đúng userId / email đang đăng nhập hay không!
+            const isOwner = (userId && data.userId === userId) || 
+                            (userEmail && (data.userEmail === userEmail || data.email === userEmail || data.studentEmail === userEmail));
+
+            if (isOwner) {
+              foundOrders.push({ id: docSnap.id, ...data });
+            } else {
+              return NextResponse.json({
+                reply: "🚫 **Cảnh báo bảo mật:** Mã đơn ca học này thuộc về tài khoản khác. Vì chính sách bảo mật 100% thông tin cá nhân học viên của Thuê Học Pro, bạn chỉ có thể tra cứu đơn hàng do chính tài khoản của bạn đăng ký!",
+                options: [
+                  { label: "🔍 Xem danh sách ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
+                  { label: "📅 Đặt lịch học hộ mới", prompt: "Tạo đơn đặt lịch mới" }
+                ],
+                cta: { text: "📋 Quản lý đơn tại Dashboard", link: "/dashboard" }
+              });
             }
+          } else {
+            return NextResponse.json({
+              reply: "❓ Không tìm thấy mã đơn ca học này trên hệ thống. Bạn vui lòng kiểm tra lại mã đơn hoặc dán chính xác mã đơn ca học của bạn nhé!",
+              options: [
+                { label: "🔍 Tra cứu tất cả ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" }
+              ]
+            });
           }
         } catch (e) {
-          console.warn("Lỗi tìm kiếm theo ID:", e.message);
+          console.warn("Lỗi kiểm tra ID mã đơn:", e.message);
         }
-      }
+      } else {
+        // Tra cứu tất cả ca học thuộc về chính tài khoản này từ collection `schedules`
+        // LƯU Ý BẢO MẬT: Tuyệt đối KHÔNG tra cứu `internal_schedules` cho khách hàng công khai
+        if (!userEmail && !userId) {
+          return NextResponse.json({
+            reply: "🔑 **Yêu cầu đăng nhập:** Để bảo mật thông tin ca học của bạn, vui lòng **[Đăng nhập](/dashboard)** vào tài khoản hoặc gửi **Mã đơn ca học** của bạn cho tôi nhé!",
+            options: [
+              { label: "🔑 Đăng nhập Bảng Điều Khiển", prompt: "Mở trang Bảng Điều Khiển" },
+              { label: "💵 Xem Bảng giá dịch vụ", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" }
+            ],
+            cta: { text: "🔑 Đăng nhập Bảng Điều Khiển", link: "/dashboard" }
+          });
+        }
 
-      // If no order by ID, search by userId or userEmail
-      if (foundOrders.length === 0 && (userId || userEmail)) {
         try {
-          // Query portal schedules
+          let q;
           if (userId) {
-            const q1 = query(collection(db, "schedules"), where("userId", "==", userId), limit(5));
-            const snap1 = await getDocs(q1);
-            snap1.forEach(d => foundOrders.push({ id: d.id, source: "Portal", ...d.data() }));
+            q = query(collection(db, "schedules"), where("userId", "==", userId), limit(5));
+          } else if (userEmail) {
+            q = query(collection(db, "schedules"), where("userEmail", "==", userEmail), limit(5));
           }
 
-          // Query internal schedules if user matches studentName or email
-          if (foundOrders.length === 0 && userEmail) {
-            const q2 = query(collection(db, "internal_schedules"), where("studentEmail", "==", userEmail), limit(5));
-            const snap2 = await getDocs(q2);
-            snap2.forEach(d => foundOrders.push({ id: d.id, source: "Nội bộ", ...d.data() }));
+          if (q) {
+            const snap = await getDocs(q);
+            snap.forEach(d => foundOrders.push({ id: d.id, ...d.data() }));
           }
         } catch (err) {
           console.warn("Lỗi query Firestore AI:", err.message);
         }
       }
 
-      // If user is not logged in and didn't provide order ID
-      if (foundOrders.length === 0 && !userId && !userEmail && !targetDocId) {
-        return NextResponse.json({
-          reply: "Để tra cứu đơn hàng chuẩn xác nhất, bạn vui lòng **[Đăng nhập](/dashboard)** vào tài khoản hoặc dán **Mã đơn ca học** trực tiếp vào ô chat cho tôi nhé! 🔑\n\nVí dụ: *Tra cứu mã đơn abc123xyz*",
-          cta: { text: "🔑 Đăng nhập Dashboard", link: "/dashboard" }
-        });
-      }
-
-      // If no orders found
       if (foundOrders.length === 0) {
         return NextResponse.json({
-          reply: `Tôi đã kiểm tra kỹ trên hệ thống nhưng chưa tìm thấy đơn hàng nào khớp với yêu cầu của **${userEmail || 'bạn'}**.\n\nBạn có thể dán Mã đơn hàng hoặc bấm bên dưới để tiến hành tạo đơn đặt lịch học mới nhé! 🚀`,
-          cta: { text: "➕ Đặt lịch học hộ mới", link: "/dashboard" }
+          reply: `Xin chào! Hệ thống đã kiểm tra nhưng chưa tìm thấy ca học nào đăng ký bằng tài khoản **${userEmail || 'của bạn'}**.\n\nBạn có thể chọn thao tác bên dưới để tạo đơn học hộ mới nhé! 🚀`,
+          options: [
+            { label: "➕ Đặt lịch học hộ mới ngay", prompt: "Tôi muốn đặt lịch học hộ mới" },
+            { label: "💵 Bảng giá dịch vụ", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" }
+          ],
+          cta: { text: "➕ Đặt lịch học hộ ngay", link: "/dashboard" }
         });
       }
 
-      // Format rich response
-      let replyText = `🎯 **Hệ thống AI đã tìm thấy ${foundOrders.length} ca học liên quan:**\n\n`;
+      // Tra cứu thành công - Trả về dữ liệu kèm các Nút Chọn Tương Tác
+      let replyText = `📋 **Danh sách ca học của bạn (${foundOrders.length} ca gần nhất):**\n\n`;
 
       foundOrders.forEach((s, idx) => {
         const statusEmoji = s.status === "completed" ? "✅ Đã hoàn thành" :
                             s.status === "accepted" ? "🔵 CTV đang trực lớp" :
-                            s.status === "in_progress" ? "⏳ Đang học trực tuyến" :
+                            s.status === "in_progress" ? "⏳ Đang diễn ra" :
                             s.status === "proof_submitted" ? "📸 Đã nộp minh chứng (Chờ duyệt)" :
                             s.status === "rejected" ? "🚨 Ca đã bị hủy / Hoàn tiền" : "⏳ Hệ thống đang điều CTV...";
 
         const dateStr = s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN") : "N/A";
         const priceVal = s.price ? s.price : (s.rentAmount ? `${Number(s.rentAmount).toLocaleString('vi-VN')} đ` : "N/A");
 
-        replyText += `**Ca ${idx + 1}: ${s.className || s.subject || 'Môn học'}** (Mã ca: \`${s.id.slice(0,8)}...\`)\n`;
-        replyText += `   • Trường học: **${s.school || 'N/A'}** (${s.room || 'Phòng học'})\n`;
-        replyText += `   • Thời gian: **${dateStr}** | **${s.startTime || ''} - ${s.endTime || ''}** (${s.timeSlot || ''})\n`;
+        replyText += `**Ca ${idx + 1}: ${s.className || s.subject || 'Môn học'}**\n`;
+        replyText += `   • Mã ca: \`${s.id}\`\n`;
+        replyText += `   • Ngày học: **${dateStr}** (${s.startTime || ''} - ${s.endTime || ''})\n`;
         replyText += `   • Trạng thái: **${statusEmoji}**\n`;
-        if (s.assignedTo || s.helperName) replyText += `   • CTV phụ trách: **${s.assignedTo || s.helperName}**\n`;
-        replyText += `   • Giá thuê: **${priceVal}** (${s.paymentStatus || 'ChưaTT'})\n\n`;
+        if (s.assignedTo) replyText += `   • CTV phụ trách: **${s.assignedTo}**\n`;
+        replyText += `   • Chi phí: **${priceVal}**\n\n`;
       });
-
-      replyText += `💡 *Bạn có thể xem ảnh minh chứng điểm danh và quản lý chi tiết tại Bảng điều khiển cá nhân.*`;
 
       return NextResponse.json({
         reply: replyText,
-        cta: { text: "🔍 Quản lý ca học chi tiết", link: "/dashboard" }
+        options: [
+          { label: "🔍 Quản lý minh chứng ảnh tại Dashboard", prompt: "Mở trang Dashboard cá nhân" },
+          { label: "💳 Nạp tiền vào ví cá nhân", prompt: "Cách nạp tiền tự động vào ví như thế nào?" }
+        ],
+        cta: { text: "🔍 Quản lý ca học tại Dashboard", link: "/dashboard" }
       });
     }
 
     // -----------------------------------------------------------------
-    // 🤖 2. GỌI GEMINI API CHO CÁC CÂU HỎI PHỨC TẠP
+    // 💡 2. CÂU TRẢ LỜI VỚI CÁC Ô NÚT BẤM TRỰC TIẾP (INTERACTIVE BUTTON OPTIONS)
     // -----------------------------------------------------------------
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (apiKey) {
-      try {
-        const systemInstruction = `Bạn là Trợ lý AI tư vấn hỗ trợ 24/7 chuyên nghiệp nhất của nền tảng "THUEHOCPRO" (Hệ thống Thuê Học Hộ & Trợ Lý Học Tập Uy Tín).
-Về dịch vụ:
-- Thuê trực lớp, làm bài kiểm tra, thuyết trình, chép slide bài giảng, điểm danh.
-- Giá chuẩn: 35.000đ - 50.000đ / giờ trực lớp tiêu chuẩn (150k - 200k / buổi 4-5 tiết).
-- Bảo mật: 100% danh tính học viên, mã sinh viên và thời khóa biểu được bảo vệ.
-- Ví tiền & Nạp tiền: Nạp VietQR MBBank tự động 24/7. Tiền chỉ chuyển cho CTV khi ca hoàn thành.
-- Hủy ca & Hoàn tiền: Hoàn tiền 100% vào ví nếu ca học bị hủy hoặc khiếu nại thành công.
-- Hotline Zalo hỗ trợ: 0852866856.
-Trả lời lịch sự, thân thiện, dùng icon sinh động, cấu trúc markdown rõ ràng.`;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              { role: "user", parts: [{ text: `${systemInstruction}\n\nNgười dùng hỏi: ${message}` }] }
-            ]
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (aiReply) {
-            return NextResponse.json({ reply: aiReply });
-          }
-        }
-      } catch (err) {
-        console.warn("Lỗi Gemini API, fallback AI logic:", err.message);
-      }
-    }
-
-    // -----------------------------------------------------------------
-    // 💡 3. AI SMART FALLBACK SYSTEM CẬP NHẬT VƯỢT TRỘI
-    // -----------------------------------------------------------------
-    if (lowerMsg.includes("giá") || lowerMsg.includes("nhiều tiền") || lowerMsg.includes("chi phí") || lowerMsg.includes("bảng giá")) {
+    if (lowerMsg.includes("giá") || lowerMsg.includes("bảng giá") || lowerMsg.includes("chi phí")) {
       return NextResponse.json({
-        reply: "💵 **Bảng Giá Dịch Vụ Thuê Học Hộ Niêm Yết:**\n\n• **Trực lớp tiêu chuẩn**: **35.000 đ - 40.000 đ / giờ** (khoảng 150k - 200k cho ca 4-5 tiết học).\n• **Làm bài kiểm tra / Thuyết trình**: Thêm tiền Tip hỗ trợ tùy chọn khi đặt đơn.\n• **Ghi chép slide bài giảng**: CTV chụp lại toàn bộ bài giảng trên lớp cho bạn.\n\nMọi chi phí đều hiển thị công khai trước khi bạn xác nhận tạo đơn!",
+        reply: "💵 **Bảng Giá Dịch Vụ Thuê Học Hộ Niêm Yết:**\n\n• **Trực lớp tiêu chuẩn**: **35.000 đ - 40.000 đ / giờ** (khoảng 150k - 200k cho ca 4-5 tiết học).\n• **Làm bài kiểm tra / Thuyết trình**: Thêm tiền Tip hỗ trợ tùy chọn khi đặt đơn.\n• **Ghi chép slide bài giảng**: CTV chụp lại toàn bộ bài giảng trên lớp cho bạn.\n\nNhấp chọn thao tác bên dưới để thực hiện:",
+        options: [
+          { label: "📅 Đặt lịch học hộ ngay", prompt: "Tôi muốn đặt lịch học hộ mới" },
+          { label: "💳 Hướng dẫn nạp tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
+          { label: "🛡️ Chính sách bảo mật 100%", prompt: "Chính sách bảo mật thông tin học viên ra sao?" }
+        ],
         cta: { text: "📅 Tạo đơn đặt lịch ngay", link: "/dashboard" }
       });
     }
@@ -174,6 +163,10 @@ Trả lời lịch sự, thân thiện, dùng icon sinh động, cấu trúc mar
     if (lowerMsg.includes("bảo mật") || lowerMsg.includes("lộ thông tin") || lowerMsg.includes("an toàn")) {
       return NextResponse.json({
         reply: "🛡️ **Cam Kết Bảo Mật Danh Tính 100%:**\n\n1. **Khách Hàng**: Mã sinh viên, tên thật và ảnh của bạn được bảo mật tuyệt đối. CTV chỉ biết trường, phòng học và thời gian ca học.\n2. **Hệ Thống Cloud**: Dữ liệu lưu trên Google Firebase Security Cloud mã hóa 2 chiều.\n3. **Ví An Toàn**: Tiền giữ an toàn trên ví hệ thống, chỉ giải ngân cho CTV khi bạn xác nhận ca hoàn thành!",
+        options: [
+          { label: "📖 Đọc Điều Khoản Bảo Mật", prompt: "Tôi muốn đọc điều khoản bảo mật" },
+          { label: "📅 Đặt lịch học hộ ngay", prompt: "Tôi muốn đặt lịch học hộ mới" }
+        ],
         cta: { text: "📖 Điều Khoản Bảo Mật", link: "/dieu-khoan" }
       });
     }
@@ -181,27 +174,35 @@ Trả lời lịch sự, thân thiện, dùng icon sinh động, cấu trúc mar
     if (lowerMsg.includes("nạp tiền") || lowerMsg.includes("ví") || lowerMsg.includes("rút tiền")) {
       return NextResponse.json({
         reply: "💳 **Hướng Dẫn Nạp Tiền Ví Tự Động 24/7:**\n\n1. Vào trang **[Bảng Điều Khiển](/dashboard)** -> Thẻ **Ví Tiền**.\n2. Nhập số tiền nạp và bấm **Nạp tiền qua QR**.\n3. Quét mã VietQR chuyển khoản (MBBank). Tiền sẽ nộp vào ví tự động sau 1-3 phút!\n\nHotline hỗ trợ nạp tay Zalo: **0852.866.856**",
+        options: [
+          { label: "💳 Mở Ví Tiền Cá Nhân", prompt: "Tôi muốn xem ví tiền cá nhân" },
+          { label: "💬 Chat Zalo Admin 0852866856", prompt: "Liên hệ Zalo Admin" }
+        ],
         cta: { text: "💳 Đi đến Ví Tiền", link: "/dashboard" }
-      });
-    }
-
-    if (lowerMsg.includes("hủy") || lowerMsg.includes("hoàn tiền") || lowerMsg.includes("trả lại tiền")) {
-      return NextResponse.json({
-        reply: "🔄 **Chính Sách Hủy Ca & Hoàn Tiền:**\n\n• **Hoàn tiền 100%** vào ví nếu hủy ca khi chưa có CTV nhận hoặc trước giờ bắt đầu học.\n• Nếu có sự cố (CTV bỏ ca, đi muộn...), Admin xác minh và hoàn tiền 100% ngay lập tức!",
-        cta: { text: "📋 Quản lý đơn hàng", link: "/dashboard" }
       });
     }
 
     if (lowerMsg.includes("ctv") || lowerMsg.includes("làm việc") || lowerMsg.includes("ứng tuyển")) {
       return NextResponse.json({
         reply: "🎓 **Đăng Ký Làm CTV Trực Lớp (Thu Nhập 150k-300k/ca):**\n\nThuê Học Pro liên tục tuyển dụng sinh viên các trường ĐH. Bạn có thể chủ động nhận ca học hỗ trợ bạn bè, rút tiền về ATM bất cứ lúc nào!\n\nBấm nút bên dưới để nộp hồ sơ sinh viên xét duyệt ngay!",
+        options: [
+          { label: "✍️ Ứng tuyển CTV ngay", prompt: "Tôi muốn ứng tuyển làm CTV" },
+          { label: "💵 Bảng giá dịch vụ", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" }
+        ],
         cta: { text: "✍️ Đi ứng tuyển CTV", link: "/tuyen-ctv" }
       });
     }
 
+    // Default response with interactive option buttons
     return NextResponse.json({
-      reply: `Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của Thuê Học Pro. Tôi luôn sẵn sàng hỗ trợ bạn:\n\n• 🎯 **Tra cứu chi tiết đơn hàng / ca học của bạn**\n• 💵 **Tư vấn bảng giá dịch vụ chuẩn** (35k/giờ)\n• 💳 **Hướng dẫn nạp/rút tiền ví cá nhân tự động**\n• 🛡️ **Chính sách bảo mật danh tính tuyệt đối 100%**\n• 🎓 **Đăng ký làm CTV trực lớp tăng thu nhập**\n\nBạn hãy gõ câu hỏi hoặc dán mã ca học để tôi kiểm tra giúp bạn nhé! 😊`,
-      cta: { text: "💬 Chat Zalo Admin 0852866856", link: "https://zalo.me/0852866856" }
+      reply: `Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của Thuê Học Pro. Bạn vui lòng nhấp chọn trực tiếp vào một trong các tùy chọn bên dưới để tôi hỗ trợ bạn ngay nhé:`,
+      options: [
+        { label: "🎯 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
+        { label: "💵 Bảng giá dịch vụ (35k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
+        { label: "💳 Hướng dẫn nạp/rút tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
+        { label: "🛡️ Chính sách bảo mật 100%", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
+        { label: "🎓 Đăng ký làm CTV trực lớp", prompt: "Muốn ứng tuyển làm CTV trực lớp thì làm thế nào?" }
+      ]
     });
 
   } catch (error) {

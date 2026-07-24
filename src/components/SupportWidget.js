@@ -15,16 +15,23 @@ export default function SupportWidget() {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**.\n\nTôi có thể giúp bạn **tra cứu đơn hàng/ca học real-time**, hướng dẫn nạp tiền ví, tư vấn bảng giá hoặc giải đáp bảo mật. Bạn cần hỗ trợ gì hôm nay? 😊",
+      text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**.\n\nNhấp trực tiếp vào một trong các ô lựa chọn bên dưới để tôi hỗ trợ bạn ngay nhé: 😊",
+      options: [
+        { label: "🎯 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
+        { label: "💵 Bảng giá dịch vụ (35k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
+        { label: "💳 Hướng dẫn nạp/rút tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
+        { label: "🛡️ Cam kết bảo mật 100%", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
+        { label: "🎓 Đăng ký làm CTV trực lớp", prompt: "Muốn ứng tuyển làm CTV trực lớp thì làm thế nào?" }
+      ],
       time: new Date()
     }
   ]);
 
   const messagesEndRef = useRef(null);
 
-  // Gợi ý nhanh
+  // Gợi ý thanh trượt bên dưới
   const quickSuggestions = [
-    { label: "🔍 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
+    { label: "🎯 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
     { label: "💵 Bảng giá thuê học hộ", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
     { label: "💳 Hướng dẫn nạp tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
     { label: "🛡️ Cam kết bảo mật danh tính", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
@@ -72,6 +79,7 @@ export default function SupportWidget() {
         const botMsg = {
           sender: "bot",
           text: data.reply,
+          options: data.options || null,
           cta: data.cta,
           time: new Date()
         };
@@ -162,7 +170,7 @@ export default function SupportWidget() {
             animation: "slideInChat 0.3s ease-out"
           }}
         >
-          {/* Header */}
+          {/* Header (Đã loại bỏ nút Trạng thái dư thừa ở góc trên theo yêu cầu) */}
           <div style={{
             background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
             color: "white",
@@ -188,27 +196,17 @@ export default function SupportWidget() {
                 <div style={{ fontSize: "0.92rem", fontWeight: "800" }}>Trợ Lý AI Smart Support</div>
                 <div style={{ fontSize: "0.72rem", opacity: 0.9, display: "flex", alignItems: "center", gap: "4px" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", display: "inline-block" }}></span>
-                  {user ? `Online (${user.displayName || user.email.split('@')[0]})` : "Trực tuyến 24/7"}
+                  {user ? `Trực tuyến (${user.displayName || user.email.split('@')[0]})` : "Phản hồi tự động 24/7"}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <button
-                type="button"
-                title="Tra cứu ca học"
-                onClick={() => handleSendMessage("Tôi muốn tra cứu lịch học/ca học gần nhất của tôi")}
-                style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: "8px", padding: "4px 8px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
-              >
-                🔍 Trạng thái
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                style={{ background: "none", border: "none", color: "white", fontSize: "1.2rem", cursor: "pointer", opacity: 0.8 }}
-              >
-                ✖
-              </button>
-            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{ background: "none", border: "none", color: "white", fontSize: "1.3rem", cursor: "pointer", opacity: 0.8 }}
+            >
+              ✖
+            </button>
           </div>
 
           {/* Messages Area */}
@@ -242,6 +240,45 @@ export default function SupportWidget() {
                 }}>
                   <div dangerouslySetInnerHTML={{ __html: formatMarkdown(m.text) }}></div>
                   
+                  {/* Ô CHỌN TRỰC TIẾP DẠNG NÚT BẤM DÀNH CHO NGƯỜI DÙNG */}
+                  {m.options && m.options.length > 0 && (
+                    <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {m.options.map((opt, oIdx) => (
+                        <button
+                          key={oIdx}
+                          type="button"
+                          onClick={() => handleSendMessage(opt.prompt)}
+                          style={{
+                            background: "#f0fdf4",
+                            color: "#166534",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: "10px",
+                            padding: "7px 12px",
+                            fontSize: "0.78rem",
+                            fontWeight: "750",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            transition: "all 0.15s"
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = "#dcfce7";
+                            e.currentTarget.style.borderColor = "#86efac";
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = "#f0fdf4";
+                            e.currentTarget.style.borderColor = "#bbf7d0";
+                          }}
+                        >
+                          <span>{opt.label}</span>
+                          <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>➔</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {m.cta && (
                     <button
                       onClick={() => {
@@ -277,7 +314,7 @@ export default function SupportWidget() {
 
             {isTyping && (
               <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "white", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                <span>🤖 AI đang phản hồi...</span>
+                <span>🤖 AI đang tra cứu & phản hồi...</span>
                 <span className="dot" style={{ width: "5px", height: "5px", background: "#10B981", borderRadius: "50%", animation: "bounce 1.4s infinite" }}></span>
                 <span className="dot" style={{ width: "5px", height: "5px", background: "#10B981", borderRadius: "50%", animation: "bounce 1.4s infinite 0.2s" }}></span>
               </div>
@@ -286,7 +323,7 @@ export default function SupportWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Gợi ý nhanh Quick Chips */}
+          {/* Gợi ý nhanh Quick Chips bên dưới */}
           <div style={{
             padding: "8px 10px",
             background: "#ffffff",
@@ -339,7 +376,7 @@ export default function SupportWidget() {
               type="text"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              placeholder="Nhập câu hỏi hoặc Mã ca học cho AI..."
+              placeholder="Nhập câu hỏi hoặc dán Mã ca học của bạn..."
               style={{
                 flex: 1,
                 padding: "8px 12px",
