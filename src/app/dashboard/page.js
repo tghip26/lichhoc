@@ -3968,62 +3968,92 @@ function Dashboard() {
                 </div>
               )}
 
-              {/* VIETQR AUTOMATIC PAYMENT BLOCK */}
-              {systemSettings?.bankAccount && selectedItem.price && selectedItem.status !== "rejected" && (
-                <div style={{ 
-                  gridColumn: "1 / -1", 
-                  background: "rgba(22, 163, 74, 0.03)", 
-                  padding: "1.5rem", 
-                  borderRadius: "16px", 
-                  border: "1px dashed var(--primary)",
-                  textAlign: "center",
-                  marginTop: "1rem"
-                }}>
-                  <strong style={{ color: "var(--primary)", fontSize: "0.95rem", display: "block", marginBottom: "8px" }}>💳 THANH TOÁN CHUYỂN KHOẢN VIETQR</strong>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
-                    Quét mã QR dưới đây bằng ứng dụng Ngân hàng để thanh toán nhanh chóng.
-                  </p>
-                  
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
-                    <img 
-                      src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${selectedItem.price}&addInfo=THUEHOC%20${selectedItem.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
-                      alt="VietQR Payment" 
-                      style={{ 
-                        width: "200px", 
-                        height: "200px", 
-                        objectFit: "contain", 
-                        border: "1px solid #cbd5e1", 
-                        borderRadius: "12px", 
-                        padding: "5px",
-                        background: "white"
-                      }} 
-                    />
-                  </div>
-                  
-                  <div style={{ fontSize: "0.85rem", textAlign: "left", display: "inline-block", background: "white", padding: "10px 15px", borderRadius: "10px", border: "1px solid #e2e8f0", width: "100%", boxSizing: "border-box" }}>
-                    <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
-                    <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
-                    <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
-                    <strong>Số tiền:</strong> <span style={{ fontWeight: "700", color: "#8B5CF6" }}>{Number(selectedItem.price).toLocaleString("vi-VN")} VNĐ</span><br/>
-                    <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {selectedItem.id.substring(0, 8).toUpperCase()}</span>
-                  </div>
+              {/* BÁO GIÁ & CHUYỂN KHOẢN VIETQR HOẶC CHỜ BÁO GIÁ */}
+              {systemSettings?.bankAccount && selectedItem.status !== "rejected" && (
+                selectedItem.officialPrice || selectedItem.pricingStatus === "priced_waiting_customer_confirm" || selectedItem.paymentDeclared || selectedItem.paymentStatus === "Đã thanh toán" || selectedItem.status === "paid" ? (
+                  <div style={{ 
+                    gridColumn: "1 / -1", 
+                    background: "rgba(22, 163, 74, 0.03)", 
+                    padding: "1.5rem", 
+                    borderRadius: "16px", 
+                    border: "1px dashed var(--primary)",
+                    textAlign: "center",
+                    marginTop: "1rem"
+                  }}>
+                    <strong style={{ color: "var(--primary)", fontSize: "0.95rem", display: "block", marginBottom: "8px" }}>💳 THANH TOÁN CHUYỂN KHOẢN VIETQR (ĐÃ CÓ BÁO GIÁ)</strong>
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0 0 12px 0" }}>
+                      Admin đã báo giá chính thức: <strong style={{ color: "#16a34a" }}>{Number(selectedItem.officialPrice || selectedItem.price).toLocaleString("vi-VN")} đ</strong>. Quét mã VietQR bên dưới để thanh toán.
+                    </p>
+                    
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+                      <img 
+                        src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${selectedItem.officialPrice || selectedItem.price}&addInfo=THUEHOC%20${selectedItem.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                        alt="VietQR Payment" 
+                        style={{ 
+                          width: "200px", 
+                          height: "200px", 
+                          objectFit: "contain", 
+                          border: "1px solid #cbd5e1", 
+                          borderRadius: "12px", 
+                          padding: "5px",
+                          background: "white"
+                        }} 
+                      />
+                    </div>
+                    
+                    <div style={{ fontSize: "0.85rem", textAlign: "left", display: "inline-block", background: "white", padding: "10px 15px", borderRadius: "10px", border: "1px solid #e2e8f0", width: "100%", boxSizing: "border-box" }}>
+                      <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
+                      <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
+                      <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
+                      <strong>Số tiền:</strong> <span style={{ fontWeight: "700", color: "#8B5CF6" }}>{Number(selectedItem.officialPrice || selectedItem.price).toLocaleString("vi-VN")} VNĐ</span><br/>
+                      <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {selectedItem.id.substring(0, 8).toUpperCase()}</span>
+                    </div>
 
-                  {selectedItem.status === "pending" && (
-                    <button
-                      onClick={() => handleConfirmPayment(selectedItem.id, selectedItem.name, selectedItem.price)}
-                      className="btn btn-primary"
-                      style={{
-                        width: "100%",
-                        marginTop: "1rem",
-                        padding: "0.8rem",
-                        borderRadius: "12px",
-                        fontSize: "0.95rem"
-                      }}
-                    >
-                      Tôi đã chuyển tiền
-                    </button>
-                  )}
-                </div>
+                    {selectedItem.paymentDeclared ? (
+                      <div style={{ marginTop: "1rem", background: "#fef3c7", border: "1px solid #f59e0b", padding: "10px", borderRadius: "10px" }}>
+                        <span style={{ fontSize: "0.85rem", color: "#b45309", fontWeight: "800", display: "block" }}>
+                          ⏳ BẠN ĐÃ BẤM "TÔI ĐÃ CHUYỂN KHOẢN"
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "#92400e" }}>
+                          Admin đang đối soát tài khoản ngân hàng và sẽ xác nhận tiền về ngay khi nhận được.
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleCustomerDeclarePaid(selectedItem)}
+                        className="btn btn-primary"
+                        style={{
+                          width: "100%",
+                          marginTop: "1rem",
+                          padding: "0.8rem",
+                          borderRadius: "12px",
+                          fontSize: "0.95rem",
+                          background: "#16a34a"
+                        }}
+                      >
+                        ✅ Tôi đã chuyển khoản xong
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    gridColumn: "1 / -1", 
+                    background: "#f0f9ff", 
+                    padding: "1.25rem", 
+                    borderRadius: "16px", 
+                    border: "1px dashed #0284c7",
+                    textAlign: "center",
+                    marginTop: "1rem"
+                  }}>
+                    <strong style={{ color: "#0369a1", fontSize: "0.95rem", display: "block", marginBottom: "6px" }}>
+                      ⏳ ĐƠN HÀNG ĐANG CHỜ ADMIN BÁO GIÁ CHÍNH THỨC
+                    </strong>
+                    <p style={{ fontSize: "0.85rem", color: "#0c4a6e", margin: 0, lineHeight: "1.5" }}>
+                      Mức giá bạn đề xuất: <strong>{Number(selectedItem.proposedPrice || selectedItem.price || 0).toLocaleString("vi-VN")} VNĐ</strong>.<br/>
+                      Admin đang xem xét thông tin ca học và sẽ cài giá chính thức. Ngay khi Admin báo giá xong, mã quét mã VietQR thanh toán sẽ xuất hiện tại đây cùng thông báo nhắc bạn!
+                    </p>
+                  </div>
+                )
               )}
 
                <div style={{ gridColumn: "1 / -1", background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
@@ -4062,7 +4092,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* POPUP THANH TOÁN TỨC THÌ (KHI TẠO ĐƠN THÀNH CÔNG) */}
+      {/* POPUP THÔNG BÁO TẠO ĐƠN THÀNH CÔNG (CHỜ ADMIN BÁO GIÁ) */}
       {showPaymentModal && newOrderInfo && (
         <div 
           style={{
@@ -4099,91 +4129,61 @@ function Dashboard() {
           >
             {/* Icon chúc mừng */}
             <div style={{
-              width: "60px",
-              height: "60px",
-              background: "rgba(16, 185, 129, 0.1)",
-              color: "var(--success)",
+              width: "65px",
+              height: "65px",
+              background: "rgba(37, 99, 235, 0.1)",
+              color: "#2563eb",
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1rem auto"
             }}>
-              <svg style={{ width: "30px", height: "30px" }} fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <svg style={{ width: "32px", height: "32px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
 
-            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.4rem", fontWeight: "800", color: "var(--success)" }}>Đăng Đơn Thành Công!</h3>
-            <p style={{ margin: "0 0 1.5rem 0", fontSize: "0.9rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
-              Đơn hàng của bạn đã được ghi nhận. Vui lòng chuyển khoản quét mã QR bên dưới để Admin duyệt lịch học nhanh nhất.
-            </p>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.4rem", fontWeight: "850", color: "#1e293b" }}>Đăng Đơn Thuê Học Thành Công!</h3>
+            
+            <div style={{ background: "#f0f9ff", border: "1px solid #7dd3fc", padding: "12px 16px", borderRadius: "14px", color: "#0369a1", fontSize: "0.85rem", fontWeight: "750", marginBottom: "1.25rem" }}>
+              ⏳ Trạng thái: ĐÃ NỘP ĐƠN - CHỜ ADMIN BÁO GIÁ CHÍNH THỨC
+            </div>
 
-            {/* Tóm tắt đơn */}
             <div style={{ 
               background: "#f8fafc", 
-              padding: "1rem", 
+              padding: "1.25rem", 
               borderRadius: "16px", 
               fontSize: "0.85rem", 
               textAlign: "left", 
               border: "1px solid #e2e8f0",
-              marginBottom: "1.5rem"
+              marginBottom: "1.5rem",
+              lineHeight: "1.6"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Sinh viên:</span>
-                <strong style={{ color: "var(--text-primary)" }}>{newOrderInfo.name} ({newOrderInfo.studentId})</strong>
+                <span style={{ color: "var(--text-secondary)" }}>Môn học:</span>
+                <strong style={{ color: "var(--text-primary)" }}>{newOrderInfo.className}</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Lịch học:</span>
+                <span style={{ color: "var(--text-secondary)" }}>Ngày học:</span>
                 <strong style={{ color: "var(--text-primary)" }}>{newOrderInfo.classDate ? new Date(newOrderInfo.classDate).toLocaleDateString("vi-VN") : ""} ({newOrderInfo.weekday})</strong>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-secondary)" }}>Giá đề xuất:</span>
-                <strong style={{ color: "#8B5CF6", fontSize: "0.95rem" }}>{Number(newOrderInfo.price).toLocaleString("vi-VN")} VNĐ</strong>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Giá đề xuất của bạn:</span>
+                <strong style={{ color: "#2563eb", fontSize: "0.95rem" }}>{Number(newOrderInfo.price).toLocaleString("vi-VN")} VNĐ</strong>
               </div>
+              <hr style={{ border: "none", borderTop: "1px dashed #cbd5e1", margin: "10px 0" }} />
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569" }}>
+                📌 <b>Quy trình tiếp theo:</b> Admin sẽ kiểm tra ca học, xác nhận và cài giá chính thức. Hệ thống sẽ tự động gửi thông báo đến bạn để mở mã quét VietQR / thanh toán bằng ví số dư!
+              </p>
             </div>
 
-            {/* VietQR tự sinh */}
-            {systemSettings?.bankAccount && (
-              <div style={{ 
-                background: "rgba(22, 163, 74, 0.02)", 
-                padding: "1.25rem", 
-                borderRadius: "16px", 
-                border: "1px dashed var(--primary)",
-                marginBottom: "1.5rem"
-              }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-                  <img 
-                    src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${newOrderInfo.price}&addInfo=THUEHOC%20${newOrderInfo.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
-                    alt="VietQR Payment" 
-                    style={{ 
-                      width: "180px", 
-                      height: "180px", 
-                      objectFit: "contain", 
-                      border: "1px solid #cbd5e1", 
-                      borderRadius: "12px", 
-                      padding: "5px",
-                      background: "white"
-                    }} 
-                  />
-                </div>
-                
-                <div style={{ fontSize: "0.85rem", textAlign: "left", background: "white", padding: "10px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", display: "inline-block", width: "100%", boxSizing: "border-box" }}>
-                  <strong>Ngân hàng:</strong> {systemSettings.bankName}<br/>
-                  <strong>Số tài khoản:</strong> {systemSettings.bankAccount}<br/>
-                  <strong>Chủ tài khoản:</strong> {systemSettings.bankOwner}<br/>
-                  <strong>Nội dung CK:</strong> <span style={{ fontWeight: "700", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {newOrderInfo.id.substring(0, 8).toUpperCase()}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Nút báo chuyển tiền */}
             <button 
-              onClick={() => handleConfirmPayment(newOrderInfo.id, newOrderInfo.name, newOrderInfo.price)}
+              onClick={() => setShowPaymentModal(false)}
               className="btn btn-primary"
-              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", fontSize: "0.95rem" }}
+              style={{ width: "100%", padding: "0.8rem", borderRadius: "12px", fontSize: "0.95rem", fontWeight: "750" }}
             >
-              Tôi đã chuyển tiền
+              Đã hiểu & Xem danh sách đơn
             </button>
           </div>
         </div>
