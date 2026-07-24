@@ -3114,7 +3114,7 @@ function Dashboard() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.85rem" }}>
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Lớp cần học hộ (Mã HP/Phòng) *</label>
+                <label className="form-label" style={{ fontWeight: "750", color: "#15803d" }}>Lớp cần học hộ *</label>
                 <input 
                   type="text" 
                   name="className" 
