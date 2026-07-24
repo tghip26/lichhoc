@@ -2,55 +2,103 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SupportWidget() {
+  const { user } = useAuth();
+  const router = useRouter();
+
   const [isOpen, setIsOpen] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Xin chào! 👋 Tôi là trợ lý hỗ trợ tự động của Thuê Học Pro. Tôi có thể giúp gì cho bạn hôm nay?",
+      text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**. Tôi có thể giúp gì cho bạn hôm nay? (Bảng giá, nạp tiền ví, bảo mật hoặc tra cứu ca học của bạn...)",
       time: new Date()
     }
   ]);
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-  const router = useRouter();
 
-  const faqTriggers = [
-    {
-      q: "💵 Bảng giá dịch vụ thuê học hộ?",
-      a: "Chào bạn! Chi phí thuê học hộ cơ bản dao động từ 150.000 đ - 200.000 đ/buổi trực lớp tùy theo thời lượng (tiết học). Các khoản tiền tip làm bài kiểm tra hoặc thuyết trình sẽ do bạn thương lượng thêm với CTV. Bạn có thể đặt lịch ngay tại Bảng điều khiển cá nhân nhé!",
-      cta: { text: "📅 Đi đặt lịch ngay", link: "/dashboard" }
-    },
-    {
-      q: "🎓 Muốn đăng ký làm Cộng tác viên (CTV)?",
-      a: "Chào bạn! Chúng tôi liên tục tuyển dụng CTV trực lớp. Bạn chỉ cần click vào nút bên dưới để đi đến trang nộp hồ sơ Tuyển CTV (điền thông tin và tải ảnh thẻ SV xác minh). Admin sẽ xem duyệt nhanh sau 10 - 20 phút!",
-      cta: { text: "✍️ Đi ứng tuyển CTV", link: "/tuyen-ctv" }
-    },
-    {
-      q: "🔒 Chính sách bảo mật thông tin học viên?",
-      a: "Bạn hoàn toàn có thể yên tâm! Thuê Học Pro cam kết bảo mật 100% danh tính học viên, mã sinh viên, thời khóa biểu và hình ảnh của bạn. Chỉ có Admin và CTV trực tiếp nhận ca được xem thông tin lớp học. Hệ thống lưu trữ dữ liệu an toàn trên Firestore Cloud.",
-      cta: { text: "📖 Xem điều khoản bảo mật", link: "/dieu-khoan" }
-    },
-    {
-      q: "💬 Liên hệ trực tiếp Zalo hỗ trợ 24/7?",
-      a: "Nếu bạn có yêu cầu đặc biệt hoặc cần hỗ trợ nạp tiền/rút tiền ví gấp, hãy liên hệ trực tiếp với Admin qua số điện thoại/Zalo Hotline: <b>0852.866.856</b>. Hỗ trợ viên trực tuyến 24/7 luôn sẵn sàng xử lý ca khó!",
-      cta: { text: "💬 Chat Zalo trực tiếp", link: "https://zalo.me/0852866856" }
-    }
+  const messagesEndRef = useRef(null);
+
+  // Gợi ý nhanh
+  const quickSuggestions = [
+    { label: "🔍 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
+    { label: "💵 Bảng giá thuê học hộ", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
+    { label: "💳 Hướng dẫn nạp tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
+    { label: "🛡️ Cam kết bảo mật danh tính", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
+    { label: "🎓 Đăng ký làm CTV trực lớp", prompt: "Muốn ứng tuyển làm CTV trực lớp thì làm thế nào?" }
   ];
 
-  const handleSelectQuestion = (q, a, cta) => {
-    // Add user question
-    const userMsg = { sender: "user", text: q, time: new Date() };
+  // Helper format Markdown sang HTML an toàn
+  const formatMarkdown = (text) => {
+    if (!text) return "";
+    let formatted = text
+      .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+      .replace(/\*(.*?)\*/g, "<i>$1</i>")
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" style="color: #059669; font-weight: bold; text-decoration: underline;">$1</a>')
+      .replace(/\n/g, "<br/>");
+    return formatted;
+  };
+
+  // Gửi câu hỏi tới AI Assistant API
+  const handleSendMessage = async (textToSend) => {
+    const queryText = textToSend || inputText;
+    if (!queryText || !queryText.trim() || isTyping) return;
+
+    // Add user message
+    const userMsg = { sender: "user", text: queryText.trim(), time: new Date() };
     setMessages(prev => [...prev, userMsg]);
+    if (!textToSend) setInputText("");
     setIsTyping(true);
 
-    // Simulate bot typing
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/ai/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: queryText.trim(),
+          userEmail: user?.email || "",
+          userId: user?.uid || ""
+        })
+      });
+
+      const data = await res.json();
       setIsTyping(false);
-      const botMsg = { sender: "bot", text: a, time: new Date(), cta };
-      setMessages(prev => [...prev, botMsg]);
-    }, 700);
+
+      if (data && data.reply) {
+        const botMsg = {
+          sender: "bot",
+          text: data.reply,
+          cta: data.cta,
+          time: new Date()
+        };
+        setMessages(prev => [...prev, botMsg]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          {
+            sender: "bot",
+            text: "Xin lỗi bạn, tôi không thể xử lý câu hỏi lúc này. Vui lòng liên hệ trực tiếp Zalo Hotline: **0852.866.856** để được hỗ trợ tức thì!",
+            cta: { text: "💬 Chat Zalo Admin", link: "https://zalo.me/0852866856" },
+            time: new Date()
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("Lỗi gửi tin nhắn AI:", err);
+      setIsTyping(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Có lỗi kết nối xảy ra. Bạn vui lòng thử lại hoặc liên hệ Zalo Hotline: **0852866856** nhé!",
+          cta: { text: "💬 Chat Zalo Admin", link: "https://zalo.me/0852866856" },
+          time: new Date()
+        }
+      ]);
+    }
   };
 
   useEffect(() => {
@@ -68,8 +116,8 @@ export default function SupportWidget() {
           position: "fixed",
           bottom: "25px",
           right: "25px",
-          width: "60px",
-          height: "60px",
+          width: "62px",
+          height: "62px",
           borderRadius: "50%",
           background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
           color: "white",
@@ -79,35 +127,35 @@ export default function SupportWidget() {
           boxShadow: "0 8px 30px rgba(16, 185, 129, 0.4)",
           cursor: "pointer",
           zIndex: 9999,
-          fontSize: "1.6rem",
+          fontSize: "1.7rem",
           transition: "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
           animation: isOpen ? "none" : "pulseChat 2s infinite"
         }}
         onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1) rotate(5deg)"}
         onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
       >
-        {isOpen ? "✖" : "💬"}
+        {isOpen ? "✖" : "🤖"}
       </div>
 
-      {/* CỬA SỔ CHAT DRAWER */}
+      {/* CỬA SỔ CHAT DRAWER AI */}
       {isOpen && (
         <div 
           className="glass-panel"
           style={{
             position: "fixed",
-            bottom: "95px",
+            bottom: "98px",
             right: "25px",
-            width: "360px",
-            maxWidth: "calc(100vw - 50px)",
-            height: "480px",
+            width: "380px",
+            maxWidth: "calc(100vw - 40px)",
+            height: "520px",
             maxHeight: "calc(100vh - 120px)",
             borderRadius: "20px",
             display: "flex",
             flexDirection: "column",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
-            background: "rgba(255, 255, 255, 0.92)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
+            boxShadow: "0 12px 45px rgba(0,0,0,0.15)",
+            background: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(14px)",
+            border: "1px solid rgba(16, 185, 129, 0.3)",
             overflow: "hidden",
             zIndex: 9999,
             animation: "slideInChat 0.3s ease-out"
@@ -115,38 +163,47 @@ export default function SupportWidget() {
         >
           {/* Header */}
           <div style={{
-            background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+            background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
             color: "white",
-            padding: "1rem 1.25rem",
+            padding: "1rem 1.2rem",
             display: "flex",
             alignItems: "center",
-            gap: "10px"
+            justifyContent: "space-between"
           }}>
-            <div style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.2rem"
-            }}>
-              🛡️
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: "0.9rem", fontWeight: "800" }}>Trợ lý hỗ trợ tự động</div>
-              <div style={{ fontSize: "0.72rem", opacity: 0.9, display: "flex", alignItems: "center", gap: "4px" }}>
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", display: "inline-block" }}></span>
-                Trực tuyến 24/7
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "42px",
+                height: "42px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.4rem"
+              }}>
+                🤖
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: "0.92rem", fontWeight: "800" }}>Trợ Lý AI Smart Support</div>
+                <div style={{ fontSize: "0.72rem", opacity: 0.9, display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", display: "inline-block" }}></span>
+                  Phản hồi tức thì 24/7
+                </div>
               </div>
             </div>
+
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{ background: "none", border: "none", color: "white", fontSize: "1.2rem", cursor: "pointer", opacity: 0.8 }}
+            >
+              ✖
+            </button>
           </div>
 
           {/* Messages Area */}
           <div style={{
             flex: 1,
-            padding: "1.25rem",
+            padding: "1rem",
             overflowY: "auto",
             display: "flex",
             flexDirection: "column",
@@ -158,21 +215,21 @@ export default function SupportWidget() {
                 key={idx} 
                 style={{
                   alignSelf: m.sender === "user" ? "flex-end" : "flex-start",
-                  maxWidth: "85%",
+                  maxWidth: "88%",
                   textAlign: "left"
                 }}
               >
                 <div style={{
-                  background: m.sender === "user" ? "#10B981" : "white",
+                  background: m.sender === "user" ? "linear-gradient(135deg, #10B981 0%, #059669 100%)" : "white",
                   color: m.sender === "user" ? "white" : "var(--text-primary)",
                   padding: "10px 14px",
                   borderRadius: m.sender === "user" ? "16px 16px 2px 16px" : "16px 16px 16px 2px",
                   fontSize: "0.82rem",
-                  lineHeight: "1.5",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.03)",
+                  lineHeight: "1.55",
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
                   border: m.sender === "user" ? "none" : "1px solid #e2e8f0"
                 }}>
-                  <div dangerouslySetInnerHTML={{ __html: m.text }}></div>
+                  <div dangerouslySetInnerHTML={{ __html: formatMarkdown(m.text) }}></div>
                   
                   {m.cta && (
                     <button
@@ -183,94 +240,122 @@ export default function SupportWidget() {
                           router.push(m.cta.link);
                         }
                       }}
-                      className="btn btn-primary"
+                      className="btn"
                       style={{
-                        marginTop: "8px",
-                        fontSize: "0.75rem",
-                        padding: "5px 12px",
+                        marginTop: "10px",
+                        fontSize: "0.78rem",
+                        padding: "6px 12px",
                         borderRadius: "8px",
                         width: "100%",
                         border: "none",
-                        fontWeight: "750"
+                        fontWeight: "750",
+                        background: "#047857",
+                        color: "white",
+                        cursor: "pointer"
                       }}
                     >
                       {m.cta.text}
                     </button>
                   )}
                 </div>
-                <span style={{ fontSize: "0.65rem", color: "var(--text-secondary)", marginTop: "2px", display: "block", textAlign: m.sender === "user" ? "right" : "left" }}>
+                <span style={{ fontSize: "0.65rem", color: "var(--text-secondary)", marginTop: "3px", display: "block", textAlign: m.sender === "user" ? "right" : "left" }}>
                   {m.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
             ))}
 
             {isTyping && (
-              <div style={{ alignSelf: "flex-start", display: "flex", gap: "4px", padding: "8px 14px", background: "white", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <span className="dot" style={{ width: "5px", height: "5px", background: "#64748b", borderRadius: "50%", display: "inline-block", animation: "bounce 1.4s infinite" }}></span>
-                <span className="dot" style={{ width: "5px", height: "5px", background: "#64748b", borderRadius: "50%", display: "inline-block", animation: "bounce 1.4s infinite 0.2s" }}></span>
-                <span className="dot" style={{ width: "5px", height: "5px", background: "#64748b", borderRadius: "50%", display: "inline-block", animation: "bounce 1.4s infinite 0.4s" }}></span>
+              <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "white", borderRadius: "12px", border: "1px solid #e2e8f0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                <span>🤖 AI đang phản hồi...</span>
+                <span className="dot" style={{ width: "5px", height: "5px", background: "#10B981", borderRadius: "50%", animation: "bounce 1.4s infinite" }}></span>
+                <span className="dot" style={{ width: "5px", height: "5px", background: "#10B981", borderRadius: "50%", animation: "bounce 1.4s infinite 0.2s" }}></span>
               </div>
             )}
             
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Triggers Option footer */}
+          {/* Gợi ý nhanh Quick Chips */}
           <div style={{
-            padding: "10px",
-            background: "white",
+            padding: "8px 10px",
+            background: "#ffffff",
             borderTop: "1px solid #e2e8f0",
             display: "flex",
-            flexDirection: "column",
-            gap: "6px"
+            gap: "6px",
+            overflowX: "auto"
           }}>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", fontWeight: "700", textAlign: "left", paddingLeft: "6px" }}>
-              💡 Câu hỏi gợi ý:
-            </div>
-            <div 
-              className="hide-scrollbar"
+            {quickSuggestions.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSendMessage(item.prompt)}
+                style={{
+                  background: "#f0fdf4",
+                  color: "#166534",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "20px",
+                  padding: "4px 10px",
+                  fontSize: "0.72rem",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s"
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "#dcfce7"}
+                onMouseLeave={e => e.currentTarget.style.background = "#f0fdf4"}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Input Form Footer */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            style={{
+              padding: "10px 12px",
+              background: "white",
+              borderTop: "1px solid #e2e8f0",
+              display: "flex",
+              gap: "8px",
+              alignItems: "center"
+            }}
+          >
+            <input
+              type="text"
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              placeholder="Nhập câu hỏi hỗ trợ cho Trợ lý AI..."
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "5px",
-                maxHeight: "130px",
-                overflowY: "auto",
-                padding: "2px"
+                flex: 1,
+                padding: "8px 12px",
+                borderRadius: "10px",
+                border: "1px solid #cbd5e1",
+                fontSize: "0.82rem",
+                outline: "none"
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!inputText.trim() || isTyping}
+              style={{
+                background: inputText.trim() && !isTyping ? "linear-gradient(135deg, #10B981 0%, #059669 100%)" : "#cbd5e1",
+                color: "white",
+                border: "none",
+                borderRadius: "10px",
+                padding: "8px 14px",
+                fontWeight: "750",
+                fontSize: "0.82rem",
+                cursor: inputText.trim() && !isTyping ? "pointer" : "not-allowed"
               }}
             >
-              {faqTriggers.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectQuestion(item.q, item.a, item.cta)}
-                  style={{
-                    background: "#f1f5f9",
-                    color: "var(--text-primary)",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "10px",
-                    padding: "6px 10px",
-                    fontSize: "0.75rem",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    transition: "all 0.15s"
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "#e2e8f0";
-                    e.currentTarget.style.borderColor = "#94a3b8";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = "#f1f5f9";
-                    e.currentTarget.style.borderColor = "#cbd5e1";
-                  }}
-                >
-                  {item.q}
-                </button>
-              ))}
-            </div>
-          </div>
+              Gửi 🚀
+            </button>
+          </form>
+
         </div>
       )}
 
@@ -278,7 +363,7 @@ export default function SupportWidget() {
       <style jsx global>{`
         @keyframes pulseChat {
           0% { transform: scale(1); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
-          50% { transform: scale(1.05); box-shadow: 0 8px 35px rgba(16, 185, 129, 0.6); }
+          50% { transform: scale(1.06); box-shadow: 0 8px 35px rgba(16, 185, 129, 0.6); }
           100% { transform: scale(1); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4); }
         }
         @keyframes slideInChat {
