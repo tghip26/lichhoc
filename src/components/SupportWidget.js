@@ -15,7 +15,7 @@ export default function SupportWidget() {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**. Tôi có thể giúp gì cho bạn hôm nay? (Bảng giá, nạp tiền ví, bảo mật hoặc tra cứu ca học của bạn...)",
+      text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**.\n\nTôi có thể giúp bạn **tra cứu đơn hàng/ca học real-time**, hướng dẫn nạp tiền ví, tư vấn bảng giá hoặc giải đáp bảo mật. Bạn cần hỗ trợ gì hôm nay? 😊",
       time: new Date()
     }
   ]);
@@ -35,6 +35,7 @@ export default function SupportWidget() {
   const formatMarkdown = (text) => {
     if (!text) return "";
     let formatted = text
+      .replace(/`([^`]+)`/g, '<code style="background:#e2e8f0; padding:2px 6px; borderRadius:4px; font-family:monospace; font-size:0.8rem; color:#0f172a;">$1</code>')
       .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
       .replace(/\*(.*?)\*/g, "<i>$1</i>")
       .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" style="color: #059669; font-weight: bold; text-decoration: underline;">$1</a>')
@@ -145,15 +146,15 @@ export default function SupportWidget() {
             position: "fixed",
             bottom: "98px",
             right: "25px",
-            width: "380px",
+            width: "385px",
             maxWidth: "calc(100vw - 40px)",
-            height: "520px",
+            height: "530px",
             maxHeight: "calc(100vh - 120px)",
             borderRadius: "20px",
             display: "flex",
             flexDirection: "column",
             boxShadow: "0 12px 45px rgba(0,0,0,0.15)",
-            background: "rgba(255, 255, 255, 0.95)",
+            background: "rgba(255, 255, 255, 0.96)",
             backdropFilter: "blur(14px)",
             border: "1px solid rgba(16, 185, 129, 0.3)",
             overflow: "hidden",
@@ -187,17 +188,27 @@ export default function SupportWidget() {
                 <div style={{ fontSize: "0.92rem", fontWeight: "800" }}>Trợ Lý AI Smart Support</div>
                 <div style={{ fontSize: "0.72rem", opacity: 0.9, display: "flex", alignItems: "center", gap: "4px" }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", display: "inline-block" }}></span>
-                  Phản hồi tức thì 24/7
+                  {user ? `Online (${user.displayName || user.email.split('@')[0]})` : "Trực tuyến 24/7"}
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={() => setIsOpen(false)}
-              style={{ background: "none", border: "none", color: "white", fontSize: "1.2rem", cursor: "pointer", opacity: 0.8 }}
-            >
-              ✖
-            </button>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                type="button"
+                title="Tra cứu ca học"
+                onClick={() => handleSendMessage("Tôi muốn tra cứu lịch học/ca học gần nhất của tôi")}
+                style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "white", borderRadius: "8px", padding: "4px 8px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}
+              >
+                🔍 Trạng thái
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                style={{ background: "none", border: "none", color: "white", fontSize: "1.2rem", cursor: "pointer", opacity: 0.8 }}
+              >
+                ✖
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}
@@ -328,7 +339,7 @@ export default function SupportWidget() {
               type="text"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              placeholder="Nhập câu hỏi hỗ trợ cho Trợ lý AI..."
+              placeholder="Nhập câu hỏi hoặc Mã ca học cho AI..."
               style={{
                 flex: 1,
                 padding: "8px 12px",
