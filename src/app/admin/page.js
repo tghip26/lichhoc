@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminGuard from "@/components/AdminGuard";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, setDoc, increment, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -339,33 +339,108 @@ function AdminDashboard() {
     }
 
     try {
-      await updateDoc(doc(db, "schedules", item.id), {
-        officialPrice: numericPrice,
-        price: numericPrice.toString(),
-        pricingStatus: "priced_waiting_customer_confirm",
-        paymentStatus: "Admin đã báo giá (Chờ khách XN)"
-      });
+      let isWalletDeducted = false;
+      let userBalance = 0;
 
-      toast.success(`Đã cài giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}!`);
+      // Xử lý trừ tiền ví nếu khách hàng chọn thanh toán bằng Ví từ trước
+      if (item.paymentMethod === "wallet" && item.userId) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", item.userId));
+          if (userSnap.exists()) {
+            userBalance = userSnap.data().balance || 0;
+            if (userBalance >= numericPrice) {
+              // 1. Trừ số dư ví khách hàng
+              await updateDoc(doc(db, "users", item.userId), {
+                balance: increment(-numericPrice)
+              });
 
-      // Gửi thông báo cho khách hàng
-      if (item.userId) {
-        await addDoc(collection(db, "notifications"), {
-          userId: item.userId,
-          title: "💰 Admin đã cài giá ca học!",
-          message: `Admin đã chốt giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}. Vui lòng mở Bảng Điều Khiển để xác nhận thanh toán.`,
-          read: false,
-          link: "/dashboard?tab=schedules",
-          createdAt: serverTimestamp()
+              // 2. Tạo lịch sử biến động số dư
+              await addDoc(collection(db, "transactions"), {
+                userId: item.userId,
+                userEmail: item.userEmail || "",
+                amount: numericPrice,
+                type: "payment",
+                status: "completed",
+                message: `Thanh toán tự động bằng ví khi Admin báo giá môn ${item.className}`,
+                createdAt: serverTimestamp()
+              });
+
+              isWalletDeducted = true;
+            }
+          }
+        } catch (walletErr) {
+          console.error("Lỗi đối soát ví người dùng:", walletErr);
+        }
+      }
+
+      if (isWalletDeducted) {
+        // Cập nhật ca học thành Đã thanh toán (Ví)
+        await updateDoc(doc(db, "schedules", item.id), {
+          officialPrice: numericPrice,
+          price: numericPrice.toString(),
+          pricingStatus: "confirmed",
+          paymentStatus: "Đã thanh toán (Ví)",
+          status: item.assignedTo ? "accepted" : "paid"
         });
+
+        toast.success(`Khách chọn Ví: Đã tự động trừ -${numericPrice.toLocaleString("vi-VN")} đ từ ví số dư khách hàng!`);
+
+        // Gửi thông báo cho khách hàng
+        if (item.userId) {
+          await addDoc(collection(db, "notifications"), {
+            userId: item.userId,
+            title: "💰 Tự động thanh toán qua Ví thành công!",
+            message: `Admin đã chốt giá ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}. Hệ thống đã tự động khấu trừ từ ví tài khoản của bạn.`,
+            read: false,
+            link: "/dashboard?tab=schedules",
+            createdAt: serverTimestamp()
+          });
+        }
+
+      } else {
+        // Khách chọn QR hoặc Ví nhưng số dư không đủ -> Chờ xác nhận/nạp tiền
+        const isWalletInsufficient = item.paymentMethod === "wallet";
+        const newPaymentStatus = isWalletInsufficient
+          ? `Ví không đủ số dư (Còn ${userBalance.toLocaleString("vi-VN")} đ - Chờ khách nạp/XN)`
+          : "Admin đã báo giá (Chờ khách XN)";
+
+        await updateDoc(doc(db, "schedules", item.id), {
+          officialPrice: numericPrice,
+          price: numericPrice.toString(),
+          pricingStatus: "priced_waiting_customer_confirm",
+          paymentStatus: newPaymentStatus
+        });
+
+        if (isWalletInsufficient) {
+          toast.warn(`Khách chọn Ví nhưng ví hiện tại có ${userBalance.toLocaleString("vi-VN")} đ (không đủ ${numericPrice.toLocaleString("vi-VN")} đ). Đơn chuyển chờ khách nạp!`);
+        } else {
+          toast.success(`Đã cài giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}!`);
+        }
+
+        // Gửi thông báo cho khách hàng
+        if (item.userId) {
+          const msg = isWalletInsufficient
+            ? `Admin đã chốt giá ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}. Ví của bạn hiện có ${userBalance.toLocaleString("vi-VN")} đ (không đủ), vui lòng nạp thêm hoặc quét VietQR để thanh toán!`
+            : `Admin đã chốt giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}. Vui lòng mở Bảng Điều Khiển để xác nhận thanh toán.`;
+
+          await addDoc(collection(db, "notifications"), {
+            userId: item.userId,
+            title: "💰 Admin đã cài giá ca học!",
+            message: msg,
+            read: false,
+            link: "/dashboard?tab=schedules",
+            createdAt: serverTimestamp()
+          });
+        }
       }
 
       // Thông báo Telegram
       try {
         await sendTelegramAlert(`💰 <b>ADMIN ĐÃ BÁO GIÁ CHÍNH THỨC!</b>\n\n` +
           `• <b>Môn học:</b> ${item.className}\n` +
-          `• <b>Giá đề xuất của khách:</b> ${(item.proposedPrice || item.price || 0).toLocaleString("vi-VN")} đ\n` +
           `• <b>Giá chốt chính thức:</b> <b>${numericPrice.toLocaleString("vi-VN")} đ</b>\n` +
+          `• <b>Phương thức khách chọn:</b> ${item.paymentMethod === "wallet" ? "💳 Ví tài khoản" : "📸 Chuyển khoản VietQR"}\n` +
+          `• <b>Trạng thái:</b> ${isWalletDeducted ? "✅ ĐÃ TỰ ĐỘNG TRỪ VÍ THÀNH CÔNG" : "⏳ CHỜ KHÁCH THANH TOÁN"}\n` +
           `• <b>Học viên:</b> ${item.name}`);
       } catch (tgErr) {
         console.warn("Lỗi gửi Telegram báo giá:", tgErr);

@@ -3315,23 +3315,16 @@ function Dashboard() {
                 }}
               >
                 <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "qr" ? "var(--primary)" : "var(--text-primary)" }}>📸 Chuyển khoản QR</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Nhận VietQR sau khi tạo đơn</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Quét VietQR sau khi Admin cài giá</span>
               </div>
               <div 
-                onClick={() => {
-                  const priceNumeric = formData.price ? Number(formData.price.replace(/\./g, "")) : 0;
-                  if ((userProfile?.balance || 0) < priceNumeric) {
-                    toast.error("Số dư tài khoản không đủ để thanh toán. Vui lòng nạp thêm tiền!");
-                    return;
-                  }
-                  setPaymentMethod("wallet");
-                }}
+                onClick={() => setPaymentMethod("wallet")}
                 style={{ 
-                  padding: "10px 15px", border: paymentMethod === "wallet" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "wallet" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s", opacity: (userProfile?.balance || 0) <= 0 ? 0.5 : 1
+                  padding: "10px 15px", border: paymentMethod === "wallet" ? "2px solid var(--primary)" : "2px solid #e2e8f0", borderRadius: "12px", cursor: "pointer", background: paymentMethod === "wallet" ? "rgba(22, 163, 74, 0.03)" : "white", display: "flex", flexDirection: "column", gap: "4px", transition: "all 0.2s"
                 }}
               >
-                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "wallet" ? "var(--primary)" : "var(--text-primary)" }}>💳 Ví tài khoản (Trừ tiền)</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Số dư hiện có: {(userProfile?.balance || 0).toLocaleString("vi-VN")} đ</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: paymentMethod === "wallet" ? "var(--primary)" : "var(--text-primary)" }}>💳 Ví tài khoản</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Tự trừ ví sau khi Admin chốt giá (Ví: {(userProfile?.balance || 0).toLocaleString("vi-VN")} đ)</span>
               </div>
             </div>
           </div>
