@@ -23,6 +23,7 @@ export default function ThongKePage() {
   const [debtTab, setDebtTab] = useState("customer"); // "customer" or "helper"
   const [debtSearch, setDebtSearch] = useState("");
   const [debtFilter, setDebtFilter] = useState("all"); // "all", "rent", "tip"
+  const [debtSourceFilter, setDebtSourceFilter] = useState("all"); // "all", "internal", "customer"
 
   // Phân quyền bảo vệ trang Admin
   useEffect(() => {
@@ -235,6 +236,8 @@ export default function ThongKePage() {
         totalDebt: (isRentUnpaid ? rentVal : 0) + (isTipUnpaid ? tipVal : 0),
         isRentUnpaid,
         isTipUnpaid,
+        sourceType: "internal",
+        sourceLabel: "🏢 Lịch Nội Bộ",
         collectionName: "internal_schedules"
       });
     }
@@ -264,6 +267,8 @@ export default function ThongKePage() {
         totalDebt: (isRentUnpaid ? rentVal : 0) + (isTipUnpaid ? tipVal : 0),
         isRentUnpaid,
         isTipUnpaid,
+        sourceType: "customer",
+        sourceLabel: "👥 Đơn Khách Đặt",
         collectionName: "schedules"
       });
     }
@@ -295,6 +300,8 @@ export default function ThongKePage() {
         totalDebt: (isSalUnpaid ? salVal : 0) + (isStaffTipUnpaid ? staffTipVal : 0),
         isSalUnpaid,
         isStaffTipUnpaid,
+        sourceType: "internal",
+        sourceLabel: "🏢 Lịch Nội Bộ",
         collectionName: "internal_schedules"
       });
     }
@@ -323,6 +330,8 @@ export default function ThongKePage() {
         totalDebt: (isSalUnpaid ? salVal : 0) + (isStaffTipUnpaid ? staffTipVal : 0),
         isSalUnpaid,
         isStaffTipUnpaid,
+        sourceType: "customer",
+        sourceLabel: "👥 Đơn Khách Đặt",
         collectionName: "schedules"
       });
     }
@@ -333,16 +342,25 @@ export default function ThongKePage() {
   const totalHelperUnpaidSum = helperUnpaidList.reduce((sum, i) => sum + i.totalDebt, 0);
   const netUnpaidReceivable = totalCustomerUnpaidSum - totalHelperUnpaidSum;
 
-  // Lọc danh sách theo tìm kiếm và loại nợ
+  // Phân rã theo Nguồn
+  const internalCustomerDebt = customerUnpaidList.filter(i => i.sourceType === "internal").reduce((sum, i) => sum + i.totalDebt, 0);
+  const portalCustomerDebt = customerUnpaidList.filter(i => i.sourceType === "customer").reduce((sum, i) => sum + i.totalDebt, 0);
+
+  const internalHelperDebt = helperUnpaidList.filter(i => i.sourceType === "internal").reduce((sum, i) => sum + i.totalDebt, 0);
+  const portalHelperDebt = helperUnpaidList.filter(i => i.sourceType === "customer").reduce((sum, i) => sum + i.totalDebt, 0);
+
+  // Lọc danh sách theo tìm kiếm, loại nợ và nguồn đơn
   const filteredCustomerUnpaid = customerUnpaidList.filter(item => {
     const matchesSearch = !debtSearch || 
       item.studentName.toLowerCase().includes(debtSearch.toLowerCase()) ||
       item.className.toLowerCase().includes(debtSearch.toLowerCase()) ||
       item.school.toLowerCase().includes(debtSearch.toLowerCase());
     
-    if (debtFilter === "rent") return matchesSearch && item.isRentUnpaid;
-    if (debtFilter === "tip") return matchesSearch && item.isTipUnpaid;
-    return matchesSearch;
+    const matchesSource = debtSourceFilter === "all" || item.sourceType === debtSourceFilter;
+
+    if (debtFilter === "rent") return matchesSearch && matchesSource && item.isRentUnpaid;
+    if (debtFilter === "tip") return matchesSearch && matchesSource && item.isTipUnpaid;
+    return matchesSearch && matchesSource;
   });
 
   const filteredHelperUnpaid = helperUnpaidList.filter(item => {
@@ -351,9 +369,11 @@ export default function ThongKePage() {
       item.className.toLowerCase().includes(debtSearch.toLowerCase()) ||
       item.school.toLowerCase().includes(debtSearch.toLowerCase());
     
-    if (debtFilter === "rent") return matchesSearch && item.isSalUnpaid;
-    if (debtFilter === "tip") return matchesSearch && item.isStaffTipUnpaid;
-    return matchesSearch;
+    const matchesSource = debtSourceFilter === "all" || item.sourceType === debtSourceFilter;
+
+    if (debtFilter === "rent") return matchesSearch && matchesSource && item.isSalUnpaid;
+    if (debtFilter === "tip") return matchesSearch && matchesSource && item.isStaffTipUnpaid;
+    return matchesSearch && matchesSource;
   });
 
   // Xử lý cập nhật nhanh trạng thái khách thanh toán
@@ -401,14 +421,14 @@ export default function ThongKePage() {
 
     let csvContent = "\uFEFF"; // UTF-8 BOM cho Excel
     if (isCustTab) {
-      csvContent += "Mã ca,Tên Môn Học,Học Viên / Khách Hàng,Trường,Ngày Học,Tiền Thuê (VNĐ),Trạng Thái Thuê,Tiền Tip (VNĐ),Trạng Thái Tip,Tổng Tiền Nợ (VNĐ)\n";
+      csvContent += "Mã ca,Nguồn Đơn,Tên Môn Học,Học Viên / Khách Hàng,Trường,Ngày Học,Tiền Thuê (VNĐ),Trạng Thái Thuê,Tiền Tip (VNĐ),Trạng Thái Tip,Tổng Tiền Nợ (VNĐ)\n";
       dataList.forEach(item => {
-        csvContent += `"${item.id}","${item.className}","${item.studentName}","${item.school}","${item.classDate ? new Date(item.classDate).toLocaleDateString('vi-VN') : ''}",${item.rentVal},"${item.paymentStatus}",${item.tipVal},"${item.tipStatus}",${item.totalDebt}\n`;
+        csvContent += `"${item.id}","${item.sourceType === 'internal' ? 'Lịch Nội Bộ' : 'Đơn Khách Đặt'}","${item.className}","${item.studentName}","${item.school}","${item.classDate ? new Date(item.classDate).toLocaleDateString('vi-VN') : ''}",${item.rentVal},"${item.paymentStatus}",${item.tipVal},"${item.tipStatus}",${item.totalDebt}\n`;
       });
     } else {
-      csvContent += "Mã ca,Tên Môn Học,CTV Phụ Trách,Trường,Ngày Học,Thù Lao (VNĐ),Trạng Thái Lương,Tip CTV (VNĐ),Trạng Thái Tip CTV,Tổng Lương Chưa Trả (VNĐ)\n";
+      csvContent += "Mã ca,Nguồn Đơn,Tên Môn Học,CTV Phụ Trách,Trường,Ngày Học,Thù Lao (VNĐ),Trạng Thái Lương,Tip CTV (VNĐ),Trạng Thái Tip CTV,Tổng Lương Chưa Trả (VNĐ)\n";
       dataList.forEach(item => {
-        csvContent += `"${item.id}","${item.className}","${item.helperName}","${item.school}","${item.classDate ? new Date(item.classDate).toLocaleDateString('vi-VN') : ''}",${item.salaryVal},"${item.salaryStatus}",${item.staffTipVal},"${item.staffTipStatus}",${item.totalDebt}\n`;
+        csvContent += `"${item.id}","${item.sourceType === 'internal' ? 'Lịch Nội Bộ' : 'Đơn Khách Đặt'}","${item.className}","${item.helperName}","${item.school}","${item.classDate ? new Date(item.classDate).toLocaleDateString('vi-VN') : ''}",${item.salaryVal},"${item.salaryStatus}",${item.staffTipVal},"${item.staffTipStatus}",${item.totalDebt}\n`;
       });
     }
 
@@ -641,9 +661,11 @@ export default function ThongKePage() {
             <h3 style={{ fontSize: "1.6rem", color: "#b91c1c", fontWeight: "850", margin: "6px 0 4px 0" }}>
               {totalCustomerUnpaidSum.toLocaleString("vi-VN")} đ
             </h3>
-            <span style={{ fontSize: "0.78rem", color: "#7f1d1d", fontWeight: "600" }}>
-              Gồm {customerUnpaidList.length} khoản đọng (Thuê & Tip)
-            </span>
+            <div style={{ fontSize: "0.76rem", color: "#7f1d1d", fontWeight: "600", marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              <span>🏢 Nội bộ: <b>{internalCustomerDebt.toLocaleString("vi-VN")}đ</b></span>
+              <span>•</span>
+              <span>👥 Khách đặt: <b>{portalCustomerDebt.toLocaleString("vi-VN")}đ</b></span>
+            </div>
           </div>
 
           {/* Nợ CTV */}
@@ -652,9 +674,11 @@ export default function ThongKePage() {
             <h3 style={{ fontSize: "1.6rem", color: "#6d28d9", fontWeight: "850", margin: "6px 0 4px 0" }}>
               {totalHelperUnpaidSum.toLocaleString("vi-VN")} đ
             </h3>
-            <span style={{ fontSize: "0.78rem", color: "#4c1d95", fontWeight: "600" }}>
-              Gồm {helperUnpaidList.length} khoản thù lao & tip chưa phát
-            </span>
+            <div style={{ fontSize: "0.76rem", color: "#4c1d95", fontWeight: "600", marginTop: "4px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              <span>🏢 Nội bộ: <b>{internalHelperDebt.toLocaleString("vi-VN")}đ</b></span>
+              <span>•</span>
+              <span>👥 Khách đặt: <b>{portalHelperDebt.toLocaleString("vi-VN")}đ</b></span>
+            </div>
           </div>
 
           {/* Dư nợ thu thực tế */}
@@ -685,7 +709,7 @@ export default function ThongKePage() {
                 border: debtTab === "customer" ? "none" : "1px solid #cbd5e1"
               }}
             >
-              🔴 Khách nợ thanh toán ({customerUnpaidList.length})
+              🔴 Khách nợ thanh toán ({filteredCustomerUnpaid.length})
             </button>
             <button
               type="button"
@@ -697,19 +721,30 @@ export default function ThongKePage() {
                 border: debtTab === "helper" ? "none" : "1px solid #cbd5e1"
               }}
             >
-              🟣 CTV chưa trả lương ({helperUnpaidList.length})
+              🟣 CTV chưa trả lương ({filteredHelperUnpaid.length})
             </button>
           </div>
 
-          {/* TÌM KIẾM & BỘ LỌC LOẠI TIỀN */}
+          {/* TÌM KIẾM & BỘ LỌC NGUỒN ĐƠN & LOẠI TIỀN */}
           <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
             <input
               type="text"
               value={debtSearch}
               onChange={e => setDebtSearch(e.target.value)}
               placeholder="🔍 Tìm theo Tên, Môn học, Trường..."
-              style={{ padding: "0.45rem 0.9rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", width: "220px" }}
+              style={{ padding: "0.45rem 0.9rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", width: "210px" }}
             />
+
+            {/* BỘ LỌC NGUỒN ĐƠN (NỘI BỘ VÀ KHÁCH ĐẶT) */}
+            <select
+              value={debtSourceFilter}
+              onChange={e => setDebtSourceFilter(e.target.value)}
+              style={{ padding: "0.45rem 0.9rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem", background: "white", fontWeight: "750", color: "#1e293b" }}
+            >
+              <option value="all">🌐 Tất cả nguồn (Nội bộ & Khách đặt)</option>
+              <option value="internal">🏢 Chỉ Lịch Nội Bộ</option>
+              <option value="customer">👥 Chỉ Đơn Khách Đặt</option>
+            </select>
 
             <select
               value={debtFilter}
@@ -731,10 +766,11 @@ export default function ThongKePage() {
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e2e8f0", color: "var(--text-secondary)", fontSize: "0.82rem", background: "#f1f5f9" }}>
+                  <th style={{ padding: "0.8rem 1rem" }}>Nguồn Đơn</th>
                   <th style={{ padding: "0.8rem 1rem" }}>Khách Hàng / Môn Học</th>
                   <th style={{ padding: "0.8rem 1rem" }}>Trường & Ngày Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Thuê (rentAmount)</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Tip (tipAmount)</th>
+                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Thuê</th>
+                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Tip</th>
                   <th style={{ padding: "0.8rem 1rem" }}>Tổng Tiền Đọng</th>
                   <th style={{ padding: "0.8rem 1rem", textAlign: "right" }}>Thao Tác Duyệt Nhanh</th>
                 </tr>
@@ -742,13 +778,27 @@ export default function ThongKePage() {
               <tbody>
                 {filteredCustomerUnpaid.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-secondary)", fontWeight: "600" }}>
-                      🎉 Không có khoản công nợ khách hàng nào chưa thanh toán!
+                    <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-secondary)", fontWeight: "600" }}>
+                      🎉 Không có khoản công nợ khách hàng nào khớp với bộ lọc!
                     </td>
                   </tr>
                 ) : (
                   filteredCustomerUnpaid.map(item => (
                     <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "0.9rem 1rem" }}>
+                        <span style={{
+                          fontSize: "0.75rem",
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          fontWeight: "750",
+                          background: item.sourceType === "internal" ? "#f3e8ff" : "#dcfce7",
+                          color: item.sourceType === "internal" ? "#6b21a8" : "#166534",
+                          border: item.sourceType === "internal" ? "1px solid #e9d5ff" : "1px solid #bbf7d0",
+                          display: "inline-block"
+                        }}>
+                          {item.sourceLabel}
+                        </span>
+                      </td>
                       <td style={{ padding: "0.9rem 1rem" }}>
                         <div style={{ fontWeight: "750", color: "var(--text-primary)" }}>{item.studentName}</div>
                         <div style={{ fontSize: "0.8rem", color: "var(--primary)", fontWeight: "600" }}>📚 {item.className}</div>
@@ -796,10 +846,11 @@ export default function ThongKePage() {
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e2e8f0", color: "var(--text-secondary)", fontSize: "0.82rem", background: "#f1f5f9" }}>
+                  <th style={{ padding: "0.8rem 1rem" }}>Nguồn Đơn</th>
                   <th style={{ padding: "0.8rem 1rem" }}>CTV Phụ Trách / Môn Học</th>
                   <th style={{ padding: "0.8rem 1rem" }}>Trường & Ngày Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Lương CTV (salaryAmount)</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tip CTV (staffTipAmount)</th>
+                  <th style={{ padding: "0.8rem 1rem" }}>Lương CTV</th>
+                  <th style={{ padding: "0.8rem 1rem" }}>Tip CTV</th>
                   <th style={{ padding: "0.8rem 1rem" }}>Tổng Thù Lao Nợ</th>
                   <th style={{ padding: "0.8rem 1rem", textAlign: "right" }}>Thao Tác Chi Trả Nhanh</th>
                 </tr>
@@ -807,13 +858,27 @@ export default function ThongKePage() {
               <tbody>
                 {filteredHelperUnpaid.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-secondary)", fontWeight: "600" }}>
-                      🎉 Không có khoản thù lao hoặc tip CTV nào chưa chi trả!
+                    <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-secondary)", fontWeight: "600" }}>
+                      🎉 Không có khoản thù lao hoặc tip CTV nào chưa chi trả khớp với bộ lọc!
                     </td>
                   </tr>
                 ) : (
                   filteredHelperUnpaid.map(item => (
                     <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "0.9rem 1rem" }}>
+                        <span style={{
+                          fontSize: "0.75rem",
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          fontWeight: "750",
+                          background: item.sourceType === "internal" ? "#f3e8ff" : "#dcfce7",
+                          color: item.sourceType === "internal" ? "#6b21a8" : "#166534",
+                          border: item.sourceType === "internal" ? "1px solid #e9d5ff" : "1px solid #bbf7d0",
+                          display: "inline-block"
+                        }}>
+                          {item.sourceLabel}
+                        </span>
+                      </td>
                       <td style={{ padding: "0.9rem 1rem" }}>
                         <div style={{ fontWeight: "750", color: "var(--text-primary)" }}>{item.helperName}</div>
                         <div style={{ fontSize: "0.8rem", color: "#4F46E5", fontWeight: "600" }}>📚 {item.className}</div>
