@@ -330,6 +330,87 @@ function AdminDashboard() {
     }
   };
 
+  // Admin Cài giá chính thức cho ca học
+  const handleAdminSetOfficialPrice = async (item, priceInputValue) => {
+    const numericPrice = Number(String(priceInputValue).replace(/\./g, ""));
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      toast.error("Vui lòng nhập giá tiền hợp lệ!");
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "schedules", item.id), {
+        officialPrice: numericPrice,
+        price: numericPrice.toString(),
+        pricingStatus: "priced_waiting_customer_confirm",
+        paymentStatus: "Admin đã báo giá (Chờ khách XN)"
+      });
+
+      toast.success(`Đã cài giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}!`);
+
+      // Gửi thông báo cho khách hàng
+      if (item.userId) {
+        await addDoc(collection(db, "notifications"), {
+          userId: item.userId,
+          title: "💰 Admin đã cài giá ca học!",
+          message: `Admin đã chốt giá chính thức ${numericPrice.toLocaleString("vi-VN")} đ cho môn ${item.className}. Vui lòng mở Bảng Điều Khiển để xác nhận thanh toán.`,
+          read: false,
+          link: "/dashboard?tab=schedules",
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // Thông báo Telegram
+      try {
+        await sendTelegramAlert(`💰 <b>ADMIN ĐÃ BÁO GIÁ CHÍNH THỨC!</b>\n\n` +
+          `• <b>Môn học:</b> ${item.className}\n` +
+          `• <b>Giá đề xuất của khách:</b> ${(item.proposedPrice || item.price || 0).toLocaleString("vi-VN")} đ\n` +
+          `• <b>Giá chốt chính thức:</b> <b>${numericPrice.toLocaleString("vi-VN")} đ</b>\n` +
+          `• <b>Học viên:</b> ${item.name}`);
+      } catch (tgErr) {
+        console.warn("Lỗi gửi Telegram báo giá:", tgErr);
+      }
+
+    } catch (err) {
+      console.error("Lỗi cài giá:", err);
+      toast.error("Không thể cài giá chính thức!");
+    }
+  };
+
+  // Admin Xác nhận đã nhận tiền chuyển khoản (khi khách bấm "Tôi đã chuyển khoản")
+  const handleAdminConfirmBankTransfer = async (item) => {
+    if (!confirm(`Bạn có chắc chắn đã kiểm tra tài khoản VietQR và nhận đủ số tiền chuyển khoản cho ca môn ${item.className}?`)) {
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "schedules", item.id), {
+        paymentConfirmedByAdmin: true,
+        paymentStatus: "Đã thanh toán",
+        status: item.assignedTo ? "accepted" : "paid"
+      });
+
+      toast.success(`Đã xác nhận tiền chuyển khoản thành công cho môn ${item.className}!`);
+
+      // Thông báo cho khách hàng
+      if (item.userId) {
+        await addDoc(collection(db, "notifications"), {
+          userId: item.userId,
+          title: "✅ Xác nhận thanh toán thành công!",
+          message: `Admin đã xác nhận nhận tiền chuyển khoản thành công cho ca học môn ${item.className}.`,
+          read: false,
+          link: "/dashboard?tab=schedules",
+          createdAt: serverTimestamp()
+        });
+      }
+
+    } catch (err) {
+      console.error("Lỗi xác nhận tiền về:", err);
+      toast.error("Không thể xác nhận chuyển khoản!");
+    }
+  };
+
+
   const handleResolveDispute = async (schedule, decision) => {
     if (decision === "refund") {
       if (!confirm("Bạn có chắc chắn muốn CHẤP NHẬN KHIẾU NẠI và HOÀN TIỀN cho học viên?")) return;
@@ -1234,6 +1315,66 @@ function AdminDashboard() {
                   )}
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString("vi-VN") : ""}
+
+                  {/* KHU VỰC ADMIN CÀI GIÁ CHÍNH THỨC VÀ XÁC NHẬN CHUYỂN KHOẢN */}
+                  <div style={{ marginTop: "8px", background: "#f8fafc", padding: "8px 10px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#1e293b", fontWeight: "750", marginBottom: "4px" }}>
+                      💰 Giá đề xuất của khách: <span style={{ color: "#2563eb" }}>{Number(item.proposedPrice || item.price || 0).toLocaleString("vi-VN")} đ</span>
+                    </div>
+                    
+                    {item.officialPrice ? (
+                      <div style={{ fontSize: "0.75rem", color: "#166534", fontWeight: "800", marginBottom: "6px" }}>
+                        ✅ Giá chính thức đã chốt: {Number(item.officialPrice).toLocaleString("vi-VN")} đ
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "0.72rem", color: "#d97706", fontWeight: "700", marginBottom: "6px" }}>
+                        ⏳ Chưa báo giá chính thức
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <input
+                        type="text"
+                        placeholder="Nhập giá chốt (VD: 180.000)"
+                        defaultValue={item.officialPrice || item.price || ""}
+                        id={`admin_price_input_${item.id}`}
+                        style={{ flex: 1, padding: "4px 8px", fontSize: "0.78rem", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const inputVal = document.getElementById(`admin_price_input_${item.id}`)?.value;
+                          if (inputVal) {
+                            handleAdminSetOfficialPrice(item, inputVal);
+                          } else {
+                            toast.error("Vui lòng nhập số tiền!");
+                          }
+                        }}
+                        style={{ background: "#2563eb", color: "white", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "750", cursor: "pointer" }}
+                      >
+                        Gửi báo giá
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* NÚT THÔNG BÁO XÁC NHẬN CHUYỂN KHOẢN KHÁCH BẤM "TÔI ĐÃ CHUYỂN KHOẢN" */}
+                  {(item.paymentDeclared || item.paymentStatus === "Đã báo CK (Chờ Admin XN)") && !item.paymentConfirmedByAdmin && (
+                    <div style={{ marginTop: "8px", background: "#fef3c7", border: "1px solid #f59e0b", padding: "8px 10px", borderRadius: "10px", textAlign: "left" }}>
+                      <span style={{ fontSize: "0.78rem", color: "#b45309", fontWeight: "800", display: "block" }}>
+                        🔔 KHÁCH ĐÃ BẤM "TÔI ĐÃ CHUYỂN KHOẢN"
+                      </span>
+                      <span style={{ fontSize: "0.72rem", color: "#92400e", display: "block", marginBottom: "6px" }}>
+                        Vui lòng kiểm tra tài khoản VietQR và xác nhận tiền về!
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAdminConfirmBankTransfer(item)}
+                        style={{ width: "100%", background: "#16a34a", color: "white", border: "none", padding: "6px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: "800", cursor: "pointer" }}
+                      >
+                        ✔ Xác nhận tiền về thành công
+                      </button>
+                    </div>
+                  )}
 
                   {/* SESSION TASKS CHECKLIST */}
                   {item.sessionTasks && item.sessionTasks.length > 0 && (

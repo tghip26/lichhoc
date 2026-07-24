@@ -49,6 +49,7 @@ function Dashboard() {
   const [minDate, setMinDate] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(null);
   const [topupAmount, setTopupAmount] = useState("100000");
   const [paymentMethod, setPaymentMethod] = useState("qr"); // "qr" or "wallet"
   const [historyView, setHistoryView] = useState("list"); // "list" or "calendar"
@@ -610,24 +611,6 @@ function Dashboard() {
 
     // GIAI ĐOẠN ĐỘT PHÁ: Lưu thẳng chuỗi văn bản ảnh vào CSDL Firestore (Không cần Storage)
     try {
-      // 1. Trừ tiền ví trước nếu chọn thanh toán bằng ví (Trừ tổng giá trị combo)
-      if (paymentMethod === "wallet") {
-        await updateDoc(doc(db, "users", user.uid), {
-          balance: increment(-totalCost)
-        });
-        
-        // Ghi nhận lịch sử thanh toán ví
-        await addDoc(collection(db, "transactions"), {
-          userId: user.uid,
-          userEmail: user.email,
-          amount: totalCost,
-          type: "payment",
-          status: "completed",
-          message: `Thanh toán ${isRecurring ? `combo ${recurringWeeks} tuần` : ""} đơn thuê học môn ${formData.className}`,
-          createdAt: serverTimestamp()
-        });
-      }
-
       // Tạo mã nhóm nếu đặt lịch định kỳ
       const groupId = isRecurring ? "group_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) : "";
       const totalLoops = isRecurring ? recurringWeeks : 1;
@@ -659,10 +642,16 @@ function Dashboard() {
           dob: formData.dob,
           notes: formData.notes,
           phone: formData.phone,
+          proposedPrice: priceNumeric,
           price: priceNumeric.toString(),
+          officialPrice: null,
           weekday: finalWeekday,
           imageUrl: file, // Lưu trực tiếp chuỗi Base64
-          status: paymentMethod === "wallet" ? "paid" : "pending",
+          status: "pending",
+          pricingStatus: "pending_pricing",
+          paymentStatus: "Chờ Admin báo giá",
+          paymentDeclared: false,
+          paymentConfirmedByAdmin: false,
           paymentMethod: paymentMethod,
           assignedTo: requestedHelper || "", // Gán thẳng nếu chỉ định CTV
           requestedHelper: requestedHelper || "",
@@ -788,6 +777,93 @@ function Dashboard() {
       setProgress(0);
     } finally {
       setUploading(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // THAO TÁC KHÁCH XÁC NHẬN BÁO GIÁ & KHAI BÁO CHUYỂN KHOẢN
+  // -------------------------------------------------------------
+  const handleCustomerConfirmPayWallet = async (item) => {
+    const payAmount = Number(item.officialPrice || item.price || 0);
+    if ((userProfile?.balance || 0) < payAmount) {
+      toast.error("Số dư tài khoản không đủ để thanh toán. Vui lòng nạp thêm tiền!");
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn khấu trừ ${payAmount.toLocaleString("vi-VN")} đ từ ví tài khoản để thanh toán cho môn ${item.className}?`)) {
+      return;
+    }
+
+    try {
+      // 1. Trừ tiền ví số dư
+      await updateDoc(doc(db, "users", user.uid), {
+        balance: increment(-payAmount)
+      });
+
+      // 2. Tạo lịch sử giao dịch
+      await addDoc(collection(db, "transactions"), {
+        userId: user.uid,
+        userEmail: user.email,
+        amount: payAmount,
+        type: "payment",
+        status: "completed",
+        message: `Thanh toán qua ví đơn thuê học môn ${item.className}`,
+        createdAt: serverTimestamp()
+      });
+
+      // 3. Cập nhật đơn hàng
+      await updateDoc(doc(db, "schedules", item.id), {
+        status: "paid",
+        pricingStatus: "confirmed",
+        paymentStatus: "Đã thanh toán",
+        paymentMethod: "wallet"
+      });
+
+      toast.success(`Đã thanh toán ${payAmount.toLocaleString("vi-VN")} đ qua ví thành công!`);
+      if (selectedItem?.id === item.id) setSelectedItem(null);
+      if (showPricingModal?.id === item.id) setShowPricingModal(null);
+
+      // Thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: "Khách đã thanh toán qua Ví 💰",
+        message: `Sinh viên ${item.name} đã xác nhận thanh toán ${payAmount.toLocaleString("vi-VN")} đ qua ví cho môn ${item.className}.`,
+        read: false,
+        link: "/admin?tab=schedules",
+        createdAt: serverTimestamp()
+      });
+
+    } catch (err) {
+      console.error("Lỗi thanh toán ví:", err);
+      toast.error("Không thể hoàn tất thanh toán qua ví!");
+    }
+  };
+
+  const handleCustomerDeclarePaid = async (item) => {
+    try {
+      await updateDoc(doc(db, "schedules", item.id), {
+        paymentDeclared: true,
+        paymentDeclaredAt: serverTimestamp(),
+        paymentStatus: "Đã báo CK (Chờ Admin XN)"
+      });
+
+      toast.success("Đã thông báo chuyển khoản! Admin sẽ kiểm tra tiền về và xác nhận ca học cho bạn.");
+      if (selectedItem?.id === item.id) setSelectedItem(null);
+      if (showPricingModal?.id === item.id) setShowPricingModal(null);
+
+      // Thông báo cho Admin
+      await addDoc(collection(db, "notifications"), {
+        userId: "admin",
+        title: "🔔 Khách hàng đã báo chuyển khoản!",
+        message: `Sinh viên ${item.name} đã nhấp "Tôi đã chuyển khoản" cho ca học môn ${item.className}. Vui lòng kiểm tra ngân hàng!`,
+        read: false,
+        link: "/admin?tab=schedules",
+        createdAt: serverTimestamp()
+      });
+
+    } catch (err) {
+      console.error("Lỗi báo chuyển khoản:", err);
+      toast.error("Không thể gửi thông báo chuyển khoản!");
     }
   };
 
@@ -3092,7 +3168,9 @@ function Dashboard() {
             <div className="form-group" style={{ gridColumn: "1 / -1" }}>
               <label className="form-label">Mức giá đề xuất (VNĐ)</label>
               <input type="text" name="price" value={formData.price} onChange={handleChange} className="form-input" placeholder="Ví dụ: 50.000" />
-              <span style={{ fontSize: "0.72rem", color: "#d97706", marginTop: "4px", display: "block", fontWeight: "600" }}>* Số tiền này sẽ được tạm giữ từ ví số dư của bạn khi đăng đơn và chỉ thực tế khấu trừ sau khi ca học hoàn tất thành công.</span>
+              <span style={{ fontSize: "0.75rem", color: "#2563eb", marginTop: "4px", display: "block", fontWeight: "650" }}>
+                * Mức giá này là tiền dự kiến tham khảo bạn có thể chi trả. Admin sẽ xem xét ca học, cài giá cụ thể và gửi thông báo để bạn xác nhận thanh toán.
+              </span>
             </div>
 
             {/* ĐẶT LỊCH ĐỊNH KỲ HÀNG TUẦN (RECURRING BOOKING WIZARD) */}
@@ -3480,6 +3558,37 @@ function Dashboard() {
                     <svg style={{ width: "14px", height: "14px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                     {item.school} • {item.classRegular ? `${item.classRegular} • ` : ""}{item.className}
                   </div>
+
+                  {/* KHU VỰC THÔNG BÁO BÁO GIÁ DÀNH CHO KHÁCH HÀNG */}
+                  {(item.officialPrice || item.pricingStatus === "priced_waiting_customer_confirm") && item.paymentStatus !== "Đã thanh toán" && (
+                    <div style={{ marginTop: "6px", marginBottom: "6px", background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)", border: "1px solid #93c5fd", borderRadius: "10px", padding: "8px 10px" }} onClick={e => e.stopPropagation()}>
+                      <div style={{ fontSize: "0.8rem", color: "#1e40af", fontWeight: "800" }}>
+                        🔔 Admin đã báo giá chính thức: {Number(item.officialPrice || item.price).toLocaleString("vi-VN")} đ
+                      </div>
+                      {item.paymentDeclared ? (
+                        <div style={{ fontSize: "0.75rem", color: "#d97706", fontWeight: "700", marginTop: "4px" }}>
+                          ⏳ Đã báo chuyển khoản - Chờ Admin xác nhận tiền về
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleCustomerConfirmPayWallet(item)}
+                            style={{ background: "#2563eb", color: "white", border: "none", padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "750", cursor: "pointer" }}
+                          >
+                            💳 Trừ ví ({Number(item.officialPrice || item.price).toLocaleString("vi-VN")}đ)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowPricingModal(item)}
+                            style={{ background: "#16a34a", color: "white", border: "none", padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "750", cursor: "pointer" }}
+                          >
+                            📸 Quét VietQR
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
  
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
                     <p style={{ margin: 0, fontSize: "0.8rem", color: "#9CA3AF", fontWeight: "500" }}>
@@ -4865,6 +4974,78 @@ function Dashboard() {
       )}
 
       {/* Lightbox Modal phóng to ảnh */}
+      {/* OVERLAY MODAL: BÁO GIÁ & CHUYỂN KHOẢN CHÍNH THỨC */}
+      {showPricingModal && (
+        <div 
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1100, padding: "1.5rem"
+          }}
+          onClick={() => setShowPricingModal(null)}
+        >
+          <div 
+            style={{
+              background: "white", borderRadius: "24px", padding: "1.8rem",
+              maxWidth: "480px", width: "100%", textAlign: "center",
+              boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)"
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "800", color: "var(--text-primary)" }}>
+                📸 Thanh toán VietQR & Báo chuyển khoản
+              </h3>
+              <button onClick={() => setShowPricingModal(null)} style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "30px", height: "30px", fontSize: "1.1rem", cursor: "pointer" }}>&times;</button>
+            </div>
+
+            <div style={{ background: "rgba(22, 163, 74, 0.05)", padding: "12px", borderRadius: "12px", border: "1px solid rgba(22, 163, 74, 0.2)", marginBottom: "1rem", textAlign: "left" }}>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-primary)" }}>
+                <strong>Môn học:</strong> {showPricingModal.className}<br/>
+                <strong>Giá chính thức:</strong> <span style={{ color: "#16a34a", fontWeight: "800", fontSize: "1rem" }}>{Number(showPricingModal.officialPrice || showPricingModal.price).toLocaleString("vi-VN")} đ</span>
+              </div>
+            </div>
+
+            {systemSettings?.bankAccount && (
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+                <img 
+                  src={`https://img.vietqr.io/image/${systemSettings.bankName}-${systemSettings.bankAccount}-compact.png?amount=${showPricingModal.officialPrice || showPricingModal.price}&addInfo=THUEHOC%20${showPricingModal.id.substring(0, 8).toUpperCase()}&accountName=${encodeURIComponent(systemSettings.bankOwner)}`} 
+                  alt="VietQR Payment" 
+                  style={{ width: "220px", height: "220px", objectFit: "contain", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "6px", background: "white" }} 
+                />
+              </div>
+            )}
+
+            <div style={{ fontSize: "0.82rem", textAlign: "left", background: "#f8fafc", padding: "10px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "1rem" }}>
+              <strong>Ngân hàng:</strong> {systemSettings?.bankName || "MBBank"}<br/>
+              <strong>Số tài khoản:</strong> {systemSettings?.bankAccount || "0852866856"}<br/>
+              <strong>Chủ tài khoản:</strong> {systemSettings?.bankOwner || "NGUYEN VAN A"}<br/>
+              <strong>Nội dung CK:</strong> <span style={{ fontWeight: "800", color: "var(--primary)", fontFamily: "monospace" }}>THUEHOC {showPricingModal.id.substring(0, 8).toUpperCase()}</span>
+            </div>
+
+            {showPricingModal.paymentDeclared ? (
+              <div style={{ background: "#fef3c7", border: "1px solid #f59e0b", padding: "12px", borderRadius: "12px" }}>
+                <span style={{ fontSize: "0.88rem", color: "#b45309", fontWeight: "800", display: "block" }}>
+                  ⏳ ĐÃ BÁO CHUYỂN KHOẢN
+                </span>
+                <span style={{ fontSize: "0.78rem", color: "#92400e" }}>
+                  Admin đang kiểm tra tài khoản ngân hàng và xác nhận tiền về cho bạn!
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleCustomerDeclarePaid(showPricingModal)}
+                style={{ width: "100%", background: "#16a34a", color: "white", padding: "12px", borderRadius: "12px", fontWeight: "800", fontSize: "0.95rem", border: "none", cursor: "pointer" }}
+              >
+                ✅ Tôi đã chuyển khoản xong
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {lightboxImage && (
         <div 
           style={{
