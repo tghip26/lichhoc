@@ -189,6 +189,17 @@ function InternalSchedulesManager() {
   const [analyticsCtvPage, setAnalyticsCtvPage] = useState(1);
   const [analyticsCtvRowsPerPage, setAnalyticsCtvRowsPerPage] = useState(5);
 
+  const handleOpenDetailedLookup = (type, name) => {
+    setLookupType(type);
+    setLookupName(name);
+    setTimeout(() => {
+      const targetEl = document.getElementById("detailed-reconciliation-section");
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -1472,7 +1483,7 @@ function InternalSchedulesManager() {
                             <td style={{ padding: "8px 6px", textAlign: "center" }}>
                               <button
                                 type="button"
-                                onClick={() => { setLookupType("customer"); setLookupName(g.name); }}
+                                onClick={() => handleOpenDetailedLookup("customer", g.name)}
                                 style={{
                                   padding: "3px 8px", fontSize: "0.7rem", background: "rgba(22, 163, 74, 0.1)",
                                   color: "var(--primary)", border: "1px solid var(--primary-light)", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
@@ -1649,7 +1660,7 @@ function InternalSchedulesManager() {
                           <td style={{ padding: "8px 6px", textAlign: "center" }}>
                             <button
                               type="button"
-                              onClick={() => { setLookupType("ctv"); setLookupName(c.name); }}
+                              onClick={() => handleOpenDetailedLookup("ctv", c.name)}
                               style={{
                                 padding: "3px 8px", fontSize: "0.7rem", background: "rgba(79, 70, 229, 0.1)",
                                 color: "#4f46e5", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
@@ -1733,7 +1744,7 @@ function InternalSchedulesManager() {
         </div>
 
         {/* DETAILED LOOKUP & RECONCILIATION DASHBOARD WIDGET */}
-        <div className="glass-panel" style={{ padding: "1.75rem", borderTop: "4px solid var(--primary)", marginTop: "1rem" }}>
+        <div id="detailed-reconciliation-section" className="glass-panel" style={{ padding: "1.75rem", borderTop: "4px solid var(--primary)", marginTop: "1rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "10px" }}>
             <div style={{ textAlign: "left" }}>
               <h4 style={{ margin: 0, color: "var(--text-primary)", fontWeight: "850", fontSize: "1.1rem" }}>
