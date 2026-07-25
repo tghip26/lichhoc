@@ -617,9 +617,80 @@ tbody tr:hover {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
-@media (max-width: 480px) {
-  .stats-grid-4col {
-    grid-template-columns: 1fr !important;
+/* ==========================================================
+   ULTRA-SMOOTH ANIMATIONS SYSTEM-WIDE (SYSTEM-WIDE MOTION)
+   ========================================================== */
+
+/* 1. Mobile Navigation Drawer Slide & Spring Animation */
+@keyframes slideDownMobileNav {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scaleY(0.94);
   }
+  65% {
+    opacity: 1;
+    transform: translateY(2px) scaleY(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.mobile-nav-dropdown {
+  animation: slideDownMobileNav 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top center;
+  will-change: transform, opacity;
+}
+
+/* 2. System-wide Pop-in Modal Animation */
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.93) translateY(20px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.01) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-pop-in {
+  animation: modalPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* 3. Smooth Tab & Content Fade In */
+@keyframes smoothFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-fade-in, .smooth-fade-in {
+  animation: smoothFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 4. Global Interactive Micro-interactions */
+button, .btn, a {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:active, .btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* 5. Smooth Scroll globally */
+html {
+  scroll-behavior: smooth !important;
 }
 

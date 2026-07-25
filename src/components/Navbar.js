@@ -339,12 +339,22 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   style={{
-                    background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", color: "#334155"
+                    background: mobileMenuOpen ? "rgba(22, 163, 74, 0.15)" : "#f1f5f9",
+                    border: mobileMenuOpen ? "1px solid var(--primary)" : "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    padding: "5px 8px",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: mobileMenuOpen ? "var(--primary)" : "#334155",
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                    transform: mobileMenuOpen ? "rotate(90deg)" : "none"
                   }}
                   className="mobile-menu-toggle"
+                  title="Menu"
                 >
                   <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
+                    {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
                   </svg>
                 </button>
               </div>
@@ -355,24 +365,31 @@ export default function Navbar() {
         {/* Mobile Dropdown Menu Modal Sheet */}
         {mobileMenuOpen && (
           <div 
+            className="mobile-nav-dropdown"
             style={{
-              background: "white", borderBottom: "2px solid #e2e8f0", padding: "0.85rem 1.25rem", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 10px 25px rgba(0,0,0,0.08)", animation: "fadeIn 0.2s"
+              background: "white", 
+              borderBottom: "2px solid #e2e8f0", 
+              padding: "0.85rem 1.25rem", 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: "10px", 
+              boxShadow: "0 14px 30px rgba(0,0,0,0.08)"
             }}
           >
             {user ? (
               <>
-                {!isAdmin && <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📅 Lịch của tôi</Link>}
-                {isAdmin && <Link href="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📊 Bảng Quản Trị</Link>}
-                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👥 Đội ngũ CTV</Link>
-                <Link href="/tai-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👤 Tài khoản</Link>
-                {!isAdmin && <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>🎓 Tuyển CTV</Link>}
+                {!isAdmin && <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📅 Lịch của tôi</Link>}
+                {isAdmin && <Link href="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📊 Bảng Quản Trị</Link>}
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/tai-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👤 Tài khoản</Link>
+                {!isAdmin && <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>🎓 Tuyển CTV</Link>}
               </>
             ) : (
               <>
-                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👥 Đội ngũ CTV</Link>
-                <Link href="/huong-dan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📖 Hướng dẫn sử dụng</Link>
-                <Link href="/dieu-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>⚖️ Điều khoản dịch vụ</Link>
-                <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>🎓 Tuyển CTV</Link>
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/huong-dan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📖 Hướng dẫn sử dụng</Link>
+                <Link href="/dieu-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>⚖️ Điều khoản dịch vụ</Link>
+                <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>🎓 Tuyển CTV</Link>
               </>
             )}
           </div>
