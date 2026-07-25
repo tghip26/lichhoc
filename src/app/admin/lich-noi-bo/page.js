@@ -115,12 +115,14 @@ function InternalSchedulesManager() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed.studentName || parsed.subject || parsed.classroom || parsed.notes) {
-            setHasDraft(true);
-          }
+          const hasValidDraft = Boolean(parsed.studentName || parsed.subject || parsed.classroom || parsed.notes);
+          setHasDraft(hasValidDraft);
         } catch (e) {
           console.error("Lỗi đọc bản nháp lịch nội bộ:", e);
+          setHasDraft(false);
         }
+      } else {
+        setHasDraft(false);
       }
     } else {
       setHasDraft(false);
