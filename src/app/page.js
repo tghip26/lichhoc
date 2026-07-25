@@ -238,60 +238,85 @@ export default function Home() {
           alignItems: "center", 
           marginBottom: "4rem" 
         }}>
-          {/* Left Column: Premium SaaS Intro */}
+          {/* Left Column: Ultra-Sleek Modern SaaS Intro */}
           <div style={{ textAlign: "left" }}>
             <span style={{ 
               background: "rgba(22, 163, 74, 0.08)", 
               color: "var(--primary)", 
-              fontSize: "0.8rem", 
-              padding: "6px 12px", 
+              fontSize: "0.78rem", 
+              padding: "5px 12px", 
               borderRadius: "20px", 
-              fontWeight: "750",
+              fontWeight: "800",
               letterSpacing: "0.5px",
-              textTransform: "uppercase"
+              textTransform: "uppercase",
+              border: "1px solid rgba(22, 163, 74, 0.2)",
+              display: "inline-block"
             }}>
-              ⚡ THUÊ HỌC PRO CHÍNH THỨC
+              ⚡ THUÊ HỌC PRO • TỰ ĐỘNG HÓA 24/7
             </span>
-            <h1 className="page-title" style={{ fontSize: "2.8rem", color: "var(--foreground)", marginTop: "1rem", lineHeight: "1.2", fontWeight: "850" }}>
-              Giải pháp học tập & Trực lớp <span style={{ color: "var(--primary)", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Chuyên Nghiệp</span>
+            
+            <h1 className="page-title" style={{ fontSize: "2.4rem", color: "var(--foreground)", marginTop: "0.8rem", lineHeight: "1.25", fontWeight: "850" }}>
+              Giải pháp Trực lớp & Học tập <span style={{ color: "var(--primary)", background: "linear-gradient(135deg, var(--primary), var(--secondary))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Chuyên Nghiệp</span>
             </h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: "1.05rem", marginTop: "1rem", marginBottom: "2rem", lineHeight: "1.7" }}>
-              Kết nối sinh viên có nhu cầu và đội ngũ Cộng tác viên uy tín từ các trường đại học hàng đầu. Đặt lịch nhanh chóng, bảo mật tuyệt đối và tự động hóa toàn diện.
+            
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.98rem", marginTop: "0.75rem", marginBottom: "1.5rem", lineHeight: "1.6" }}>
+              Hệ thống kết nối sinh viên uy tín. Đặt lịch ca học nhanh chóng, bảo mật thông tin tuyệt đối và đối soát VietQR 24/7.
             </p>
 
-            {/* Feature List */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "2rem" }}>
+            {/* Compact 2x2 Feature Grid */}
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "repeat(2, 1fr)", 
+              gap: "10px", 
+              marginBottom: "1.5rem" 
+            }}>
               {[
-                { icon: "🛡️", text: "<b>Bảo mật 100%:</b> Không tiết lộ danh tính của học viên." },
-                { icon: "⚡", text: "<b>Đăng lịch 1 phút:</b> Thao tác tối giản, tự động điền hồ sơ." },
-                { icon: "🎓", text: "<b>Đội ngũ CTV tuyển chọn:</b> Sinh viên khá giỏi từ Bách Khoa, Công Nghệ..." },
-                { icon: "💳", text: "<b>Ví số dư tiện lợi:</b> Nạp tiền quét QR tự động, trừ tiền khi hoàn thành." }
+                { icon: "🛡️", title: "Bảo mật 100%", desc: "Che thông tin sinh viên" },
+                { icon: "⚡", title: "Đặt lịch 1 phút", desc: "Tự động điền hồ sơ" },
+                { icon: "🎓", title: "CTV Tuyển Chọn", desc: "SV khá giỏi ĐH top đầu" },
+                { icon: "💳", title: "Ví QR 24/7", desc: "Duyệt tiền tự động" }
               ].map((f, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                  <span style={{ fontSize: "1.2rem", lineHeight: "1" }}>{f.icon}</span>
-                  <span style={{ fontSize: "0.95rem", color: "var(--text-primary)" }} dangerouslySetInnerHTML={{ __html: f.text }} />
+                <div key={idx} style={{ 
+                  background: "#f8fafc", 
+                  border: "1px solid #e2e8f0", 
+                  borderRadius: "14px", 
+                  padding: "10px 12px", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "10px" 
+                }}>
+                  <span style={{ fontSize: "1.3rem" }}>{f.icon}</span>
+                  <div>
+                    <div style={{ fontSize: "0.84rem", fontWeight: "800", color: "var(--text-primary)" }}>{f.title}</div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>{f.desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Trust Statistics */}
+            {/* Quick 3-Step Workflow Pipeline (Replacing old statistics) */}
             <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "repeat(3, 1fr)", 
-              gap: "10px", 
-              borderTop: "1px dashed #cbd5e1", 
-              paddingTop: "1.5rem" 
+              background: "linear-gradient(135deg, rgba(22, 163, 74, 0.04) 0%, rgba(59, 130, 246, 0.04) 100%)",
+              border: "1px dashed var(--primary)",
+              borderRadius: "16px",
+              padding: "12px 14px"
             }}>
-              {[
-                { number: "10K+", label: "Ca học hoàn thành" },
-                { number: "99.8%", label: "Học viên hài lòng" },
-                { number: "500+", label: "Cộng tác viên" }
-              ].map((s, idx) => (
-                <div key={idx} style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: "850", color: "var(--primary)" }}>{s.number}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", fontWeight: "600" }}>{s.label}</div>
+              <div style={{ fontSize: "0.75rem", fontWeight: "800", color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                📌 Quy trình 3 bước siêu tốc:
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "4px 10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                  1. 📝 Gửi ca học
                 </div>
-              ))}
+                <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.8rem" }}>➔</span>
+                <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "4px 10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
+                  2. 💰 Admin báo giá
+                </div>
+                <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.8rem" }}>➔</span>
+                <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#16a34a", background: "#f0fdf4", padding: "4px 10px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                  3. ✅ Duyệt & Học
+                </div>
+              </div>
             </div>
           </div>
 
