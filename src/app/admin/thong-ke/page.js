@@ -763,16 +763,16 @@ export default function ThongKePage() {
         <div style={{ overflowX: "auto" }}>
           {debtTab === "customer" ? (
             /* TAB 1: BẢNG KHÁCH HÀNG NỢ */
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.78rem" }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "var(--text-secondary)", fontSize: "0.82rem", background: "#f1f5f9" }}>
-                  <th style={{ padding: "0.8rem 1rem" }}>Nguồn Đơn</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Khách Hàng / Môn Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Trường & Ngày Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Thuê</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tiền Tip</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tổng Tiền Đọng</th>
-                  <th style={{ padding: "0.8rem 1rem", textAlign: "right" }}>Thao Tác Duyệt Nhanh</th>
+                <tr style={{ borderBottom: "2px solid #cbd5e1", color: "#475569", background: "#f8fafc" }}>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Nguồn Đơn</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Khách Hàng / Môn Học</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Trường & Ngày Học</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Tiền Thuê</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Tiền Tip</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Tổng Tiền Đọng</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "750" }}>Thao Tác Duyệt Nhanh</th>
                 </tr>
               </thead>
               <tbody>
@@ -785,10 +785,10 @@ export default function ThongKePage() {
                 ) : (
                   filteredCustomerUnpaid.map(item => (
                     <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <span style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          padding: "2px 6px",
                           borderRadius: "6px",
                           fontWeight: "750",
                           background: item.sourceType === "internal" ? "#f3e8ff" : "#dcfce7",
@@ -799,39 +799,39 @@ export default function ThongKePage() {
                           {item.sourceLabel}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: "var(--text-primary)" }}>{item.studentName}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--primary)", fontWeight: "600" }}>📚 {item.className}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--primary)", fontWeight: "600" }}>📚 {item.className}</div>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", fontSize: "0.82rem" }}>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         <div>🏫 {item.school}</div>
                         <div style={{ color: "var(--text-secondary)" }}>📅 {item.classDate ? new Date(item.classDate).toLocaleDateString("vi-VN") : "N/A"} ({item.timeSlot})</div>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: item.rentVal > 0 ? "#b91c1c" : "var(--text-secondary)" }}>
                           {item.rentVal.toLocaleString("vi-VN")} đ
                         </div>
-                        <span style={{ fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", background: item.paymentStatus === "Đã thanh toán" ? "rgba(22,163,74,0.1)" : "rgba(239,68,68,0.1)", color: item.paymentStatus === "Đã thanh toán" ? "var(--success)" : "var(--danger)", fontWeight: "700" }}>
+                        <span style={{ fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", background: item.paymentStatus === "Đã thanh toán" ? "#dcfce7" : "#fee2e2", color: item.paymentStatus === "Đã thanh toán" ? "#166534" : "#991b1b", fontWeight: "700" }}>
                           {item.paymentStatus || "ChưaTT"}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: item.tipVal > 0 ? "#b91c1c" : "var(--text-secondary)" }}>
                           {item.tipVal.toLocaleString("vi-VN")} đ
                         </div>
-                        <span style={{ fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", background: item.tipStatus === "Đã gửi" ? "rgba(22,163,74,0.1)" : "rgba(239,68,68,0.1)", color: item.tipStatus === "Đã gửi" ? "var(--success)" : "var(--danger)", fontWeight: "700" }}>
+                        <span style={{ fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", background: item.tipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2", color: item.tipStatus === "Đã gửi" ? "#166534" : "#991b1b", fontWeight: "700" }}>
                           {item.tipStatus || "Chưa gửi"}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", fontWeight: "850", color: "#b91c1c", fontSize: "0.95rem" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "850", color: "#b91c1c", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
                         {item.totalDebt.toLocaleString("vi-VN")} đ
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", textAlign: "right" }}>
+                      <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button
                           type="button"
                           onClick={() => handleMarkCustomerPaid(item, "all")}
                           className="btn"
-                          style={{ background: "#16a34a", color: "white", padding: "4px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: "750", border: "none", cursor: "pointer" }}
+                          style={{ background: "#16a34a", color: "white", padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "750", border: "none", cursor: "pointer" }}
                         >
                           ✓ Đã Thu Đủ
                         </button>
@@ -843,16 +843,16 @@ export default function ThongKePage() {
             </table>
           ) : (
             /* TAB 2: BẢNG CTV NỢ LƯƠNG */
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.78rem" }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "var(--text-secondary)", fontSize: "0.82rem", background: "#f1f5f9" }}>
-                  <th style={{ padding: "0.8rem 1rem" }}>Nguồn Đơn</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>CTV Phụ Trách / Môn Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Trường & Ngày Học</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Lương CTV</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tip CTV</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Tổng Thù Lao Nợ</th>
-                  <th style={{ padding: "0.8rem 1rem", textAlign: "right" }}>Thao Tác Chi Trả Nhanh</th>
+                <tr style={{ borderBottom: "2px solid #cbd5e1", color: "#475569", background: "#f8fafc" }}>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Nguồn Đơn</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>CTV Phụ Trách / Môn Học</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Trường & Ngày Học</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Lương CTV</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Tip CTV</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap", fontWeight: "750" }}>Tổng Thù Lao Nợ</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right", whiteSpace: "nowrap", fontWeight: "750" }}>Thao Tác Chi Trả Nhanh</th>
                 </tr>
               </thead>
               <tbody>
@@ -865,10 +865,10 @@ export default function ThongKePage() {
                 ) : (
                   filteredHelperUnpaid.map(item => (
                     <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <span style={{
-                          fontSize: "0.75rem",
-                          padding: "3px 8px",
+                          fontSize: "0.72rem",
+                          padding: "2px 6px",
                           borderRadius: "6px",
                           fontWeight: "750",
                           background: item.sourceType === "internal" ? "#f3e8ff" : "#dcfce7",
@@ -879,39 +879,39 @@ export default function ThongKePage() {
                           {item.sourceLabel}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: "var(--text-primary)" }}>{item.helperName}</div>
-                        <div style={{ fontSize: "0.8rem", color: "#4F46E5", fontWeight: "600" }}>📚 {item.className}</div>
+                        <div style={{ fontSize: "0.75rem", color: "#4F46E5", fontWeight: "600" }}>📚 {item.className}</div>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", fontSize: "0.82rem" }}>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         <div>🏫 {item.school}</div>
                         <div style={{ color: "var(--text-secondary)" }}>📅 {item.classDate ? new Date(item.classDate).toLocaleDateString("vi-VN") : "N/A"} ({item.timeSlot})</div>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: item.salaryVal > 0 ? "#6d28d9" : "var(--text-secondary)" }}>
                           {item.salaryVal.toLocaleString("vi-VN")} đ
                         </div>
-                        <span style={{ fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", background: item.salaryStatus === "Đã trả lương" ? "rgba(22,163,74,0.1)" : "rgba(109,40,217,0.1)", color: item.salaryStatus === "Đã trả lương" ? "var(--success)" : "#6d28d9", fontWeight: "700" }}>
+                        <span style={{ fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", background: item.salaryStatus === "Đã trả lương" ? "#dcfce7" : "#f3e8ff", color: item.salaryStatus === "Đã trả lương" ? "#166534" : "#6d28d9", fontWeight: "700" }}>
                           {item.salaryStatus || "ChưaTL"}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem" }}>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         <div style={{ fontWeight: "750", color: item.staffTipVal > 0 ? "#6d28d9" : "var(--text-secondary)" }}>
                           {item.staffTipVal.toLocaleString("vi-VN")} đ
                         </div>
-                        <span style={{ fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", background: item.staffTipStatus === "Đã gửi" ? "rgba(22,163,74,0.1)" : "rgba(109,40,217,0.1)", color: item.staffTipStatus === "Đã gửi" ? "var(--success)" : "#6d28d9", fontWeight: "700" }}>
+                        <span style={{ fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", background: item.staffTipStatus === "Đã gửi" ? "#dcfce7" : "#f3e8ff", color: item.staffTipStatus === "Đã gửi" ? "#166534" : "#6d28d9", fontWeight: "700" }}>
                           {item.staffTipStatus || "Chưa gửi"}
                         </span>
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", fontWeight: "850", color: "#6d28d9", fontSize: "0.95rem" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "850", color: "#6d28d9", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
                         {item.totalDebt.toLocaleString("vi-VN")} đ
                       </td>
-                      <td style={{ padding: "0.9rem 1rem", textAlign: "right" }}>
+                      <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                         <button
                           type="button"
                           onClick={() => handleMarkHelperPaid(item, "all")}
                           className="btn"
-                          style={{ background: "#6d28d9", color: "white", padding: "4px 10px", borderRadius: "6px", fontSize: "0.78rem", fontWeight: "750", border: "none", cursor: "pointer" }}
+                          style={{ background: "#6d28d9", color: "white", padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "750", border: "none", cursor: "pointer" }}
                         >
                           ✓ Trả Đủ Lương
                         </button>
@@ -927,19 +927,19 @@ export default function ThongKePage() {
       </div>
 
       {/* Bảng xếp hạng Cộng tác viên */}
-      <div className="glass-panel" style={{ padding: "2rem", marginBottom: "2rem" }}>
-        <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem", fontWeight: "800", color: "var(--text-primary)" }}>
+      <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+        <h3 style={{ margin: "0 0 1.25rem 0", fontSize: "1.05rem", fontWeight: "800", color: "var(--text-primary)" }}>
           🏆 Bảng xếp hạng CTV tích cực nhất (Top Hoạt Động)
         </h3>
         
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+        <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "12px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.78rem" }}>
             <thead>
-              <tr style={{ borderBottom: "2px solid #e2e8f0", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                <th style={{ padding: "0.8rem 1.5rem" }}>Tên CTV / Email</th>
-                <th>Số đơn hoàn thành</th>
-                <th>Tổng thù lao đã kiếm</th>
-                <th>Hiệu suất đóng góp</th>
+              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1", color: "#475569" }}>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Tên CTV / Email</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Số đơn hoàn thành</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Tổng thù lao đã kiếm</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Hiệu suất đóng góp</th>
               </tr>
             </thead>
             <tbody>

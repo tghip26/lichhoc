@@ -198,6 +198,23 @@ function InternalSchedulesManager() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Auto-select today's day offset for mobile schedule view on mount or week change
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let offset = 0; offset <= 6; offset++) {
+      const dayDate = new Date(currentWeekStart);
+      dayDate.setDate(dayDate.getDate() + offset);
+      dayDate.setHours(0, 0, 0, 0);
+      if (dayDate.getTime() === today.getTime()) {
+        setSelectedMobileDayOffset(offset);
+        return;
+      }
+    }
+    setSelectedMobileDayOffset(0);
+  }, [currentWeekStart]);
+
   // Load Firestore Data
   useEffect(() => {
     if (!user || (!isAdmin && !isStaff)) return;
@@ -2148,55 +2165,55 @@ function InternalSchedulesManager() {
             )}
           </div>
         ) : (
-          <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
+          <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto", border: "1px solid #e2e8f0" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem", textAlign: "left" }}>
               <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Họ Tên</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Lớp</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>MSSV</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ngày Sinh</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tài Khoản Portal SV</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Mật Khẩu Portal SV</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Phân Loại</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
-                  <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Hành Động</th>
+                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1", color: "#475569" }}>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Họ Tên</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Lớp</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>MSSV</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Ngày Sinh</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Tài Khoản Portal SV</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Mật Khẩu Portal SV</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Phân Loại</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750" }}>Ghi Chú</th>
+                  <th style={{ padding: "10px 12px", fontWeight: "750", textAlign: "center", whiteSpace: "nowrap" }}>Hành Động</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ padding: "3rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic" }}>
+                    <td colSpan="9" style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8", fontStyle: "italic" }}>
                       Không tìm thấy khách hàng nào phù hợp!
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((c) => (
                     <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "1rem", fontWeight: "700", color: "var(--text-primary)" }}>{c.name}</td>
-                      <td style={{ padding: "1rem" }}>{c.className || "N/A"}</td>
-                      <td style={{ padding: "1rem", fontWeight: "600" }}>{c.studentId || "N/A"}</td>
-                      <td style={{ padding: "1rem" }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}</td>
-                      <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalAccount || "N/A"}</td>
-                      <td style={{ padding: "1rem", fontFamily: "monospace" }}>{c.portalPassword || "N/A"}</td>
-                      <td style={{ padding: "1rem" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "700", color: "var(--text-primary)", whiteSpace: "nowrap" }}>{c.name}</td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{c.className || "N/A"}</td>
+                      <td style={{ padding: "8px 12px", fontWeight: "600", whiteSpace: "nowrap" }}>{c.studentId || "N/A"}</td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{c.birthDate ? new Date(c.birthDate).toLocaleDateString("vi-VN") : "N/A"}</td>
+                      <td style={{ padding: "8px 12px", fontFamily: "monospace", whiteSpace: "nowrap" }}>{c.portalAccount || "N/A"}</td>
+                      <td style={{ padding: "8px 12px", fontFamily: "monospace", whiteSpace: "nowrap" }}>{c.portalPassword || "N/A"}</td>
+                      <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
                         {(() => {
                           const seg = getCustomerSegment(c);
                           if (seg === "vip") {
-                            return <span style={{ fontSize: "0.72rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "3px 8px", borderRadius: "8px", fontWeight: "800" }}>⭐ VIP</span>;
+                            return <span style={{ fontSize: "0.68rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "2px 6px", borderRadius: "6px", fontWeight: "800" }}>⭐ VIP</span>;
                           }
                           if (seg === "regular") {
-                            return <span style={{ fontSize: "0.72rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "8px", fontWeight: "750" }}>Khách quen</span>;
+                            return <span style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "2px 6px", borderRadius: "6px", fontWeight: "750" }}>Khách quen</span>;
                           }
                           if (seg === "potential") {
-                            return <span style={{ fontSize: "0.72rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Tiềm năng</span>;
+                            return <span style={{ fontSize: "0.68rem", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", padding: "2px 6px", borderRadius: "6px", fontWeight: "700" }}>Tiềm năng</span>;
                           }
-                          return <span style={{ fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "3px 8px", borderRadius: "8px", fontWeight: "700" }}>Khách mới</span>;
+                          return <span style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#475569", border: "1px solid #e2e8f0", padding: "2px 6px", borderRadius: "6px", fontWeight: "700" }}>Khách mới</span>;
                         })()}
                       </td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{c.notes || "N/A"}</td>
-                      <td style={{ padding: "1rem", textAlign: "center" }}>
-                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem", color: "var(--text-secondary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={c.notes}>{c.notes || "N/A"}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                           <button 
                             onClick={() => {
                               setEditingCustomerId(c.id);
@@ -2212,7 +2229,7 @@ function InternalSchedulesManager() {
                               });
                               setShowCustomerModal(true);
                             }}
-                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+                            style={{ padding: "3px 7px", fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}
                           >
                             Sửa
                           </button>
@@ -2967,28 +2984,28 @@ function InternalSchedulesManager() {
 
       {/* RENDER TABLE VIEW (Spreadsheet style) */}
       {viewMode === "table" && (
-        <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
+        <div style={{ background: "white", borderRadius: "16px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", overflowX: "auto", border: "1px solid #e2e8f0" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem", textAlign: "left" }}>
             <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", textAlign: "left" }}>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Học Viên</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Môn Học</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Thời Gian</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Phòng / GV</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Người Đi</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Checkin</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Trạng Thái Học</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Tiền Thuê (Tip)</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Gửi Tiền</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Trả Lương CTV (Tip)</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b" }}>Ghi Chú</th>
-                <th style={{ padding: "12px 1rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>Thao Tác</th>
+              <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1", color: "#475569" }}>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Học Viên</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Môn Học</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Thời Gian</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Phòng / GV</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap" }}>Người Đi</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", textAlign: "center", whiteSpace: "nowrap" }}>Checkin</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", textAlign: "center", whiteSpace: "nowrap" }}>Trạng Thái Học</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap", textAlign: "right" }}>Tiền Thuê (Tip)</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap", textAlign: "center" }}>Gửi Tiền</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", whiteSpace: "nowrap", textAlign: "right" }}>Trả Lương CTV (Tip)</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750" }}>Ghi Chú</th>
+                <th style={{ padding: "10px 12px", fontWeight: "750", textAlign: "center", whiteSpace: "nowrap" }}>Thao Tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredTableList.length === 0 ? (
                 <tr>
-                  <td colSpan="12" style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                  <td colSpan="12" style={{ padding: "2.5rem", textAlign: "center", color: "var(--text-secondary)" }}>
                     Không tìm thấy lịch học nội bộ phù hợp bộ lọc.
                   </td>
                 </tr>
@@ -2996,8 +3013,8 @@ function InternalSchedulesManager() {
                 filteredTableList.map(s => {
                   const matchedCustomer = customers.find(c => c.name.toLowerCase().trim() === (s.studentName || "").toLowerCase().trim());
                   return (
-                    <tr key={s.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                      <td style={{ padding: "1rem", fontWeight: "700" }}>
+                    <tr key={s.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "700", whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <span>{s.studentName}</span>
                           {matchedCustomer && (
@@ -3011,19 +3028,19 @@ function InternalSchedulesManager() {
                           )}
                         </div>
                       </td>
-                      <td style={{ padding: "1rem" }}>{s.subject}</td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "600" }}>{s.subject}</td>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         <div><b>{s.classDate ? new Date(s.classDate).toLocaleDateString("vi-VN") : ""}</b></div>
-                        <div style={{ opacity: 0.6, fontSize: "0.75rem" }}>{s.weekday} | Ca {s.period === "sang" ? "Sáng" : s.period === "chieu" ? "Chiều" : "Tối"} ({s.timeSlot || "N/A"})</div>
+                        <div style={{ opacity: 0.7, fontSize: "0.7rem" }}>{s.weekday} | Ca {s.period === "sang" ? "Sáng" : s.period === "chieu" ? "Chiều" : "Tối"} ({s.timeSlot || "N/A"})</div>
                       </td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                        <div>Phòng: <b>{s.classroom || "N/A"}</b></div>
-                        <div style={{ opacity: 0.6 }}>GV: {s.lecturer || "N/A"}</div>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem" }}>
+                        <div style={{ whiteSpace: "nowrap" }}>Phòng: <b>{s.classroom || "N/A"}</b></div>
+                        <div style={{ opacity: 0.7, whiteSpace: "nowrap" }}>GV: {s.lecturer || "N/A"}</div>
                       </td>
-                      <td style={{ padding: "1rem", fontWeight: "600", color: "#4f46e5" }}>{s.helperName || "Chưa giao"}</td>
-                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                      <td style={{ padding: "8px 12px", fontWeight: "700", color: "#4f46e5", whiteSpace: "nowrap" }}>{s.helperName || "Chưa giao"}</td>
+                      <td style={{ padding: "8px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
                         <span style={{
-                          fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
+                          fontSize: "0.7rem", padding: "2px 6px", borderRadius: "4px", fontWeight: "700", display: "inline-block",
                           background: s.checkinStatus === "checked_in" ? "#dcfce7" : "#fee2e2",
                           color: s.checkinStatus === "checked_in" ? "#166534" : "#991b1b"
                         }}>
@@ -3034,14 +3051,14 @@ function InternalSchedulesManager() {
                             {s.checkinStartImage ? (
                               <span 
                                 onClick={() => setLightboxImage(s.checkinStartImage)}
-                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                                style={{ fontSize: "0.68rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
                               >
                                 📷 1. Đầu ca
                               </span>
                             ) : (
                               <span 
                                 onClick={() => setLightboxImage(s.proofImage)}
-                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                                style={{ fontSize: "0.68rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
                               >
                                 📷 Xem ảnh
                               </span>
@@ -3049,7 +3066,7 @@ function InternalSchedulesManager() {
                             {s.checkinMiddleImage && (
                               <span 
                                 onClick={() => setLightboxImage(s.checkinMiddleImage)}
-                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                                style={{ fontSize: "0.68rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
                               >
                                 📷 2. Giữa ca
                               </span>
@@ -3057,7 +3074,7 @@ function InternalSchedulesManager() {
                             {s.checkinEndImage && (
                               <span 
                                 onClick={() => setLightboxImage(s.checkinEndImage)}
-                                style={{ fontSize: "0.72rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
+                                style={{ fontSize: "0.68rem", color: "var(--primary)", cursor: "pointer", textDecoration: "underline", fontWeight: "600" }}
                               >
                                 📷 3. Cuối ca
                               </span>
@@ -3065,16 +3082,16 @@ function InternalSchedulesManager() {
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "1rem", textAlign: "center" }}>
+                      <td style={{ padding: "8px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
                         {renderStatusPill(s.studyStatus)}
                       </td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                        <div>{(s.rentAmount || 0).toLocaleString("vi-VN")}đ</div>
+                      <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ fontWeight: "750" }}>{(s.rentAmount || 0).toLocaleString("vi-VN")}đ</div>
                         {s.tipAmount > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
-                            <span style={{ color: "#d97706", fontWeight: "700" }}>+Tip: {s.tipAmount.toLocaleString("vi-VN")}đ</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px", alignItems: "flex-end" }}>
+                            <span style={{ color: "#d97706", fontWeight: "750", fontSize: "0.72rem" }}>+Tip: {s.tipAmount.toLocaleString("vi-VN")}đ</span>
                             <span style={{
-                              fontSize: "0.62rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
+                              fontSize: "0.6rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
                               background: s.tipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
                               color: s.tipStatus === "Đã gửi" ? "#166534" : "#991b1b",
                               border: `1px solid ${s.tipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
@@ -3084,29 +3101,29 @@ function InternalSchedulesManager() {
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "1rem" }}>
+                      <td style={{ padding: "8px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
                         <span style={{
-                          fontSize: "0.72rem", padding: "4px 8px", borderRadius: "6px", fontWeight: "700",
+                          fontSize: "0.7rem", padding: "3px 7px", borderRadius: "6px", fontWeight: "750", display: "inline-block",
                           ...getStatusBadgeStyle(s.paymentStatus)
                         }}>
                           {s.paymentStatus}
                         </span>
                       </td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                          <span>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ</span>
+                      <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                          <span style={{ fontWeight: "750" }}>{(s.salaryAmount || 0).toLocaleString("vi-VN")}đ</span>
                           <span style={{
-                            fontSize: "0.72rem", padding: "2px 6px", borderRadius: "6px", fontWeight: "700",
+                            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
                             ...getStatusBadgeStyle(s.salaryStatus)
                           }}>
                             {s.salaryStatus}
                           </span>
                         </div>
                         {s.staffTipAmount > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
-                            <span style={{ color: "#059669", fontWeight: "700" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "2px", alignItems: "flex-end" }}>
+                            <span style={{ color: "#059669", fontWeight: "750", fontSize: "0.72rem" }}>+Tip CTV: {s.staffTipAmount.toLocaleString("vi-VN")}đ</span>
                             <span style={{
-                              fontSize: "0.62rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
+                              fontSize: "0.6rem", display: "inline-block", padding: "1px 4px", borderRadius: "4px", fontWeight: "700", width: "fit-content",
                               background: s.staffTipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
                               color: s.staffTipStatus === "Đã gửi" ? "#166534" : "#991b1b",
                               border: `1px solid ${s.staffTipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
@@ -3116,20 +3133,20 @@ function InternalSchedulesManager() {
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: "1rem", fontSize: "0.82rem", color: "var(--text-secondary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={s.notes}>
+                      <td style={{ padding: "8px 12px", fontSize: "0.75rem", color: "var(--text-secondary)", maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={s.notes}>
                         {s.notes || "-"}
                       </td>
-                      <td style={{ padding: "1rem", textAlign: "center" }}>
-                        <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                      <td style={{ padding: "8px 12px", textAlign: "center", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                           <button 
                             onClick={() => openEditModal(s)}
-                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+                            style={{ padding: "3px 7px", fontSize: "0.72rem", background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}
                           >
                             Sửa
                           </button>
                           <button 
                             onClick={() => handleDelete(s.id)}
-                            style={{ padding: "4px 8px", fontSize: "0.75rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer" }}
+                            style={{ padding: "3px 7px", fontSize: "0.72rem", background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}
                           >
                             Xóa
                           </button>

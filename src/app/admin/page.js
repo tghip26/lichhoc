@@ -1638,15 +1638,15 @@ function AdminDashboard() {
           </div>
         ) : viewMode === "list" ? (
           /* LIST VIEW */
-          <div className="table-container glass-panel" style={{ padding: "0" }}>
-            <table style={{ width: "100%" }}>
+          <div className="table-container glass-panel" style={{ padding: "0", overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
               <thead>
-                <tr>
-                  <th style={{ padding: "1.5rem", borderTopLeftRadius: "16px" }}>Sinh viên</th>
-                  <th>Trường / Lớp</th>
-                  <th>Ảnh lịch</th>
-                  <th>Trạng thái</th>
-                  <th style={{ padding: "1.5rem", borderTopRightRadius: "16px" }}>Hành động</th>
+                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1" }}>
+                  <th style={{ padding: "10px 12px", borderTopLeftRadius: "16px", whiteSpace: "nowrap" }}>Sinh viên</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>Trường / Lớp</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>Ảnh lịch</th>
+                  <th style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>Trạng thái</th>
+                  <th style={{ padding: "10px 12px", borderTopRightRadius: "16px", whiteSpace: "nowrap" }}>Hành động</th>
                 </tr>
               </thead>
               <tbody>

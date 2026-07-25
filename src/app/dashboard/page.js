@@ -2327,15 +2327,15 @@ function Dashboard() {
                   Bạn chưa có ca học nào được hoàn thành và thanh toán.
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
                     <thead>
-                      <tr style={{ borderBottom: "2px solid #f1f5f9", textAlign: "left" }}>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tên môn / Lớp</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Ngày học</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Thù lao chính</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tiền Tip thêm</th>
-                        <th style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tổng nhận</th>
+                      <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1", textAlign: "left" }}>
+                        <th style={{ padding: "8px 12px", fontWeight: "750", color: "#475569" }}>Tên môn / Lớp</th>
+                        <th style={{ padding: "8px 12px", fontWeight: "750", color: "#475569", whiteSpace: "nowrap" }}>Ngày học</th>
+                        <th style={{ padding: "8px 12px", fontWeight: "750", color: "#475569", whiteSpace: "nowrap" }}>Thù lao chính</th>
+                        <th style={{ padding: "8px 12px", fontWeight: "750", color: "#475569", whiteSpace: "nowrap" }}>Tiền Tip thêm</th>
+                        <th style={{ padding: "8px 12px", fontWeight: "750", color: "#475569", whiteSpace: "nowrap" }}>Tổng nhận</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2345,11 +2345,11 @@ function Dashboard() {
                         const extraTip = job.staffTipAmount ? Number(job.staffTipAmount) : 0;
                         return (
                           <tr key={job.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                            <td style={{ padding: "10px 12px", fontWeight: "700", fontSize: "0.85rem" }}>{job.className}</td>
-                            <td style={{ padding: "10px 12px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{new Date(job.classDate).toLocaleDateString("vi-VN")}</td>
-                            <td style={{ padding: "10px 12px", fontSize: "0.85rem", fontWeight: "600" }}>{basePayout.toLocaleString("vi-VN")} đ</td>
-                            <td style={{ padding: "10px 12px", fontSize: "0.85rem", color: extraTip > 0 ? "var(--success)" : "var(--text-secondary)" }}>{extraTip > 0 ? `+${extraTip.toLocaleString("vi-VN")} đ` : "0đ"}</td>
-                            <td style={{ padding: "10px 12px", fontSize: "0.88rem", fontWeight: "800", color: "var(--success)" }}>{(basePayout + extraTip).toLocaleString("vi-VN")} đ</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "700" }}>{job.className}</td>
+                            <td style={{ padding: "8px 12px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{new Date(job.classDate).toLocaleDateString("vi-VN")}</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "600", whiteSpace: "nowrap" }}>{basePayout.toLocaleString("vi-VN")} đ</td>
+                            <td style={{ padding: "8px 12px", color: extraTip > 0 ? "var(--success)" : "var(--text-secondary)", whiteSpace: "nowrap" }}>{extraTip > 0 ? `+${extraTip.toLocaleString("vi-VN")} đ` : "0đ"}</td>
+                            <td style={{ padding: "8px 12px", fontWeight: "800", color: "var(--success)", whiteSpace: "nowrap" }}>{(basePayout + extraTip).toLocaleString("vi-VN")} đ</td>
                           </tr>
                         );
                       })}
