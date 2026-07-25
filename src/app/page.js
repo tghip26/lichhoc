@@ -297,7 +297,7 @@ export default function Home() {
 
           {/* Right Column: Card Authentication */}
           {!user && (
-            <div style={{ maxWidth: "450px", width: "100%", justifySelf: "center" }}>
+            <div id="auth-form-card" style={{ maxWidth: "450px", width: "100%", justifySelf: "center" }}>
               <div className="glass-panel" style={{ padding: "2.5rem 2rem", borderTop: isLoginMode ? "5px solid var(--primary)" : "5px solid #F59E0B", borderRadius: "24px", background: "white", boxShadow: "0 20px 40px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "1.5rem" }}>
               {isLoginMode ? (

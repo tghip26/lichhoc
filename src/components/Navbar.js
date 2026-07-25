@@ -457,6 +457,37 @@ export default function Navbar() {
                   <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
                 )}
               </Link>
+
+              <Link 
+                href="/" 
+                onClick={(e) => {
+                  if (pathname === "/") {
+                    e.preventDefault();
+                    const loginForm = document.getElementById("auth-form-card");
+                    if (loginForm) {
+                      loginForm.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  }
+                }}
+                style={{ 
+                  fontWeight: "750", 
+                  color: "white",
+                  background: "linear-gradient(135deg, var(--primary) 0%, #15803d 100%)",
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  textDecoration: "none",
+                  fontSize: "0.82rem",
+                  boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseOut={(e) => e.currentTarget.style.transform = "none"}
+              >
+                <span>🔑</span> Đăng Nhập
+              </Link>
             </div>
           )}
         </div>
