@@ -178,6 +178,15 @@ function InternalSchedulesManager() {
     notes: ""
   });
 
+  // Financial Analytics Search & Pagination States
+  const [analyticsGuestSearch, setAnalyticsGuestSearch] = useState("");
+  const [analyticsGuestPage, setAnalyticsGuestPage] = useState(1);
+  const [analyticsGuestRowsPerPage, setAnalyticsGuestRowsPerPage] = useState(5);
+
+  const [analyticsCtvSearch, setAnalyticsCtvSearch] = useState("");
+  const [analyticsCtvPage, setAnalyticsCtvPage] = useState(1);
+  const [analyticsCtvRowsPerPage, setAnalyticsCtvRowsPerPage] = useState(5);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -887,6 +896,28 @@ function InternalSchedulesManager() {
     });
     const sortedCtvs = Object.values(ctvStats).sort((a, b) => b.totalEarned - a.totalEarned);
 
+    // Filter & Pagination for Guest Table
+    const filteredGuests = sortedGuests.filter(g =>
+      (g.name || "").toLowerCase().includes(analyticsGuestSearch.toLowerCase().trim())
+    );
+    const totalGuestPages = Math.ceil(filteredGuests.length / analyticsGuestRowsPerPage) || 1;
+    const currentGuestPage = Math.min(analyticsGuestPage, totalGuestPages);
+    const paginatedGuests = filteredGuests.slice(
+      (currentGuestPage - 1) * analyticsGuestRowsPerPage,
+      currentGuestPage * analyticsGuestRowsPerPage
+    );
+
+    // Filter & Pagination for CTV Table
+    const filteredCtvs = sortedCtvs.filter(c =>
+      (c.name || "").toLowerCase().includes(analyticsCtvSearch.toLowerCase().trim())
+    );
+    const totalCtvPages = Math.ceil(filteredCtvs.length / analyticsCtvRowsPerPage) || 1;
+    const currentCtvPage = Math.min(analyticsCtvPage, totalCtvPages);
+    const paginatedCtvs = filteredCtvs.slice(
+      (currentCtvPage - 1) * analyticsCtvRowsPerPage,
+      currentCtvPage * analyticsCtvRowsPerPage
+    );
+
     // 4. Calculate weekly revenues of selected month
     const selectedMonth = currentWeekStart.getMonth(); // 0-11
     const selectedYear = currentWeekStart.getFullYear();
@@ -1331,111 +1362,353 @@ function InternalSchedulesManager() {
             </div>
 
             {/* Guest Ranking Table */}
-            <div className="glass-panel" style={{ padding: "1.5rem" }}>
-              <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontWeight: "800", fontSize: "0.95rem" }}>
-                🏆 Chi phí thuê của từng khách thuê (Xếp từ cao đến thấp)
-              </h4>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
+            <div className="glass-panel" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <div>
+                  <h4 style={{ margin: 0, color: "var(--text-primary)", fontWeight: "850", fontSize: "0.95rem" }}>
+                    🏆 Thống Kê & Đối Soát Khách Hàng ({filteredGuests.length})
+                  </h4>
+                  <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>
+                    Xếp hạng chi tiêu & công nợ từ cao xuống thấp
+                  </span>
+                </div>
+                
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <select
+                    value={analyticsGuestRowsPerPage}
+                    onChange={(e) => {
+                      setAnalyticsGuestRowsPerPage(Number(e.target.value));
+                      setAnalyticsGuestPage(1);
+                    }}
+                    style={{ padding: "4px 8px", fontSize: "0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "white", fontWeight: "600", cursor: "pointer" }}
+                  >
+                    <option value={5}>5 dòng / trang</option>
+                    <option value={10}>10 dòng / trang</option>
+                    <option value={20}>20 dòng / trang</option>
+                    <option value={50}>50 dòng / trang</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* SEARCH INPUT FOR CUSTOMERS */}
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  value={analyticsGuestSearch}
+                  onChange={(e) => {
+                    setAnalyticsGuestSearch(e.target.value);
+                    setAnalyticsGuestPage(1);
+                  }}
+                  placeholder="🔍 Tìm theo tên khách hàng..."
+                  style={{
+                    width: "100%",
+                    padding: "6px 12px 6px 32px",
+                    fontSize: "0.78rem",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    boxSizing: "border-box"
+                  }}
+                />
+                <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#94a3b8" }}>
+                  🔍
+                </span>
+              </div>
+
+              {/* SPREADSHEET TABLE */}
+              <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", textAlign: "left" }}>
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b" }}>
-                      <th style={{ padding: "8px 4px" }}>Khách hàng</th>
-                      <th style={{ padding: "8px 4px", textAlign: "center" }}>Số ca</th>
-                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã trả</th>
-                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa trả</th>
-                      <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng chi tiêu</th>
-                      <th style={{ padding: "8px 4px", textAlign: "center" }}>Tra cứu</th>
+                    <tr style={{ background: "#f8fafc", borderBottom: "2px solid #cbd5e1", color: "#475569" }}>
+                      <th style={{ padding: "8px 10px", fontWeight: "750" }}># Khách hàng</th>
+                      <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "750" }}>Số ca</th>
+                      <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Đã trả</th>
+                      <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Công nợ</th>
+                      <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Tổng chi tiêu</th>
+                      <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "750" }}>Chi tiết</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedGuests.length === 0 ? (
+                    {paginatedGuests.length === 0 ? (
                       <tr>
-                        <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu khách hàng.</td>
+                        <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>
+                          {analyticsGuestSearch ? "Không tìm thấy khách hàng nào khớp từ khóa!" : "Chưa có dữ liệu khách hàng."}
+                        </td>
                       </tr>
                     ) : (
-                      sortedGuests.map((g, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "10px 4px", fontWeight: "700", color: "var(--text-primary)" }}>{g.name}</td>
-                          <td style={{ padding: "10px 4px", textAlign: "center", fontWeight: "600" }}>{g.count}</td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", color: "var(--success)", fontWeight: "600" }}>{g.paid.toLocaleString("vi-VN")}đ</td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", color: g.unpaid > 0 ? "var(--danger)" : "var(--text-secondary)", fontWeight: "600" }}>
-                            {g.unpaid > 0 ? `${g.unpaid.toLocaleString("vi-VN")}đ` : "-"}
-                          </td>
-                          <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{g.total.toLocaleString("vi-VN")}đ</td>
-                          <td style={{ padding: "10px 4px", textAlign: "center" }}>
+                      paginatedGuests.map((g, idx) => {
+                        const globalIdx = (currentGuestPage - 1) * analyticsGuestRowsPerPage + idx + 1;
+                        return (
+                          <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "white" : "#fafafa" }}>
+                            <td style={{ padding: "8px 10px", fontWeight: "700", color: "var(--text-primary)" }}>
+                              <span style={{ fontSize: "0.7rem", color: "#94a3b8", marginRight: "6px" }}>{globalIdx}.</span>
+                              {g.name}
+                            </td>
+                            <td style={{ padding: "8px 6px", textAlign: "center", fontWeight: "600" }}>{g.count}</td>
+                            <td style={{ padding: "8px 6px", textAlign: "right", color: "var(--success)", fontWeight: "600" }}>{g.paid.toLocaleString("vi-VN")}đ</td>
+                            <td style={{ padding: "8px 6px", textAlign: "right", color: g.unpaid > 0 ? "var(--danger)" : "#94a3b8", fontWeight: g.unpaid > 0 ? "800" : "600" }}>
+                              {g.unpaid > 0 ? `${g.unpaid.toLocaleString("vi-VN")}đ` : "-"}
+                            </td>
+                            <td style={{ padding: "8px 6px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{g.total.toLocaleString("vi-VN")}đ</td>
+                            <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => { setLookupType("customer"); setLookupName(g.name); }}
+                                style={{
+                                  padding: "3px 8px", fontSize: "0.7rem", background: "rgba(22, 163, 74, 0.1)",
+                                  color: "var(--primary)", border: "1px solid var(--primary-light)", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
+                                }}
+                              >
+                                Chi tiết 🔍
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINATION CONTROL BAR FOR CUSTOMERS */}
+              {totalGuestPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", paddingTop: "4px", borderTop: "1px solid #f1f5f9" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                    Trang <b>{currentGuestPage}</b>/<b>{totalGuestPages}</b> ({filteredGuests.length} khách)
+                  </span>
+                  <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      disabled={currentGuestPage <= 1}
+                      onClick={() => setAnalyticsGuestPage(prev => Math.max(1, prev - 1))}
+                      style={{
+                        padding: "3px 8px", fontSize: "0.72rem", borderRadius: "6px", border: "1px solid #cbd5e1",
+                        background: currentGuestPage <= 1 ? "#f1f5f9" : "white",
+                        color: currentGuestPage <= 1 ? "#94a3b8" : "var(--text-primary)",
+                        cursor: currentGuestPage <= 1 ? "not-allowed" : "pointer", fontWeight: "700"
+                      }}
+                    >
+                      ◀ Trước
+                    </button>
+                    
+                    {Array.from({ length: totalGuestPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalGuestPages || Math.abs(p - currentGuestPage) <= 1)
+                      .map((p, pIdx, arr) => {
+                        const showEllipsis = pIdx > 0 && p - arr[pIdx - 1] > 1;
+                        return (
+                          <span key={p} style={{ display: "inline-flex", alignItems: "center" }}>
+                            {showEllipsis && <span style={{ fontSize: "0.7rem", padding: "0 2px", color: "#94a3b8" }}>...</span>}
                             <button
                               type="button"
-                              onClick={() => { setLookupType("customer"); setLookupName(g.name); }}
+                              onClick={() => setAnalyticsGuestPage(p)}
                               style={{
-                                padding: "3px 8px", fontSize: "0.72rem", background: "rgba(22, 163, 74, 0.1)",
-                                color: "var(--primary)", border: "1px solid var(--primary-light)", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
+                                padding: "3px 7px", fontSize: "0.72rem", borderRadius: "6px",
+                                border: p === currentGuestPage ? "1px solid var(--primary)" : "1px solid #cbd5e1",
+                                background: p === currentGuestPage ? "var(--primary)" : "white",
+                                color: p === currentGuestPage ? "white" : "var(--text-primary)",
+                                fontWeight: "750", cursor: "pointer"
+                              }}
+                            >
+                              {p}
+                            </button>
+                          </span>
+                        );
+                      })
+                    }
+
+                    <button
+                      type="button"
+                      disabled={currentGuestPage >= totalGuestPages}
+                      onClick={() => setAnalyticsGuestPage(prev => Math.min(totalGuestPages, prev + 1))}
+                      style={{
+                        padding: "3px 8px", fontSize: "0.72rem", borderRadius: "6px", border: "1px solid #cbd5e1",
+                        background: currentGuestPage >= totalGuestPages ? "#f1f5f9" : "white",
+                        color: currentGuestPage >= totalGuestPages ? "#94a3b8" : "var(--text-primary)",
+                        cursor: currentGuestPage >= totalGuestPages ? "not-allowed" : "pointer", fontWeight: "700"
+                      }}
+                    >
+                      Sau ▶
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Right Column: Helper Stats Table */}
+          <div className="glass-panel" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+              <div>
+                <h4 style={{ margin: 0, color: "var(--text-primary)", fontWeight: "850", fontSize: "0.95rem" }}>
+                  👥 Thống Kê & Lương Cộng Tác Viên ({filteredCtvs.length})
+                </h4>
+                <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>
+                  Quản lý tổng lương, số ca nhận & lương chưa trả
+                </span>
+              </div>
+              
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <select
+                  value={analyticsCtvRowsPerPage}
+                  onChange={(e) => {
+                    setAnalyticsCtvRowsPerPage(Number(e.target.value));
+                    setAnalyticsCtvPage(1);
+                  }}
+                  style={{ padding: "4px 8px", fontSize: "0.75rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "white", fontWeight: "600", cursor: "pointer" }}
+                >
+                  <option value={5}>5 dòng / trang</option>
+                  <option value={10}>10 dòng / trang</option>
+                  <option value={20}>20 dòng / trang</option>
+                  <option value={50}>50 dòng / trang</option>
+                </select>
+              </div>
+            </div>
+
+            {/* SEARCH INPUT FOR CTV */}
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                value={analyticsCtvSearch}
+                onChange={(e) => {
+                  setAnalyticsCtvSearch(e.target.value);
+                  setAnalyticsCtvPage(1);
+                }}
+                placeholder="🔍 Tìm theo tên CTV..."
+                style={{
+                  width: "100%",
+                  padding: "6px 12px 6px 32px",
+                  fontSize: "0.78rem",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  background: "#f8fafc",
+                  boxSizing: "border-box"
+                }}
+              />
+              <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", fontSize: "0.8rem", color: "#94a3b8" }}>
+                🔍
+              </span>
+            </div>
+
+            {/* SPREADSHEET TABLE FOR CTV */}
+            <div style={{ overflowX: "auto", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ background: "#f1f5f9", borderBottom: "2px solid #cbd5e1", color: "#4338ca" }}>
+                    <th style={{ padding: "8px 10px", fontWeight: "750" }}># Cộng tác viên</th>
+                    <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "750" }}>Số ca</th>
+                    <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "750" }}>Đã học</th>
+                    <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Đã nhận</th>
+                    <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Chưa nhận</th>
+                    <th style={{ padding: "8px 6px", textAlign: "right", fontWeight: "750" }}>Tổng lương</th>
+                    <th style={{ padding: "8px 6px", textAlign: "center", fontWeight: "750" }}>Chi tiết</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedCtvs.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>
+                        {analyticsCtvSearch ? "Không tìm thấy CTV nào khớp từ khóa!" : "Chưa có dữ liệu Cộng tác viên."}
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedCtvs.map((c, idx) => {
+                      const globalIdx = (currentCtvPage - 1) * analyticsCtvRowsPerPage + idx + 1;
+                      return (
+                        <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "white" : "#fafafa" }}>
+                          <td style={{ padding: "8px 10px", fontWeight: "700", color: "#4f46e5" }}>
+                            <span style={{ fontSize: "0.7rem", color: "#94a3b8", marginRight: "6px" }}>{globalIdx}.</span>
+                            {c.name}
+                          </td>
+                          <td style={{ padding: "8px 6px", textAlign: "center", fontWeight: "600" }}>{c.totalClasses}</td>
+                          <td style={{ padding: "8px 6px", textAlign: "center", color: "var(--success)", fontWeight: "750" }}>{c.finishedClasses} ca</td>
+                          <td style={{ padding: "8px 6px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "600" }}>{c.paid.toLocaleString("vi-VN")}đ</td>
+                          <td style={{ padding: "8px 6px", textAlign: "right", color: c.unpaid > 0 ? "#d97706" : "#94a3b8", fontWeight: c.unpaid > 0 ? "800" : "600" }}>
+                            {c.unpaid > 0 ? `${c.unpaid.toLocaleString("vi-VN")}đ` : "-"}
+                          </td>
+                          <td style={{ padding: "8px 6px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{c.totalEarned.toLocaleString("vi-VN")}đ</td>
+                          <td style={{ padding: "8px 6px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => { setLookupType("ctv"); setLookupName(c.name); }}
+                              style={{
+                                padding: "3px 8px", fontSize: "0.7rem", background: "rgba(79, 70, 229, 0.1)",
+                                color: "#4f46e5", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
                               }}
                             >
                               Chi tiết 🔍
                             </button>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column: Helper Stats Table */}
-          <div className="glass-panel" style={{ padding: "1.5rem" }}>
-            <h4 style={{ margin: "0 0 1rem 0", color: "var(--text-primary)", fontWeight: "800", fontSize: "0.95rem" }}>
-              👥 Thống kê lương & Số buổi đã đi học của CTV
-            </h4>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", textAlign: "left" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#64748b" }}>
-                    <th style={{ padding: "8px 4px" }}>Cộng tác viên</th>
-                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Số ca nhận</th>
-                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Đã học</th>
-                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Đã nhận</th>
-                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Chưa nhận</th>
-                    <th style={{ padding: "8px 4px", textAlign: "right" }}>Tổng lương</th>
-                    <th style={{ padding: "8px 4px", textAlign: "center" }}>Tra cứu</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCtvs.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" style={{ padding: "20px", textAlign: "center", color: "var(--text-secondary)" }}>Chưa có dữ liệu Cộng tác viên.</td>
-                    </tr>
-                  ) : (
-                    sortedCtvs.map((c, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "10px 4px", fontWeight: "700", color: "#4f46e5" }}>{c.name}</td>
-                        <td style={{ padding: "10px 4px", textAlign: "center", fontWeight: "600" }}>{c.totalClasses}</td>
-                        <td style={{ padding: "10px 4px", textAlign: "center", color: "var(--success)", fontWeight: "750" }}>{c.finishedClasses} ca</td>
-                        <td style={{ padding: "10px 4px", textAlign: "right", color: "var(--text-secondary)", fontWeight: "600" }}>{c.paid.toLocaleString("vi-VN")}đ</td>
-                        <td style={{ padding: "10px 4px", textAlign: "right", color: c.unpaid > 0 ? "#d97706" : "var(--text-secondary)", fontWeight: "600" }}>
-                          {c.unpaid > 0 ? `${c.unpaid.toLocaleString("vi-VN")}đ` : "-"}
-                        </td>
-                        <td style={{ padding: "10px 4px", textAlign: "right", fontWeight: "800", color: "var(--primary)" }}>{c.totalEarned.toLocaleString("vi-VN")}đ</td>
-                        <td style={{ padding: "10px 4px", textAlign: "center" }}>
-                          <button
-                            type="button"
-                            onClick={() => { setLookupType("ctv"); setLookupName(c.name); }}
-                            style={{
-                              padding: "3px 8px", fontSize: "0.72rem", background: "rgba(79, 70, 229, 0.1)",
-                              color: "#4f46e5", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: "700"
-                            }}
-                          >
-                            Chi tiết 🔍
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* PAGINATION CONTROL BAR FOR CTV */}
+            {totalCtvPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", paddingTop: "4px", borderTop: "1px solid #f1f5f9" }}>
+                <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                  Trang <b>{currentCtvPage}</b>/<b>{totalCtvPages}</b> ({filteredCtvs.length} CTV)
+                </span>
+                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    disabled={currentCtvPage <= 1}
+                    onClick={() => setAnalyticsCtvPage(prev => Math.max(1, prev - 1))}
+                    style={{
+                      padding: "3px 8px", fontSize: "0.72rem", borderRadius: "6px", border: "1px solid #cbd5e1",
+                      background: currentCtvPage <= 1 ? "#f1f5f9" : "white",
+                      color: currentCtvPage <= 1 ? "#94a3b8" : "var(--text-primary)",
+                      cursor: currentCtvPage <= 1 ? "not-allowed" : "pointer", fontWeight: "700"
+                    }}
+                  >
+                    ◀ Trước
+                  </button>
+
+                  {Array.from({ length: totalCtvPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalCtvPages || Math.abs(p - currentCtvPage) <= 1)
+                    .map((p, pIdx, arr) => {
+                      const showEllipsis = pIdx > 0 && p - arr[pIdx - 1] > 1;
+                      return (
+                        <span key={p} style={{ display: "inline-flex", alignItems: "center" }}>
+                          {showEllipsis && <span style={{ fontSize: "0.7rem", padding: "0 2px", color: "#94a3b8" }}>...</span>}
+                          <button
+                            type="button"
+                            onClick={() => setAnalyticsCtvPage(p)}
+                            style={{
+                              padding: "3px 7px", fontSize: "0.72rem", borderRadius: "6px",
+                              border: p === currentCtvPage ? "1px solid #4f46e5" : "1px solid #cbd5e1",
+                              background: p === currentCtvPage ? "#4f46e5" : "white",
+                              color: p === currentCtvPage ? "white" : "var(--text-primary)",
+                              fontWeight: "750", cursor: "pointer"
+                            }}
+                          >
+                            {p}
+                          </button>
+                        </span>
+                      );
+                    })
+                  }
+
+                  <button
+                    type="button"
+                    disabled={currentCtvPage >= totalCtvPages}
+                    onClick={() => setAnalyticsCtvPage(prev => Math.min(totalCtvPages, prev + 1))}
+                    style={{
+                      padding: "3px 8px", fontSize: "0.72rem", borderRadius: "6px", border: "1px solid #cbd5e1",
+                      background: currentCtvPage >= totalCtvPages ? "#f1f5f9" : "white",
+                      color: currentCtvPage >= totalCtvPages ? "#94a3b8" : "var(--text-primary)",
+                      cursor: currentCtvPage >= totalCtvPages ? "not-allowed" : "pointer", fontWeight: "700"
+                    }}
+                  >
+                    Sau ▶
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
