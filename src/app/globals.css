@@ -433,35 +433,22 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
-  /* Navbar Adjustments */
+  /* Navbar Adjustments - Ultra-Compact Single Row */
   .navbar-container {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    row-gap: 0.4rem;
-    column-gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .navbar-container > a {
-    grid-row: 1;
-    grid-column: 1;
-    align-self: center;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0.4rem 0.75rem !important;
   }
   
   .nav-links-wrapper {
-    display: contents;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
   }
   
-  .nav-menu-links {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 1rem;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding: 0.25rem 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    -webkit-overflow-scrolling: touch;
+  .nav-menu-desktop {
+    display: none !important;
   }
   
   .nav-menu-links::-webkit-scrollbar {

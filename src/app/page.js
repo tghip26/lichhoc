@@ -220,16 +220,16 @@ export default function Home() {
         <div style={{
           background: "linear-gradient(90deg, #d97706, #f59e0b)",
           color: "white",
-          padding: "8px 10px",
+          padding: "4px 8px",
           textAlign: "center",
-          fontSize: "0.85rem",
+          fontSize: "0.78rem",
           fontWeight: "600",
           boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
         }}>
           <marquee scrollamount="5" style={{ verticalAlign: "middle" }}>📢 {systemSettings.announcement}</marquee>
         </div>
       )}
-      <div style={{ maxWidth: "1200px", margin: "4rem auto", padding: "0 1.5rem", flex: 1 }}>
+      <div style={{ maxWidth: "1200px", margin: "1.5rem auto 3rem auto", padding: "0 1.25rem", flex: 1 }}>
         
         <div style={{ 
           display: "grid", 

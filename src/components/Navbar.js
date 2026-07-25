@@ -15,7 +15,12 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [hidePhoneBanner, setHidePhoneBanner] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (user && userProfile && !userProfile.phone) {
@@ -120,9 +125,9 @@ export default function Navbar() {
           style={{
             background: "linear-gradient(90deg, #ef4444 0%, #f59e0b 100%)",
             color: "white",
-            padding: "10px 15px",
+            padding: "8px 12px",
             textAlign: "center",
-            fontSize: "0.85rem",
+            fontSize: "0.82rem",
             fontWeight: "750",
             cursor: "pointer",
             display: "flex",
@@ -135,175 +140,74 @@ export default function Navbar() {
             animation: "pulseBanner 2s infinite"
           }}
         >
-          <span>⚠️ Tài khoản của bạn chưa cập nhật Số điện thoại! Vui lòng nhấp vào đây để bổ sung ngay. 📲</span>
+          <span>⚠️ Chưa cập nhật Số điện thoại! Nhấp để bổ sung ngay. 📲</span>
           <button 
             type="button"
             onClick={handleDismissPhoneBanner}
             style={{
-              background: "rgba(0,0,0,0.15)",
-              color: "white",
-              border: "none",
-              borderRadius: "50%",
-              width: "20px",
-              height: "20px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.8rem",
-              fontWeight: "bold",
-              cursor: "pointer",
-              marginLeft: "10px"
+              background: "rgba(0,0,0,0.15)", color: "white", border: "none", borderRadius: "50%",
+              width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "0.8rem", fontWeight: "bold", cursor: "pointer"
             }}
-            title="Tắt thông báo hôm nay"
           >
             &times;
           </button>
-          <style jsx>{`
-            @keyframes pulseBanner {
-              0% { opacity: 0.95; }
-              50% { opacity: 1; }
-              100% { opacity: 0.95; }
-            }
-          `}</style>
         </div>
       )}
+      
       <nav className="navbar">
-      <div className="navbar-container">
-        
-        {/* Brand Area */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer" }}>
-          <div className="navbar-brand-logo">
-            {/* New Premium SVG Graduation Cap Logo */}
-            <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7m-9-7v7" />
-            </svg>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span className="brand-title" style={{ 
-              fontSize: "1.15rem", 
-              fontWeight: "800", 
-              background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", 
-              WebkitBackgroundClip: "text", 
-              WebkitTextFillColor: "transparent", 
-              letterSpacing: "-0.5px",
-              lineHeight: "1.2"
-            }}>
-              Thuê Học Pro
-            </span>
-            <span className="brand-sublabel" style={{ fontSize: "0.6rem", color: "var(--text-secondary)", fontWeight: "600", letterSpacing: "1px", textTransform: "uppercase" }}>
-              Hệ thống quản lý
-            </span>
-          </div>
-        </Link>
-        
-        {/* Navigation & User Area */}
-        <div className="nav-links-wrapper">
-          {user ? (
-            <>
-              {/* Menu Links */}
-              <div className="nav-menu-links">
-                {!isAdmin && (
-                  <Link 
-                    href="/dashboard" 
-                    style={{ 
-                      fontWeight: pathname === "/dashboard" ? "700" : "500", 
-                      color: pathname === "/dashboard" ? "var(--primary)" : "var(--text-secondary)",
-                      textDecoration: "none",
-                      transition: "all 0.2s",
-                      position: "relative"
-                    }}
-                  >
-                    Lịch của tôi
-                    {pathname === "/dashboard" && (
-                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                    )}
-                  </Link>
-                )}
-                
-                {isAdmin && (
-                  <Link 
-                    href="/admin" 
-                    style={{ 
-                      fontWeight: pathname.includes("/admin") ? "700" : "500", 
-                      color: pathname.includes("/admin") ? "var(--primary)" : "var(--text-secondary)",
-                      textDecoration: "none",
-                      transition: "all 0.2s",
-                      position: "relative"
-                    }}
-                  >
-                    Bảng Quản Trị
-                    {pathname.includes("/admin") && (
-                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                    )}
-                  </Link>
-                )}
-
-                <Link 
-                  href="/doi-ngu" 
-                  style={{ 
-                    fontWeight: pathname === "/doi-ngu" ? "700" : "500", 
-                    color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)",
-                    textDecoration: "none",
-                    transition: "all 0.2s",
-                    position: "relative"
-                  }}
-                >
-                  Đội ngũ CTV 👥
-                  {pathname === "/doi-ngu" && (
-                    <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+        <div className="navbar-container">
+          
+          {/* Brand Area */}
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer" }}>
+            <div className="navbar-brand-logo">
+              <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7m-9-7v7" />
+              </svg>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span className="brand-title" style={{ 
+                fontSize: "1.1rem", 
+                fontWeight: "850", 
+                background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", 
+                WebkitBackgroundClip: "text", 
+                WebkitTextFillColor: "transparent", 
+                letterSpacing: "-0.5px",
+                lineHeight: "1.2"
+              }}>
+                Thuê Học Pro
+              </span>
+            </div>
+          </Link>
+          
+          {/* Navigation & User Area */}
+          <div className="nav-links-wrapper">
+            {user ? (
+              <>
+                {/* Menu Links for Logged in Users */}
+                <div className="nav-menu-links nav-menu-desktop">
+                  {!isAdmin && (
+                    <Link href="/dashboard" style={{ fontWeight: pathname === "/dashboard" ? "700" : "500", color: pathname === "/dashboard" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Lịch của tôi</Link>
                   )}
-                </Link>
-
-                <Link 
-                  href="/tai-khoan" 
-                  style={{ 
-                    fontWeight: pathname === "/tai-khoan" ? "700" : "500", 
-                    color: pathname === "/tai-khoan" ? "var(--primary)" : "var(--text-secondary)",
-                    textDecoration: "none",
-                    transition: "all 0.2s",
-                    position: "relative"
-                  }}
-                >
-                  Tài khoản
-                  {pathname === "/tai-khoan" && (
-                    <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
+                  {isAdmin && (
+                    <Link href="/admin" style={{ fontWeight: pathname.includes("/admin") ? "700" : "500", color: pathname.includes("/admin") ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Bảng Quản Trị</Link>
                   )}
-                </Link>
+                  <Link href="/doi-ngu" style={{ fontWeight: pathname === "/doi-ngu" ? "700" : "500", color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Đội ngũ CTV 👥</Link>
+                  <Link href="/tai-khoan" style={{ fontWeight: pathname === "/tai-khoan" ? "700" : "500", color: pathname === "/tai-khoan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Tài khoản</Link>
+                  {!isAdmin && (
+                    <Link href="/tuyen-ctv" style={{ fontWeight: pathname === "/tuyen-ctv" ? "700" : "500", color: pathname === "/tuyen-ctv" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Tuyển CTV 🎓</Link>
+                  )}
+                </div>
 
-                {!isAdmin && (
-                  <Link 
-                    href="/tuyen-ctv" 
-                    style={{ 
-                      fontWeight: pathname === "/tuyen-ctv" ? "700" : "500", 
-                      color: pathname === "/tuyen-ctv" ? "var(--primary)" : "var(--text-secondary)",
-                      textDecoration: "none",
-                      transition: "all 0.2s",
-                      position: "relative"
-                    }}
-                  >
-                    Tuyển CTV 🎓
-                    {pathname === "/tuyen-ctv" && (
-                      <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                    )}
-                  </Link>
-                )}
-              </div>
-              
-              <div className="nav-divider" />
-
-              {/* User Profile */}
-              <div className="nav-user-area">
-                {user && (
+                <div className="nav-user-area">
                   <div ref={dropdownRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
                     <button 
                       onClick={() => setShowDropdown(!showDropdown)}
                       style={{
                         background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", position: "relative", display: "flex", alignItems: "center", padding: "6px", borderRadius: "50%", transition: "all 0.2s"
                       }}
-                      onMouseOver={e => e.currentTarget.style.background = "#f1f5f9"}
-                      onMouseOut={e => e.currentTarget.style.background = "none"}
                     >
                       <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -341,158 +245,139 @@ export default function Navbar() {
                               style={{
                                 padding: "10px 15px", borderBottom: "1px solid #f8fafc", cursor: "pointer", background: notif.read ? "transparent" : "rgba(22, 163, 74, 0.03)", transition: "all 0.15s", textAlign: "left"
                               }}
-                              onMouseOver={e => e.currentTarget.style.background = "#f8fafc"}
-                              onMouseOut={e => e.currentTarget.style.background = notif.read ? "transparent" : "rgba(22, 163, 74, 0.03)"}
                             >
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
                                 <span style={{ fontWeight: notif.read ? "600" : "800", fontSize: "0.82rem", color: notif.read ? "var(--text-secondary)" : "var(--text-primary)" }}>{notif.title}</span>
                                 {!notif.read && <span style={{ width: "6px", height: "6px", background: "#ef4444", borderRadius: "50%" }}></span>}
                               </div>
                               <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: "1.4" }}>{notif.message}</p>
-                              <span style={{ fontSize: "0.68rem", color: "#a1a1aa", display: "block", marginTop: "4px" }}>
-                                {notif.createdAt ? new Date(notif.createdAt?.toDate ? notif.createdAt.toDate() : notif.createdAt).toLocaleString("vi-VN") : ""}
-                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
-                )}
-                <div className="nav-user-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                  <span style={{ fontSize: "0.82rem", fontWeight: "700", color: "var(--text-primary)" }}>
-                    {user.displayName || user.email.split('@')[0]}
-                  </span>
-                  {isAdmin ? (
-                    <span style={{ 
-                      fontSize: "0.58rem", 
-                      padding: "2px 6px", 
-                      background: "linear-gradient(135deg, #f59e0b, #ef4444)", 
-                      color: "white", 
-                      borderRadius: "10px", 
-                      fontWeight: "800", 
-                      letterSpacing: "0.5px", 
-                      boxShadow: "0 2px 6px rgba(239, 68, 68, 0.25)",
-                      marginTop: "2px"
-                    }}>
-                      ADMIN TỐI CAO
+
+                  <div className="nav-user-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--text-primary)" }}>
+                      {user.displayName || user.email.split('@')[0]}
                     </span>
-                  ) : (
-                    <span style={{ fontSize: "0.68rem", color: "var(--text-secondary)", fontWeight: "500", marginTop: "2px" }}>Khách thuê</span>
-                  )}
-                </div>
-                
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="Avatar" style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1.5px solid white", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", objectFit: "cover" }} />
-                ) : (
-                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, var(--primary), var(--secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: "0.95rem", boxShadow: "0 4px 10px rgba(0,0,0,0.1)", border: "1.5px solid white" }}>
-                    {user.email[0].toUpperCase()}
                   </div>
-                )}
-                
-                <button 
-                  onClick={logout} 
+                  
+                  <button 
+                    onClick={logout} 
+                    style={{ 
+                      background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", border: "none", borderRadius: "6px", padding: "6px", cursor: "pointer"
+                    }} 
+                    title="Đăng xuất"
+                  >
+                    <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    style={{
+                      background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", color: "#334155"
+                    }}
+                    className="mobile-menu-toggle"
+                  >
+                    <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
+                    </svg>
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* GIAO DIỆN CHƯA ĐĂNG NHẬP (LANDING HEADER - ULTRA FOCUSED & COMPACT) */
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* Desktop Menu Links */}
+                <div className="nav-menu-links nav-menu-desktop" style={{ display: "flex", gap: "16px", alignItems: "center", marginRight: "6px" }}>
+                  <Link href="/doi-ngu" style={{ fontWeight: pathname === "/doi-ngu" ? "700" : "500", color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
+                    Đội ngũ CTV 👥
+                  </Link>
+                  <Link href="/huong-dan" style={{ fontWeight: pathname === "/huong-dan" ? "700" : "500", color: pathname === "/huong-dan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
+                    Hướng dẫn 📖
+                  </Link>
+                  <Link href="/dieu-khoan" style={{ fontWeight: pathname === "/dieu-khoan" ? "700" : "500", color: pathname === "/dieu-khoan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
+                    Điều khoản ⚖️
+                  </Link>
+                </div>
+
+                {/* HIGH-IMPACT FOCUSED LOGIN CTA BUTTON */}
+                <Link 
+                  href="/" 
+                  onClick={(e) => {
+                    if (pathname === "/") {
+                      e.preventDefault();
+                      const loginForm = document.getElementById("auth-form-card");
+                      if (loginForm) {
+                        loginForm.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }
+                    }
+                  }}
                   style={{ 
-                    background: "rgba(239, 68, 68, 0.1)", 
-                    color: "var(--danger)", 
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px", 
-                    marginLeft: "0.25rem", 
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }} 
-                  title="Đăng xuất"
-                  onMouseOver={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)" }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)" }}
+                    fontWeight: "850", 
+                    color: "white",
+                    background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    textDecoration: "none",
+                    fontSize: "0.82rem",
+                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.4)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    whiteSpace: "nowrap"
+                  }}
                 >
-                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                  <span>🔑</span> Đăng Nhập
+                </Link>
+
+                {/* Mobile Hamburger Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  style={{
+                    background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", color: "#334155"
+                  }}
+                  className="mobile-menu-toggle"
+                >
+                  <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
+                  </svg>
                 </button>
               </div>
-            </>
-          ) : (
-            <div className="nav-menu-links" style={{ display: "flex", gap: "20px" }}>
-              <Link 
-                href="/doi-ngu" 
-                style={{ 
-                  fontWeight: pathname === "/doi-ngu" ? "700" : "500", 
-                  color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)",
-                  textDecoration: "none",
-                  transition: "all 0.2s",
-                  position: "relative"
-                }}
-              >
-                Đội ngũ CTV 👥
-                {pathname === "/doi-ngu" && (
-                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                )}
-              </Link>
-              <Link 
-                href="/huong-dan" 
-                style={{ 
-                  fontWeight: pathname === "/huong-dan" ? "700" : "500", 
-                  color: pathname === "/huong-dan" ? "var(--primary)" : "var(--text-secondary)",
-                  textDecoration: "none",
-                  transition: "all 0.2s",
-                  position: "relative"
-                }}
-              >
-                Hướng dẫn 📖
-                {pathname === "/huong-dan" && (
-                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                )}
-              </Link>
-              <Link 
-                href="/dieu-khoan" 
-                style={{ 
-                  fontWeight: pathname === "/dieu-khoan" ? "700" : "500", 
-                  color: pathname === "/dieu-khoan" ? "var(--primary)" : "var(--text-secondary)",
-                  textDecoration: "none",
-                  transition: "all 0.2s",
-                  position: "relative"
-                }}
-              >
-                Điều khoản ⚖️
-                {pathname === "/dieu-khoan" && (
-                  <span style={{ position: "absolute", bottom: "-6px", left: "0", width: "100%", height: "3px", borderRadius: "3px", background: "linear-gradient(90deg, var(--primary), var(--secondary))" }}></span>
-                )}
-              </Link>
-
-              <Link 
-                href="/" 
-                onClick={(e) => {
-                  if (pathname === "/") {
-                    e.preventDefault();
-                    const loginForm = document.getElementById("auth-form-card");
-                    if (loginForm) {
-                      loginForm.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }
-                  }
-                }}
-                style={{ 
-                  fontWeight: "750", 
-                  color: "white",
-                  background: "linear-gradient(135deg, var(--primary) 0%, #15803d 100%)",
-                  padding: "6px 14px",
-                  borderRadius: "20px",
-                  textDecoration: "none",
-                  fontSize: "0.82rem",
-                  boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  transition: "all 0.2s"
-                }}
-                onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
-                onMouseOut={(e) => e.currentTarget.style.transform = "none"}
-              >
-                <span>🔑</span> Đăng Nhập
-              </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+
+        {/* Mobile Dropdown Menu Modal Sheet */}
+        {mobileMenuOpen && (
+          <div 
+            style={{
+              background: "white", borderBottom: "2px solid #e2e8f0", padding: "0.85rem 1.25rem", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 10px 25px rgba(0,0,0,0.08)", animation: "fadeIn 0.2s"
+            }}
+          >
+            {user ? (
+              <>
+                {!isAdmin && <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📅 Lịch của tôi</Link>}
+                {isAdmin && <Link href="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📊 Bảng Quản Trị</Link>}
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/tai-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👤 Tài khoản</Link>
+                {!isAdmin && <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>🎓 Tuyển CTV</Link>}
+              </>
+            ) : (
+              <>
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/huong-dan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>📖 Hướng dẫn sử dụng</Link>
+                <Link href="/dieu-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>⚖️ Điều khoản dịch vụ</Link>
+                <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem" }}>🎓 Tuyển CTV</Link>
+              </>
+            )}
+          </div>
+        )}
+      </nav>
     </>
   );
 }
