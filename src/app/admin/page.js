@@ -454,29 +454,45 @@ function AdminDashboard() {
 
   // Admin Xác nhận đã nhận tiền chuyển khoản (khi khách bấm "Tôi đã chuyển khoản")
   const handleAdminConfirmBankTransfer = async (item) => {
-    if (!confirm(`Bạn có chắc chắn đã kiểm tra tài khoản VietQR và nhận đủ số tiền chuyển khoản cho ca môn ${item.className}?`)) {
+    const amountStr = Number(item.officialPrice || item.price || 0).toLocaleString("vi-VN");
+    if (!confirm(`Xác nhận đã nhận đủ ${amountStr} đ chuyển khoản ngân hàng cho ca học môn ${item.className}?`)) {
       return;
     }
 
     try {
+      // Chuyển sang trạng thái tiếp theo ("accepted" - Sắp học nếu đang ở "pending", "quoted", hoặc "paid")
+      const nextStatus = (item.status === "pending" || item.status === "quoted" || item.status === "paid") ? "accepted" : (item.status || "accepted");
+
       await updateDoc(doc(db, "schedules", item.id), {
         paymentConfirmedByAdmin: true,
+        paymentDeclared: true,
         paymentStatus: "Đã thanh toán",
-        status: item.assignedTo ? "accepted" : "paid"
+        status: nextStatus
       });
 
-      toast.success(`Đã xác nhận tiền chuyển khoản thành công cho môn ${item.className}!`);
+      toast.success(`Đã xác nhận tiền chuyển khoản ${amountStr}đ thành công! Đơn hàng đã chuyển sang trạng thái Sắp học.`);
 
       // Thông báo cho khách hàng
       if (item.userId) {
         await addDoc(collection(db, "notifications"), {
           userId: item.userId,
-          title: "✅ Xác nhận thanh toán thành công!",
-          message: `Admin đã xác nhận nhận tiền chuyển khoản thành công cho ca học môn ${item.className}.`,
+          title: "✅ Admin đã xác nhận tiền chuyển khoản!",
+          message: `Admin đã nhận đủ ${amountStr} đ chuyển khoản cho ca học môn ${item.className}. Đơn hàng của bạn đã chuyển sang trạng thái Sắp học!`,
           read: false,
           link: "/dashboard?tab=schedules",
           createdAt: serverTimestamp()
         });
+      }
+
+      // Telegram alert
+      try {
+        await sendTelegramAlert(`✅ <b>ADMIN ĐÃ XÁC NHẬN TIỀN CHUYỂN KHOẢN VỀ!</b>\n\n` +
+          `• <b>Môn học:</b> ${item.className}\n` +
+          `• <b>Số tiền:</b> <b>${amountStr} đ</b>\n` +
+          `• <b>Học viên:</b> ${item.name}\n` +
+          `• <b>Trạng thái mới:</b> Sắp học (Accepted)`);
+      } catch (tgErr) {
+        console.warn("Lỗi gửi Telegram xác nhận CK:", tgErr);
       }
 
     } catch (err) {
@@ -1789,6 +1805,21 @@ function AdminDashboard() {
                           </button>
                         </div>
                       )}
+                      {(item.paymentDeclared || item.paymentStatus === "Đã báo CK (Chờ Admin XN)") && !item.paymentConfirmedByAdmin && (
+                        <div style={{ marginTop: "6px", background: "#fef3c7", border: "1px solid #f59e0b", padding: "6px 8px", borderRadius: "8px", textAlign: "left" }}>
+                          <span style={{ fontSize: "0.72rem", color: "#b45309", fontWeight: "800", display: "block" }}>
+                            🔔 KHÁCH ĐÃ BÁO CHUYỂN KHOẢN
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAdminConfirmBankTransfer(item)}
+                            style={{ width: "100%", marginTop: "4px", background: "#16a34a", color: "white", border: "none", padding: "4px 6px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "800", cursor: "pointer" }}
+                          >
+                            ✔ Xác nhận tiền về
+                          </button>
+                        </div>
+                      )}
+
                       {item.status === "paid" && (
                         <button
                           onClick={() => handleUpdateStatus(item.id, "accepted")}
