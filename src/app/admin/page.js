@@ -1391,45 +1391,48 @@ function AdminDashboard() {
                   {item.adminNote && <><span style={{color: "#8B5CF6"}}>Note Admin:</span> {item.adminNote}<br/></>}
                   <strong>Ngày nộp:</strong> {item.createdAt ? new Date(item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt).toLocaleDateString("vi-VN") : ""}
 
-                  {/* KHU VỰC ADMIN CÀI GIÁ CHÍNH THỨC VÀ XÁC NHẬN CHUYỂN KHOẢN */}
-                  <div style={{ marginTop: "8px", background: "#f8fafc", padding: "8px 10px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                  {/* CÀI GIÁ CHÍNH THỨC (ADMIN PRICING TOOL) */}
+                  <div style={{ marginTop: "10px", background: "#f8fafc", padding: "10px", borderRadius: "10px", border: "1px solid #e2e8f0", textAlign: "left" }}>
                     <div style={{ fontSize: "0.75rem", color: "#1e293b", fontWeight: "750", marginBottom: "4px" }}>
                       💰 Giá đề xuất của khách: <span style={{ color: "#2563eb" }}>{Number(item.proposedPrice || item.price || 0).toLocaleString("vi-VN")} đ</span>
                     </div>
                     
                     {item.officialPrice ? (
-                      <div style={{ fontSize: "0.75rem", color: "#166534", fontWeight: "800", marginBottom: "6px" }}>
-                        ✅ Giá chính thức đã chốt: {Number(item.officialPrice).toLocaleString("vi-VN")} đ
+                      <div style={{ background: "#f0fdf4", padding: "8px 10px", borderRadius: "8px", border: "1px solid #bbf7d0", color: "#166534", fontWeight: "800", fontSize: "0.8rem", marginTop: "6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span>🔒 Đã báo giá chính thức: <b>{Number(item.officialPrice).toLocaleString("vi-VN")} đ</b></span>
+                        <span style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", padding: "2px 6px", borderRadius: "6px" }}>Đã khóa</span>
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.72rem", color: "#d97706", fontWeight: "700", marginBottom: "6px" }}>
-                        ⏳ Chưa báo giá chính thức
-                      </div>
-                    )}
+                      <>
+                        <div style={{ fontSize: "0.72rem", color: "#d97706", fontWeight: "700", marginBottom: "6px" }}>
+                          ⏳ Chưa báo giá chính thức
+                        </div>
 
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <input
-                        type="text"
-                        placeholder="Nhập giá chốt (VD: 180.000)"
-                        defaultValue={item.officialPrice || item.price || ""}
-                        id={`admin_price_input_${item.id}`}
-                        style={{ flex: 1, padding: "4px 8px", fontSize: "0.78rem", borderRadius: "6px", border: "1px solid #cbd5e1" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const inputVal = document.getElementById(`admin_price_input_${item.id}`)?.value;
-                          if (inputVal) {
-                            handleAdminSetOfficialPrice(item, inputVal);
-                          } else {
-                            toast.error("Vui lòng nhập số tiền!");
-                          }
-                        }}
-                        style={{ background: "#2563eb", color: "white", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "750", cursor: "pointer" }}
-                      >
-                        Gửi báo giá
-                      </button>
-                    </div>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <input
+                            type="text"
+                            placeholder="Nhập giá chốt (VD: 180.000)"
+                            defaultValue={item.proposedPrice || item.price || ""}
+                            id={`admin_price_input_${item.id}`}
+                            style={{ flex: 1, padding: "4px 8px", fontSize: "0.78rem", borderRadius: "6px", border: "1px solid #cbd5e1" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const inputVal = document.getElementById(`admin_price_input_${item.id}`)?.value;
+                              if (inputVal) {
+                                handleAdminSetOfficialPrice(item, inputVal);
+                              } else {
+                                toast.error("Vui lòng nhập số tiền!");
+                              }
+                            }}
+                            style={{ background: "#2563eb", color: "white", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "750", cursor: "pointer" }}
+                          >
+                            Gửi báo giá
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* NÚT THÔNG BÁO XÁC NHẬN CHUYỂN KHOẢN KHÁCH BẤM "TÔI ĐÃ CHUYỂN KHOẢN" */}
