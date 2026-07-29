@@ -155,23 +155,51 @@ export default function Navbar() {
         </div>
       )}
       
-      <nav className="navbar">
-        <div className="navbar-container">
+      <nav className="navbar" style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1000,
+        background: "rgba(255, 255, 255, 0.88)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(226, 232, 240, 0.8)",
+        boxShadow: "0 4px 25px -5px rgba(0, 0, 0, 0.04)",
+        transition: "all 0.3s ease"
+      }}>
+        <div className="navbar-container" style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          padding: "0.55rem 1.25rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
           
           {/* Brand Area */}
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", cursor: "pointer" }}>
-            <div className="navbar-brand-logo">
-              <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", cursor: "pointer" }}>
+            <div className="navbar-brand-logo" style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "11px",
+              background: "linear-gradient(135deg, #16a34a 0%, #10b981 100%)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 12px rgba(22, 163, 74, 0.3)",
+              transition: "transform 0.2s"
+            }}>
+              <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 12v7m-9-7v7" />
               </svg>
             </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span className="brand-title" style={{ 
-                fontSize: "1.1rem", 
+                fontSize: "1.15rem", 
                 fontWeight: "850", 
-                background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)", 
+                background: "linear-gradient(135deg, #16a34a 0%, #059669 100%)", 
                 WebkitBackgroundClip: "text", 
                 WebkitTextFillColor: "transparent", 
                 letterSpacing: "-0.5px",
@@ -179,42 +207,127 @@ export default function Navbar() {
               }}>
                 Thuê Học Pro
               </span>
+              <span style={{
+                background: "rgba(22, 163, 74, 0.1)",
+                color: "var(--primary)",
+                fontSize: "0.68rem",
+                fontWeight: "800",
+                padding: "2px 6px",
+                borderRadius: "6px",
+                border: "1px solid rgba(22, 163, 74, 0.2)"
+              }}>
+                PRO
+              </span>
             </div>
           </Link>
           
           {/* Navigation & User Area */}
-          <div className="nav-links-wrapper">
+          <div className="nav-links-wrapper" style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             {user ? (
               <>
-                {/* Menu Links for Logged in Users */}
-                <div className="nav-menu-links nav-menu-desktop">
+                {/* Desktop Pill Menu Links */}
+                <div className="nav-menu-links nav-menu-desktop" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   {!isAdmin && (
-                    <Link href="/dashboard" style={{ fontWeight: pathname === "/dashboard" ? "700" : "500", color: pathname === "/dashboard" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Lịch của tôi</Link>
+                    <Link href="/dashboard" style={{
+                      padding: "6px 14px",
+                      borderRadius: "20px",
+                      fontSize: "0.85rem",
+                      fontWeight: pathname === "/dashboard" ? "800" : "600",
+                      color: pathname === "/dashboard" ? "var(--primary)" : "#475569",
+                      background: pathname === "/dashboard" ? "rgba(22, 163, 74, 0.1)" : "transparent",
+                      border: pathname === "/dashboard" ? "1px solid rgba(22, 163, 74, 0.25)" : "1px solid transparent",
+                      textDecoration: "none",
+                      transition: "all 0.2s"
+                    }}>
+                      📅 Lịch của tôi
+                    </Link>
                   )}
                   {isAdmin && (
-                    <Link href="/admin" style={{ fontWeight: pathname.includes("/admin") ? "700" : "500", color: pathname.includes("/admin") ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Bảng Quản Trị</Link>
+                    <Link href="/admin" style={{
+                      padding: "6px 14px",
+                      borderRadius: "20px",
+                      fontSize: "0.85rem",
+                      fontWeight: pathname.includes("/admin") ? "800" : "600",
+                      color: pathname.includes("/admin") ? "var(--primary)" : "#475569",
+                      background: pathname.includes("/admin") ? "rgba(22, 163, 74, 0.1)" : "transparent",
+                      border: pathname.includes("/admin") ? "1px solid rgba(22, 163, 74, 0.25)" : "1px solid transparent",
+                      textDecoration: "none",
+                      transition: "all 0.2s"
+                    }}>
+                      📊 Bảng Quản Trị
+                    </Link>
                   )}
-                  <Link href="/doi-ngu" style={{ fontWeight: pathname === "/doi-ngu" ? "700" : "500", color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Đội ngũ CTV 👥</Link>
-                  <Link href="/tai-khoan" style={{ fontWeight: pathname === "/tai-khoan" ? "700" : "500", color: pathname === "/tai-khoan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Tài khoản</Link>
+                  <Link href="/doi-ngu" style={{
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    fontSize: "0.85rem",
+                    fontWeight: pathname === "/doi-ngu" ? "800" : "600",
+                    color: pathname === "/doi-ngu" ? "var(--primary)" : "#475569",
+                    background: pathname === "/doi-ngu" ? "rgba(22, 163, 74, 0.1)" : "transparent",
+                    border: pathname === "/doi-ngu" ? "1px solid rgba(22, 163, 74, 0.25)" : "1px solid transparent",
+                    textDecoration: "none",
+                    transition: "all 0.2s"
+                  }}>
+                    👥 Đội ngũ CTV
+                  </Link>
+                  <Link href="/tai-khoan" style={{
+                    padding: "6px 14px",
+                    borderRadius: "20px",
+                    fontSize: "0.85rem",
+                    fontWeight: pathname === "/tai-khoan" ? "800" : "600",
+                    color: pathname === "/tai-khoan" ? "var(--primary)" : "#475569",
+                    background: pathname === "/tai-khoan" ? "rgba(22, 163, 74, 0.1)" : "transparent",
+                    border: pathname === "/tai-khoan" ? "1px solid rgba(22, 163, 74, 0.25)" : "1px solid transparent",
+                    textDecoration: "none",
+                    transition: "all 0.2s"
+                  }}>
+                    👤 Tài khoản
+                  </Link>
                   {!isAdmin && (
-                    <Link href="/tuyen-ctv" style={{ fontWeight: pathname === "/tuyen-ctv" ? "700" : "500", color: pathname === "/tuyen-ctv" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none" }}>Tuyển CTV 🎓</Link>
+                    <Link href="/tuyen-ctv" style={{
+                      padding: "6px 14px",
+                      borderRadius: "20px",
+                      fontSize: "0.85rem",
+                      fontWeight: pathname === "/tuyen-ctv" ? "800" : "600",
+                      color: pathname === "/tuyen-ctv" ? "var(--primary)" : "#475569",
+                      background: pathname === "/tuyen-ctv" ? "rgba(22, 163, 74, 0.1)" : "transparent",
+                      border: pathname === "/tuyen-ctv" ? "1px solid rgba(22, 163, 74, 0.25)" : "1px solid transparent",
+                      textDecoration: "none",
+                      transition: "all 0.2s"
+                    }}>
+                      🎓 Tuyển CTV
+                    </Link>
                   )}
                 </div>
 
-                <div className="nav-user-area">
+                {/* Logged in User Controls */}
+                <div className="nav-user-area" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {/* Notification Bell Dropdown */}
                   <div ref={dropdownRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
                     <button 
                       onClick={() => setShowDropdown(!showDropdown)}
                       style={{
-                        background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", position: "relative", display: "flex", alignItems: "center", padding: "6px", borderRadius: "50%", transition: "all 0.2s"
+                        background: showDropdown ? "rgba(22, 163, 74, 0.1)" : "#f8fafc",
+                        border: "1px solid #cbd5e1",
+                        cursor: "pointer",
+                        color: "var(--text-primary)",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        transition: "all 0.2s"
                       }}
+                      title="Thông báo"
                     >
-                      <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <svg style={{ width: "19px", height: "19px" }} fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                       </svg>
                       {unreadCount > 0 && (
                         <span style={{
-                          position: "absolute", top: "0px", right: "0px", background: "#ef4444", color: "white", borderRadius: "50%", minWidth: "15px", height: "15px", fontSize: "0.6rem", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", padding: "2px"
+                          position: "absolute", top: "-2px", right: "-2px", background: "#ef4444", color: "white", borderRadius: "50%", minWidth: "16px", height: "16px", fontSize: "0.62rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid white"
                         }}>
                           {unreadCount}
                         </span>
@@ -222,15 +335,15 @@ export default function Navbar() {
                     </button>
 
                     {showDropdown && (
-                      <div className="notifications-dropdown">
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 15px 10px 15px", borderBottom: "1px solid #f1f5f9" }}>
-                          <span style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--text-primary)" }}>Thông báo</span>
+                      <div className="notifications-dropdown modal-pop-in">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 15px", borderBottom: "1px solid #f1f5f9" }}>
+                          <span style={{ fontWeight: "800", fontSize: "0.9rem", color: "var(--text-primary)" }}>🔔 Thông báo</span>
                           <div style={{ display: "flex", gap: "10px" }}>
                             {unreadCount > 0 && (
-                              <span onClick={handleMarkAllRead} style={{ fontSize: "0.75rem", color: "var(--primary)", cursor: "pointer", fontWeight: "600", textDecoration: "underline" }}>Đọc hết</span>
+                              <span onClick={handleMarkAllRead} style={{ fontSize: "0.75rem", color: "var(--primary)", cursor: "pointer", fontWeight: "700", textDecoration: "underline" }}>Đọc hết</span>
                             )}
                             {notifications.length > 0 && (
-                              <span onClick={handleClearNotifications} style={{ fontSize: "0.75rem", color: "var(--danger)", cursor: "pointer", fontWeight: "600", textDecoration: "underline" }}>Xóa hết</span>
+                              <span onClick={handleClearNotifications} style={{ fontSize: "0.75rem", color: "var(--danger)", cursor: "pointer", fontWeight: "700", textDecoration: "underline" }}>Xóa hết</span>
                             )}
                           </div>
                         </div>
@@ -243,7 +356,7 @@ export default function Navbar() {
                               key={notif.id}
                               onClick={() => handleReadNotification(notif)}
                               style={{
-                                padding: "10px 15px", borderBottom: "1px solid #f8fafc", cursor: "pointer", background: notif.read ? "transparent" : "rgba(22, 163, 74, 0.03)", transition: "all 0.15s", textAlign: "left"
+                                padding: "10px 15px", borderBottom: "1px solid #f8fafc", cursor: "pointer", background: notif.read ? "transparent" : "rgba(22, 163, 74, 0.04)", transition: "all 0.15s", textAlign: "left"
                               }}
                             >
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
@@ -258,49 +371,89 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  <div className="nav-user-info" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                    <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "var(--text-primary)" }}>
+                  {/* Desktop User Avatar & Name Chip */}
+                  <div className="nav-user-info" style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    padding: "4px 10px 4px 6px",
+                    borderRadius: "20px"
+                  }}>
+                    <div style={{
+                      width: "26px", height: "26px", borderRadius: "50%",
+                      background: isAdmin ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #16a34a, #10b981)",
+                      color: "white", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "0.75rem", fontWeight: "800"
+                    }}>
+                      {isAdmin ? "👑" : (user.displayName ? user.displayName.charAt(0).toUpperCase() : "👤")}
+                    </div>
+                    <span style={{ fontSize: "0.82rem", fontWeight: "750", color: "var(--text-primary)" }}>
                       {user.displayName || user.email.split('@')[0]}
                     </span>
                   </div>
                   
+                  {/* Logout Button */}
                   <button 
                     onClick={logout} 
                     style={{ 
-                      background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", border: "none", borderRadius: "6px", padding: "6px", cursor: "pointer"
+                      background: "rgba(239, 68, 68, 0.08)", color: "var(--danger)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "10px", width: "34px", height: "34px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
                     }} 
                     title="Đăng xuất"
                   >
-                    <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                   </button>
 
+                  {/* Mobile Hamburger Toggle Button */}
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     style={{
-                      background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 8px", cursor: "pointer", display: "inline-flex", alignItems: "center", color: "#334155"
+                      background: mobileMenuOpen ? "rgba(22, 163, 74, 0.15)" : "#f8fafc",
+                      border: mobileMenuOpen ? "1px solid var(--primary)" : "1px solid #cbd5e1",
+                      borderRadius: "10px",
+                      width: "36px",
+                      height: "36px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: mobileMenuOpen ? "var(--primary)" : "#334155",
+                      transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                      transform: mobileMenuOpen ? "rotate(90deg)" : "none"
                     }}
                     className="mobile-menu-toggle"
+                    title="Menu"
                   >
-                    <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
+                    <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />}
                     </svg>
                   </button>
                 </div>
               </>
             ) : (
-              /* GIAO DIỆN CHƯA ĐĂNG NHẬP (LANDING HEADER - ULTRA FOCUSED & COMPACT) */
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              /* GIAO DIỆN CHƯA ĐĂNG NHẬP (LANDING HEADER) */
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 {/* Desktop Menu Links */}
-                <div className="nav-menu-links nav-menu-desktop" style={{ display: "flex", gap: "16px", alignItems: "center", marginRight: "6px" }}>
-                  <Link href="/doi-ngu" style={{ fontWeight: pathname === "/doi-ngu" ? "700" : "500", color: pathname === "/doi-ngu" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
-                    Đội ngũ CTV 👥
+                <div className="nav-menu-links nav-menu-desktop" style={{ display: "flex", gap: "8px", alignItems: "center", marginRight: "6px" }}>
+                  <Link href="/doi-ngu" style={{
+                    padding: "6px 12px", borderRadius: "18px", fontSize: "0.84rem", fontWeight: pathname === "/doi-ngu" ? "800" : "600",
+                    color: pathname === "/doi-ngu" ? "var(--primary)" : "#475569", textDecoration: "none"
+                  }}>
+                    👥 Đội ngũ CTV
                   </Link>
-                  <Link href="/huong-dan" style={{ fontWeight: pathname === "/huong-dan" ? "700" : "500", color: pathname === "/huong-dan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
-                    Hướng dẫn 📖
+                  <Link href="/huong-dan" style={{
+                    padding: "6px 12px", borderRadius: "18px", fontSize: "0.84rem", fontWeight: pathname === "/huong-dan" ? "800" : "600",
+                    color: pathname === "/huong-dan" ? "var(--primary)" : "#475569", textDecoration: "none"
+                  }}>
+                    📖 Hướng dẫn
                   </Link>
-                  <Link href="/dieu-khoan" style={{ fontWeight: pathname === "/dieu-khoan" ? "700" : "500", color: pathname === "/dieu-khoan" ? "var(--primary)" : "var(--text-secondary)", textDecoration: "none", fontSize: "0.84rem" }}>
-                    Điều khoản ⚖️
+                  <Link href="/dieu-khoan" style={{
+                    padding: "6px 12px", borderRadius: "18px", fontSize: "0.84rem", fontWeight: pathname === "/dieu-khoan" ? "800" : "600",
+                    color: pathname === "/dieu-khoan" ? "var(--primary)" : "#475569", textDecoration: "none"
+                  }}>
+                    ⚖️ Điều khoản
                   </Link>
                 </div>
 
@@ -320,15 +473,16 @@ export default function Navbar() {
                     fontWeight: "850", 
                     color: "white",
                     background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-                    padding: "6px 14px",
+                    padding: "7px 16px",
                     borderRadius: "20px",
                     textDecoration: "none",
-                    fontSize: "0.82rem",
-                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.4)",
+                    fontSize: "0.84rem",
+                    boxShadow: "0 4px 14px rgba(22, 163, 74, 0.35)",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "5px",
-                    whiteSpace: "nowrap"
+                    gap: "6px",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.2s"
                   }}
                 >
                   <span>🔑</span> Đăng Nhập
@@ -339,13 +493,15 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   style={{
-                    background: mobileMenuOpen ? "rgba(22, 163, 74, 0.15)" : "#f1f5f9",
+                    background: mobileMenuOpen ? "rgba(22, 163, 74, 0.15)" : "#f8fafc",
                     border: mobileMenuOpen ? "1px solid var(--primary)" : "1px solid #cbd5e1",
-                    borderRadius: "8px",
-                    padding: "5px 8px",
+                    borderRadius: "10px",
+                    width: "36px",
+                    height: "36px",
                     cursor: "pointer",
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     color: mobileMenuOpen ? "var(--primary)" : "#334155",
                     transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
                     transform: mobileMenuOpen ? "rotate(90deg)" : "none"
@@ -353,8 +509,8 @@ export default function Navbar() {
                   className="mobile-menu-toggle"
                   title="Menu"
                 >
-                  <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />}
+                  <svg style={{ width: "20px", height: "20px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {mobileMenuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M6 18L18 6M6 6l12 12" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 6h16M4 12h16M4 18h16" />}
                   </svg>
                 </button>
               </div>
@@ -367,29 +523,30 @@ export default function Navbar() {
           <div 
             className="mobile-nav-dropdown"
             style={{
-              background: "white", 
+              background: "rgba(255, 255, 255, 0.98)",
+              backdropFilter: "blur(20px)",
               borderBottom: "2px solid #e2e8f0", 
               padding: "0.85rem 1.25rem", 
               display: "flex", 
               flexDirection: "column", 
-              gap: "10px", 
-              boxShadow: "0 14px 30px rgba(0,0,0,0.08)"
+              gap: "8px", 
+              boxShadow: "0 16px 35px rgba(0,0,0,0.08)"
             }}
           >
             {user ? (
               <>
-                {!isAdmin && <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📅 Lịch của tôi</Link>}
-                {isAdmin && <Link href="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📊 Bảng Quản Trị</Link>}
-                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👥 Đội ngũ CTV</Link>
-                <Link href="/tai-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👤 Tài khoản</Link>
-                {!isAdmin && <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>🎓 Tuyển CTV</Link>}
+                {!isAdmin && <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/dashboard" ? "#f0fdf4" : "transparent" }}>📅 Lịch của tôi</Link>}
+                {isAdmin && <Link href="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname.includes("/admin") ? "#f0fdf4" : "transparent" }}>📊 Bảng Quản Trị</Link>}
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/doi-ngu" ? "#f0fdf4" : "transparent" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/tai-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/tai-khoan" ? "#f0fdf4" : "transparent" }}>👤 Tài khoản</Link>
+                {!isAdmin && <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/tuyen-ctv" ? "#f0fdf4" : "transparent" }}>🎓 Tuyển CTV</Link>}
               </>
             ) : (
               <>
-                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>👥 Đội ngũ CTV</Link>
-                <Link href="/huong-dan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>📖 Hướng dẫn sử dụng</Link>
-                <Link href="/dieu-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>⚖️ Điều khoản dịch vụ</Link>
-                <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "700", fontSize: "0.88rem", padding: "6px 0" }}>🎓 Tuyển CTV</Link>
+                <Link href="/doi-ngu" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/doi-ngu" ? "#f0fdf4" : "transparent" }}>👥 Đội ngũ CTV</Link>
+                <Link href="/huong-dan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/huong-dan" ? "#f0fdf4" : "transparent" }}>📖 Hướng dẫn sử dụng</Link>
+                <Link href="/dieu-khoan" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--text-primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/dieu-khoan" ? "#f0fdf4" : "transparent" }}>⚖️ Điều khoản dịch vụ</Link>
+                <Link href="/tuyen-ctv" onClick={() => setMobileMenuOpen(false)} style={{ color: "var(--primary)", textDecoration: "none", fontWeight: "750", fontSize: "0.9rem", padding: "8px 12px", borderRadius: "10px", background: pathname === "/tuyen-ctv" ? "#f0fdf4" : "transparent" }}>🎓 Tuyển CTV</Link>
               </>
             )}
           </div>
