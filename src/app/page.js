@@ -324,16 +324,16 @@ export default function Home() {
               <div style={{ fontSize: "0.75rem", fontWeight: "850", color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
                 🚀 Quy trình 3 bước trải nghiệm siêu nhanh:
               </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+              <div className="process-pipeline-steps">
+                <div className="process-step-item">
                   1. 📝 Đăng ca học
                 </div>
-                <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.85rem" }}>➔</span>
-                <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+                <div className="process-arrow-icon" />
+                <div className="process-step-item">
                   2. 💰 Admin báo giá
                 </div>
-                <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.85rem" }}>➔</span>
-                <div style={{ fontSize: "0.78rem", fontWeight: "800", color: "#16a34a", background: "#dcfce7", padding: "6px 12px", borderRadius: "10px", border: "1px solid #86efac", boxShadow: "0 2px 6px rgba(22, 163, 74, 0.15)" }}>
+                <div className="process-arrow-icon" />
+                <div className="process-step-item active-step">
                   3. 🎓 Duyệt & Xếp CTV
                 </div>
               </div>

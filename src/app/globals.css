@@ -621,6 +621,57 @@ tbody tr:hover {
    ULTRA-SMOOTH ANIMATIONS SYSTEM-WIDE (SYSTEM-WIDE MOTION)
    ========================================================== */
 
+/* Process Pipeline Responsive Layout */
+.process-pipeline-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.process-step-item {
+  font-size: 0.78rem;
+  font-weight: 750;
+  color: #1e293b;
+  background: white;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  text-align: center;
+  flex: 1;
+}
+.process-step-item.active-step {
+  font-weight: 800;
+  color: #16a34a;
+  background: #dcfce7;
+  border-color: #86efac;
+  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.15);
+}
+.process-arrow-icon::before {
+  content: "➔";
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 768px) {
+  .process-pipeline-steps {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .process-step-item {
+    width: 100%;
+  }
+  .process-arrow-icon {
+    display: flex;
+    justify-content: center;
+  }
+  .process-arrow-icon::before {
+    content: "⬇";
+  }
+}
+
 /* Hide Hamburger Toggle Button on Desktop by Default */
 .mobile-menu-toggle {
   display: none !important;
