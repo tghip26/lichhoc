@@ -205,7 +205,7 @@ export default function Navbar() {
                 letterSpacing: "-0.5px",
                 lineHeight: "1.2"
               }}>
-                Thuê Học Pro
+                Thuê Học
               </span>
               <span style={{
                 background: "rgba(22, 163, 74, 0.1)",

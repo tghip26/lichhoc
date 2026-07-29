@@ -262,15 +262,15 @@ export default function Home() {
               boxShadow: "0 2px 10px rgba(22, 163, 74, 0.05)",
               marginBottom: "1rem"
             }}>
-              <span style={{ fontSize: "0.9rem" }}>✨</span> HỆ THỐNG QUẢN LÝ LỊCH HỌC CHUYÊN NGHIỆP
+              <span style={{ fontSize: "0.9rem" }}>✨</span> HỆ THỐNG TRỰC LỚP & ĐẶT LỊCH HỌC HỘ UY TÍN
             </div>
             
-            <h1 className="page-title" style={{ fontSize: "2.5rem", color: "var(--foreground)", lineHeight: "1.22", fontWeight: "850", letterSpacing: "-0.5px" }}>
-              Giải pháp Trực lớp & Học tập <span style={{ background: "linear-gradient(135deg, #16a34a 0%, #10b981 50%, #059669 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tự Động Hóa 24/7</span>
+            <h1 className="page-title" style={{ fontSize: "2.55rem", color: "var(--foreground)", lineHeight: "1.22", fontWeight: "850", letterSpacing: "-0.5px" }}>
+              Nền Tảng Trực Lớp & Học Tập <span style={{ background: "linear-gradient(135deg, #16a34a 0%, #10b981 50%, #059669 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Chuyên Nghiệp & Bảo Mật 100%</span>
             </h1>
             
             <p style={{ color: "var(--text-secondary)", fontSize: "0.98rem", marginTop: "0.85rem", marginBottom: "1.75rem", lineHeight: "1.65", maxWidth: "540px" }}>
-              Nền tảng kết nối sinh viên uy tín hàng đầu. Tự động hóa đăng lịch ca học, báo giá minh bạch và đối soát tài chính VietQR 24/7 tức thì.
+              Giải pháp kết nối học viên và đội ngũ Cộng tác viên sinh viên uy tín từ các trường ĐH hàng đầu. Đặt ca học chỉ 1 phút, nhận báo giá minh bạch và thanh toán VietQR tự động 24/7.
             </p>
 
             {/* Luxury 4 Pillar Cards */}
@@ -283,13 +283,13 @@ export default function Home() {
               {[
                 { icon: "🛡️", title: "Bảo mật tuyệt đối", desc: "Che 100% thông tin sinh viên" },
                 { icon: "⚡", title: "Đặt ca siêu tốc", desc: "Tự động điền hồ sơ ca học" },
-                { icon: "🎓", title: "CTV Chọn Lọc", desc: "Sinh viên giỏi các ĐH top đầu" },
-                { icon: "💳", title: "Ví QR 24/7", desc: "Nạp tiền & duyệt tự động" }
+                { icon: "🎓", title: "CTV Tuyển Chọn", desc: "SV khá giỏi Bách Khoa, ĐHQG..." },
+                { icon: "💳", title: "Ví QR 24/7", desc: "Nạp tiền tự động & đối soát" }
               ].map((f, idx) => (
                 <div key={idx} style={{ 
-                  background: "rgba(255, 255, 255, 0.85)", 
+                  background: "rgba(255, 255, 255, 0.9)", 
                   backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(226, 232, 240, 0.8)", 
+                  border: "1px solid rgba(226, 232, 240, 0.85)", 
                   borderRadius: "16px", 
                   padding: "12px 14px", 
                   display: "flex", 
@@ -326,7 +326,7 @@ export default function Home() {
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
                 <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
-                  1. 📝 Gửi ca học
+                  1. 📝 Đăng ca học
                 </div>
                 <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.85rem" }}>➔</span>
                 <div style={{ fontSize: "0.78rem", fontWeight: "750", color: "#1e293b", background: "white", padding: "6px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
@@ -334,7 +334,7 @@ export default function Home() {
                 </div>
                 <span style={{ color: "var(--primary)", fontWeight: "800", fontSize: "0.85rem" }}>➔</span>
                 <div style={{ fontSize: "0.78rem", fontWeight: "800", color: "#16a34a", background: "#dcfce7", padding: "6px 12px", borderRadius: "10px", border: "1px solid #86efac", boxShadow: "0 2px 6px rgba(22, 163, 74, 0.15)" }}>
-                  3. ✅ Duyệt & Học
+                  3. 🎓 Duyệt & Xếp CTV
                 </div>
               </div>
             </div>
