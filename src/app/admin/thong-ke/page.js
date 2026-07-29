@@ -88,8 +88,9 @@ export default function ThongKePage() {
   // Doanh thu gộp (Tổng tiền khách đặt hoặc tiền thuê học + tip)
   const totalRevenue = isCustomer
     ? completedSchedules.reduce((acc, curr) => {
+        const officialPriceNum = curr.officialPrice ? Number(String(curr.officialPrice).replace(/\./g, "")) : 0;
         const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-        return acc + priceNum;
+        return acc + (officialPriceNum || priceNum);
       }, 0)
     : completedSchedules.reduce((acc, curr) => {
         return acc + Number(curr.rentAmount || 0) + Number(curr.tipAmount || 0);
@@ -99,8 +100,9 @@ export default function ThongKePage() {
   const totalPayout = isCustomer
     ? completedSchedules.reduce((acc, curr) => {
         if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
+        const officialPriceNum = curr.officialPrice ? Number(String(curr.officialPrice).replace(/\./g, "")) : 0;
         const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-        return acc + Math.floor(priceNum * 0.75);
+        return acc + Math.floor((officialPriceNum || priceNum) * 0.75);
       }, 0)
     : completedSchedules.reduce((acc, curr) => {
         return acc + Number(curr.salaryAmount || 0) + Number(curr.staffTipAmount || 0);
@@ -160,8 +162,9 @@ export default function ThongKePage() {
         })
         .reduce((acc, curr) => {
           if (isCustomer) {
+            const officialPriceNum = curr.officialPrice ? Number(String(curr.officialPrice).replace(/\./g, "")) : 0;
             const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-            return acc + priceNum;
+            return acc + (officialPriceNum || priceNum);
           } else {
             return acc + Number(curr.rentAmount || 0) + Number(curr.tipAmount || 0);
           }
@@ -190,8 +193,9 @@ export default function ThongKePage() {
             .filter(s => s.assignedTo === helper.name)
             .reduce((acc, curr) => {
               if (curr.payoutAmount !== undefined) return acc + Number(curr.payoutAmount);
+              const officialPriceNum = curr.officialPrice ? Number(String(curr.officialPrice).replace(/\./g, "")) : 0;
               const priceNum = curr.price ? Number(String(curr.price).replace(/\./g, "")) : 0;
-              return acc + Math.floor(priceNum * 0.75);
+              return acc + Math.floor((officialPriceNum || priceNum) * 0.75);
             }, 0)
         : completedSchedules
             .filter(s => s.helperName === helper.name || s.helperName === helper.alias)
@@ -207,6 +211,8 @@ export default function ThongKePage() {
         totalEarned
       };
     })
+    .sort((a, b) => b.totalEarned - a.totalEarned);
+
   // -------------------------------------------------------------
   // THỐNG KÊ CÔNG NỢ KHÁCH HÀNG & NỢ LƯƠNG CTV (UNPAID DEBTS)
   // -------------------------------------------------------------
@@ -255,11 +261,13 @@ export default function ThongKePage() {
       return;
     }
 
+    const officialPriceNum = item.officialPrice ? Number(String(item.officialPrice).replace(/\./g, "")) : 0;
     const priceNum = item.price ? Number(String(item.price).replace(/\./g, "")) : 0;
-    const rentVal = item.rentAmount !== undefined ? Number(item.rentAmount) : priceNum;
+    const rentVal = item.rentAmount !== undefined ? Number(item.rentAmount) : (officialPriceNum || priceNum);
     const tipVal = Number(item.tipAmount || 0);
 
-    const isRentUnpaid = item.status !== "completed" && item.status !== "rejected" && item.status !== "cancelled" && item.paymentStatus !== "Đã thanh toán" && rentVal > 0;
+    const isCustomerPaid = item.paymentStatus === "Đã thanh toán" || item.status === "paid";
+    const isRentUnpaid = !isCustomerPaid && rentVal > 0;
     const isTipUnpaid = item.tipStatus !== "Đã gửi" && tipVal > 0;
 
     if (isRentUnpaid || isTipUnpaid) {
@@ -329,10 +337,15 @@ export default function ThongKePage() {
       return;
     }
 
-    const salVal = item.salaryAmount !== undefined ? Number(item.salaryAmount) : (item.payoutAmount !== undefined ? Number(item.payoutAmount) : 0);
+    const officialPriceNum = item.officialPrice ? Number(String(item.officialPrice).replace(/\./g, "")) : 0;
+    const priceNum = item.price ? Number(String(item.price).replace(/\./g, "")) : 0;
+    const effectivePrice = officialPriceNum || priceNum;
+
+    const salVal = item.salaryAmount !== undefined ? Number(item.salaryAmount) : (item.payoutAmount !== undefined ? Number(item.payoutAmount) : Math.floor(effectivePrice * 0.75));
     const staffTipVal = Number(item.staffTipAmount || 0);
 
-    const isSalUnpaid = !item.payoutPaid && item.salaryStatus !== "Đã trả lương" && (salVal > 0 || item.helperId);
+    const isPaidOut = item.payoutPaid || item.salaryStatus === "Đã trả lương";
+    const isSalUnpaid = !isPaidOut && (salVal > 0 || Boolean(item.helperId));
     const isStaffTipUnpaid = item.staffTipStatus !== "Đã gửi" && staffTipVal > 0;
 
     if ((isSalUnpaid && item.assignedTo) || isStaffTipUnpaid) {

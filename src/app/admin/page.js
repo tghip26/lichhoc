@@ -251,9 +251,19 @@ function AdminDashboard() {
       const isPayingHelper = newStatus === "completed" && schedule && schedule.helperId && !schedule.payoutPaid;
       
       const updateFields = { status: newStatus };
+      
+      // Đồng bộ paymentStatus & salaryStatus với trạng thái mới
+      if (newStatus === "paid" || newStatus === "accepted" || newStatus === "completed") {
+        updateFields.paymentStatus = "Đã thanh toán";
+      } else if (newStatus === "rejected") {
+        updateFields.paymentStatus = "Từ chối";
+      }
+
       if (isPayingHelper) {
         updateFields.payoutPaid = true;
+        updateFields.salaryStatus = "Đã trả lương";
       }
+
       await updateDoc(doc(db, "schedules", id), updateFields);
       toast.success("Cập nhật trạng thái thành công");
 
