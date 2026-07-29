@@ -216,6 +216,11 @@ export default function ThongKePage() {
 
   // Từ Lịch nội bộ (internalSchedules)
   internalSchedules.forEach(item => {
+    // Bỏ qua các đơn nội bộ bị HỦY / TỪ CHỐI / ZERO HỌC / TRỤC TRẮC
+    if (item.studyStatus === "huy" || item.studyStatus === "zero_hoc" || item.studyStatus === "truc_trac" || item.status === "rejected" || item.status === "cancelled") {
+      return;
+    }
+
     const rentVal = Number(item.rentAmount || 0);
     const tipVal = Number(item.tipAmount || 0);
     const isRentUnpaid = item.paymentStatus !== "Đã thanh toán" && rentVal > 0;
@@ -245,11 +250,16 @@ export default function ThongKePage() {
 
   // Từ Đơn khách đặt (schedules)
   schedules.forEach(item => {
+    // Bỏ qua các đơn bị TỪ CHỐI hoặc HỦY BỎ
+    if (item.status === "rejected" || item.status === "cancelled") {
+      return;
+    }
+
     const priceNum = item.price ? Number(String(item.price).replace(/\./g, "")) : 0;
     const rentVal = item.rentAmount !== undefined ? Number(item.rentAmount) : priceNum;
     const tipVal = Number(item.tipAmount || 0);
 
-    const isRentUnpaid = item.status !== "completed" && item.paymentStatus !== "Đã thanh toán" && rentVal > 0;
+    const isRentUnpaid = item.status !== "completed" && item.status !== "rejected" && item.status !== "cancelled" && item.paymentStatus !== "Đã thanh toán" && rentVal > 0;
     const isTipUnpaid = item.tipStatus !== "Đã gửi" && tipVal > 0;
 
     if (isRentUnpaid || isTipUnpaid) {
@@ -279,6 +289,11 @@ export default function ThongKePage() {
 
   // Từ Lịch nội bộ (internalSchedules)
   internalSchedules.forEach(item => {
+    // Bỏ qua các đơn nội bộ bị HỦY / TỪ CHỐI / ZERO HỌC / TRỤC TRẮC
+    if (item.studyStatus === "huy" || item.studyStatus === "zero_hoc" || item.studyStatus === "truc_trac" || item.status === "rejected" || item.status === "cancelled") {
+      return;
+    }
+
     const salVal = Number(item.salaryAmount || 0);
     const staffTipVal = Number(item.staffTipAmount || 0);
 
@@ -309,6 +324,11 @@ export default function ThongKePage() {
 
   // Từ Đơn khách đặt (schedules)
   schedules.forEach(item => {
+    // Bỏ qua các đơn bị TỪ CHỐI hoặc HỦY BỎ
+    if (item.status === "rejected" || item.status === "cancelled") {
+      return;
+    }
+
     const salVal = item.salaryAmount !== undefined ? Number(item.salaryAmount) : (item.payoutAmount !== undefined ? Number(item.payoutAmount) : 0);
     const staffTipVal = Number(item.staffTipAmount || 0);
 
