@@ -621,27 +621,51 @@ tbody tr:hover {
    ULTRA-SMOOTH ANIMATIONS SYSTEM-WIDE (SYSTEM-WIDE MOTION)
    ========================================================== */
 
+/* Hide Hamburger Toggle Button on Desktop by Default */
+.mobile-menu-toggle {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: inline-flex !important;
+  }
+}
+
 /* 1. Mobile Navigation Drawer Slide & Spring Animation */
 @keyframes slideDownMobileNav {
   0% {
     opacity: 0;
-    transform: translateY(-16px) scaleY(0.94);
+    transform: translateY(-12px) scale(0.97);
+    clip-path: inset(0 0 100% 0);
   }
   65% {
     opacity: 1;
-    transform: translateY(2px) scaleY(1.01);
+    transform: translateY(2px) scale(1.002);
+    clip-path: inset(0 0 0 0);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scaleY(1);
+    transform: translateY(0) scale(1);
+    clip-path: inset(0 0 0 0);
   }
 }
 
 .mobile-nav-dropdown {
-  animation: slideDownMobileNav 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideDownMobileNav 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top center;
-  will-change: transform, opacity;
+  will-change: transform, opacity, clip-path;
 }
+
+/* Staggered Item Entrance for Mobile Menu Links */
+.mobile-nav-dropdown > a, .mobile-nav-dropdown > button {
+  animation: smoothFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mobile-nav-dropdown > *:nth-child(1) { animation-delay: 0.03s; }
+.mobile-nav-dropdown > *:nth-child(2) { animation-delay: 0.06s; }
+.mobile-nav-dropdown > *:nth-child(3) { animation-delay: 0.09s; }
+.mobile-nav-dropdown > *:nth-child(4) { animation-delay: 0.12s; }
+.mobile-nav-dropdown > *:nth-child(5) { animation-delay: 0.15s; }
 
 /* 2. System-wide Pop-in Modal Animation */
 @keyframes modalPopIn {
