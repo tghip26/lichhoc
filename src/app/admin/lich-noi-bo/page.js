@@ -201,6 +201,9 @@ function InternalSchedulesManager() {
   const [analyticsCtvPage, setAnalyticsCtvPage] = useState(1);
   const [analyticsCtvRowsPerPage, setAnalyticsCtvRowsPerPage] = useState(5);
 
+  // Batch migration loading state
+  const [isMigrating, setIsMigrating] = useState(false);
+
   const handleOpenDetailedLookup = (type, name) => {
     setLookupType(type);
     setLookupName(name);
@@ -737,8 +740,6 @@ function InternalSchedulesManager() {
   };
 
   // Batch Migration & Standardization for all past schedules
-  const [isMigrating, setIsMigrating] = useState(false);
-
   const handleBatchStandardizeFinancials = async () => {
     if (!isAdmin) return;
     if (!confirm("Bạn có chắc chắn muốn TỰ ĐỘNG CHUẨN HÓA & CẬP NHẬT Trạng thái tất cả ca học cũ theo dữ liệu tiền mà khách/CTV đã trả không?")) {
