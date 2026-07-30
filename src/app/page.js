@@ -20,6 +20,52 @@ export default function Home() {
   const [isIOS, setIsIOS] = useState(false);
   const [reviews, setReviews] = useState([]);
 
+  // CÔNG CỤ HỖ TRỢ SYSTEM: Bảng tính chi phí & Tra cứu đơn nhanh
+  const [calcSessions, setCalcSessions] = useState(5);
+  const [calcType, setCalcType] = useState("theory");
+  const [calcShiftTime, setCalcShiftTime] = useState("morning");
+
+  const [lookupKeyword, setLookupKeyword] = useState("");
+  const [lookupResults, setLookupResults] = useState(null);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+
+  // Tính toán mức giá dự kiến
+  const getUnitRate = () => {
+    if (calcType === "exam") return 60000;
+    if (calcType === "online") return 25000;
+    return 35000;
+  };
+  const rawTotal = getUnitRate() * calcSessions;
+  const discountRatio = calcSessions >= 10 ? 0.10 : (calcSessions >= 5 ? 0.05 : 0);
+  const estimatedPrice = Math.round(rawTotal * (1 - discountRatio));
+
+  const handleLookupOrder = async (e) => {
+    e.preventDefault();
+    if (!lookupKeyword || !lookupKeyword.trim()) return;
+    setLookupLoading(true);
+    setLookupError("");
+    setLookupResults(null);
+    try {
+      const res = await fetch("/api/lookup-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword: lookupKeyword.trim() })
+      });
+      const data = await res.json();
+      setLookupLoading(false);
+      if (data.success) {
+        setLookupResults(data.orders);
+      } else {
+        setLookupError(data.message || "Không tìm thấy thông tin đơn.");
+      }
+    } catch (err) {
+      console.error(err);
+      setLookupLoading(false);
+      setLookupError("Lỗi kết nối máy chủ tra cứu.");
+    }
+  };
+
   useEffect(() => {
     // Lấy tối đa 50 đánh giá mới nhất rồi sắp xếp ở phía máy khách
     const qReviews = query(collection(db, "reviews"), limit(50));
@@ -419,6 +465,161 @@ export default function Home() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* SYSTEM TOOLS HUB: BẢNG TÍNH CHI PHÍ NHANH & TRA CỨU ĐƠN NÀY 24/7 */}
+        <div style={{ marginTop: "3rem", marginBottom: "3rem" }}>
+          <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
+            <span style={{ background: "linear-gradient(135deg, rgba(22, 163, 74, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)", color: "var(--primary)", padding: "4px 14px", borderRadius: "20px", fontSize: "0.78rem", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px", border: "1px solid rgba(22, 163, 74, 0.2)" }}>
+              🧰 CÔNG CỤ HỖ TRỢ HỆ THỐNG SMART TOOLS
+            </span>
+            <h2 style={{ fontSize: "1.8rem", color: "var(--text-primary)", margin: "0.5rem 0 0.3rem 0", fontWeight: "850" }}>
+              Tính Chi Phí & Tra Cứu Tự Động
+            </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem", maxWidth: "620px", margin: "0 auto" }}>
+              Dự toán mức giá minh bạch tức thì và tra cứu trạng thái đơn hàng của bạn 24/7 không cần đăng nhập.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1.75rem" }}>
+            {/* Tool 1: Interactive Price Calculator */}
+            <div style={{ background: "white", borderRadius: "24px", padding: "1.75rem", border: "1px solid #e2e8f0", boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.25rem" }}>
+                <div style={{ width: "38px", height: "38px", borderRadius: "12px", background: "#dcfce7", color: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", fontWeight: "800" }}>🧮</div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "850", color: "var(--text-primary)" }}>Bảng Tính Chi Phí Thuê Nhanh</h3>
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Báo giá tự động minh bạch 100%</span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div>
+                  <label style={{ fontSize: "0.82rem", fontWeight: "750", color: "var(--text-primary)", display: "block", marginBottom: "4px" }}>
+                    1. Loại hình học / dịch vụ:
+                  </label>
+                  <select 
+                    value={calcType} 
+                    onChange={(e) => setCalcType(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "0.88rem", background: "#f8fafc", color: "var(--text-primary)", fontWeight: "600" }}
+                  >
+                    <option value="theory">🏫 Trực lớp offline (35.000đ/buổi)</option>
+                    <option value="online">💻 Điểm danh online (25.000đ/buổi)</option>
+                    <option value="exam">📝 Thi / Kiểm tra (60.000đ/buổi)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "750", color: "var(--text-primary)" }}>
+                      2. Số lượng buổi học:
+                    </label>
+                    <span style={{ fontSize: "0.88rem", fontWeight: "850", color: "var(--primary)" }}>{calcSessions} Buổi</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="15" 
+                    value={calcSessions} 
+                    onChange={(e) => setCalcSessions(parseInt(e.target.value))}
+                    style={{ width: "100%", accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "#94a3b8", marginTop: "2px" }}>
+                    <span>1 buổi</span>
+                    <span>5 buổi (Giảm 5%)</span>
+                    <span>10+ buổi (Giảm 10%)</span>
+                  </div>
+                </div>
+
+                <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", borderRadius: "14px", padding: "12px 16px", border: "1px solid #86efac", marginTop: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.84rem", color: "#166534", fontWeight: "700" }}>Tổng chi phí ước tính:</span>
+                    <span style={{ fontSize: "1.35rem", fontWeight: "900", color: "#15803d" }}>
+                      {estimatedPrice.toLocaleString("vi-VN")} đ
+                    </span>
+                  </div>
+                  {discountRatio > 0 && (
+                    <div style={{ fontSize: "0.72rem", color: "#15803d", fontWeight: "700", marginTop: "4px", textAlign: "right" }}>
+                      🎉 Đã áp dụng ưu đãi giảm {(discountRatio * 100)}%!
+                    </div>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById("auth-form-card");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "12px", background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)", color: "white", fontWeight: "800", fontSize: "0.88rem", border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(22, 163, 74, 0.25)" }}
+                >
+                  🚀 Đặt Lịch Ca Học Ngay
+                </button>
+              </div>
+            </div>
+
+            {/* Tool 2: Quick Order Lookup */}
+            <div style={{ background: "white", borderRadius: "24px", padding: "1.75rem", border: "1px solid #e2e8f0", boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.25rem" }}>
+                <div style={{ width: "38px", height: "38px", borderRadius: "12px", background: "#fef3c7", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", fontWeight: "800" }}>🔍</div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "850", color: "var(--text-primary)" }}>Tra Cứu Đơn Hàng Nhanh</h3>
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Nhập Mã Đơn hoặc Số Điện Thoại</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleLookupOrder} style={{ display: "flex", gap: "8px", marginBottom: "1rem" }}>
+                <input 
+                  type="text" 
+                  value={lookupKeyword}
+                  onChange={(e) => setLookupKeyword(e.target.value)}
+                  placeholder="Nhập SĐT hoặc Mã đơn..." 
+                  style={{ flex: 1, padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "0.88rem", background: "#f8fafc" }}
+                  required
+                />
+                <button 
+                  type="submit" 
+                  disabled={lookupLoading}
+                  style={{ padding: "10px 16px", borderRadius: "10px", background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white", fontWeight: "800", fontSize: "0.85rem", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  {lookupLoading ? "Đang tìm..." : "Tra Cứu"}
+                </button>
+              </form>
+
+              {lookupError && (
+                <div style={{ padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#ef4444", fontSize: "0.82rem", fontWeight: "600", border: "1px solid #fecaca" }}>
+                  ⚠️ {lookupError}
+                </div>
+              )}
+
+              {lookupResults && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "200px", overflowY: "auto" }}>
+                  {lookupResults.map(o => (
+                    <div key={o.id} style={{ padding: "10px 12px", borderRadius: "10px", background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                        <span style={{ fontWeight: "800", fontSize: "0.84rem", color: "var(--text-primary)" }}>{o.subject}</span>
+                        <span style={{
+                          fontSize: "0.7rem", fontWeight: "800", padding: "2px 8px", borderRadius: "10px",
+                          background: o.status === "completed" ? "#dcfce7" : (o.status === "accepted" ? "#dbeafe" : "#fef3c7"),
+                          color: o.status === "completed" ? "#16a34a" : (o.status === "accepted" ? "#2563eb" : "#d97706")
+                        }}>
+                          {o.status === "completed" ? "Hoàn thành" : (o.status === "accepted" ? "Sắp học" : "Chờ báo giá")}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#64748b" }}>
+                        <span>Mã đơn: #{o.id.substring(0, 8)}</span>
+                        <span>{o.officialPrice.toLocaleString("vi-VN")} đ ({o.paymentStatus})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!lookupResults && !lookupError && (
+                <div style={{ padding: "14px", textAlign: "center", color: "#94a3b8", fontSize: "0.8rem", background: "#f8fafc", borderRadius: "12px", border: "1px dashed #cbd5e1" }}>
+                  Nhập thông tin đơn để kiểm tra tiến độ trực ca & thanh toán tức thì.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* REVIEWS SECTION */}
