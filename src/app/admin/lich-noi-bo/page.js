@@ -736,6 +736,128 @@ function InternalSchedulesManager() {
     }
   };
 
+  // Batch Migration & Standardization for all past schedules
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const handleBatchStandardizeFinancials = async () => {
+    if (!isAdmin) return;
+    if (!confirm("Bạn có chắc chắn muốn TỰ ĐỘNG CHUẨN HÓA & CẬP NHẬT Trạng thái tất cả ca học cũ theo dữ liệu tiền mà khách/CTV đã trả không?")) {
+      return;
+    }
+
+    setIsMigrating(true);
+    toast.info("Đang tiến hành chuẩn hóa dữ liệu tài chính cho tất cả ca học cũ...");
+
+    try {
+      let countInternal = 0;
+      const qInternal = query(collection(db, "internal_schedules"));
+      const snapInternal = await getDocs(qInternal);
+
+      for (const docSnap of snapInternal.docs) {
+        const d = docSnap.data();
+        const rentVal = Number(d.rentAmount || 0);
+        const salaryVal = Number(d.salaryAmount || 0);
+
+        let custPaid = d.customerPaidAmount;
+        if (custPaid === undefined || custPaid === null || custPaid === "") {
+          if (d.paymentStatus === "Đã thanh toán" || d.paymentStatus === "Đã TT") {
+            custPaid = rentVal;
+          } else {
+            custPaid = 0;
+          }
+        } else {
+          custPaid = Number(custPaid);
+        }
+
+        let salPaid = d.salaryPaidAmount;
+        if (salPaid === undefined || salPaid === null || salPaid === "") {
+          if (d.salaryStatus === "Đã trả lương" || d.salaryStatus === "Đã TL" || d.payoutDone) {
+            salPaid = salaryVal;
+          } else {
+            salPaid = 0;
+          }
+        } else {
+          salPaid = Number(salPaid);
+        }
+
+        let autoPayStatus = "ChưaTT";
+        if (rentVal > 0 && custPaid >= rentVal) {
+          autoPayStatus = "Đã thanh toán";
+        } else if (custPaid > 0) {
+          autoPayStatus = "Đã gửi 1 phần";
+        }
+
+        let autoSalStatus = "ChưaTL";
+        if (d.payoutDone || (salaryVal > 0 && salPaid >= salaryVal)) {
+          autoSalStatus = "Đã trả lương";
+        } else if (salPaid > 0) {
+          autoSalStatus = "Đã ứng 1 phần";
+        }
+
+        await updateDoc(doc(db, "internal_schedules", docSnap.id), {
+          customerPaidAmount: custPaid,
+          salaryPaidAmount: salPaid,
+          paymentStatus: autoPayStatus,
+          salaryStatus: autoSalStatus
+        });
+        countInternal++;
+      }
+
+      let countClient = 0;
+      const qClient = query(collection(db, "schedules"));
+      const snapClient = await getDocs(qClient);
+
+      for (const docSnap of snapClient.docs) {
+        const d = docSnap.data();
+        const priceVal = Number(d.officialPrice || d.price || 0);
+        const payoutVal = Number(d.payoutAmount || 0);
+
+        let custPaid = d.customerPaidAmount;
+        if (custPaid === undefined || custPaid === null || custPaid === "") {
+          if (d.paymentStatus === "Đã thanh toán" || d.status === "paid" || d.status === "accepted" || d.status === "completed") {
+            custPaid = priceVal;
+          } else {
+            custPaid = 0;
+          }
+        } else {
+          custPaid = Number(custPaid);
+        }
+
+        let salPaid = d.salaryPaidAmount;
+        if (salPaid === undefined || salPaid === null || salPaid === "") {
+          if (d.payoutPaid || d.salaryStatus === "Đã trả lương" || d.status === "completed") {
+            salPaid = payoutVal;
+          } else {
+            salPaid = 0;
+          }
+        } else {
+          salPaid = Number(salPaid);
+        }
+
+        let autoPayStatus = "Chưa thanh toán";
+        if (priceVal > 0 && custPaid >= priceVal) {
+          autoPayStatus = "Đã thanh toán";
+        } else if (custPaid > 0) {
+          autoPayStatus = "Đã gửi 1 phần";
+        }
+
+        await updateDoc(doc(db, "schedules", docSnap.id), {
+          customerPaidAmount: custPaid,
+          salaryPaidAmount: salPaid,
+          paymentStatus: autoPayStatus
+        });
+        countClient++;
+      }
+
+      toast.success(`🎉 Đã chuẩn hóa thành công ${countInternal} ca nội bộ & ${countClient} đơn học cũ!`);
+    } catch (err) {
+      console.error("Lỗi chuẩn hóa tài chính ca cũ:", err);
+      toast.error("Lỗi chuẩn hóa dữ liệu tài chính!");
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc chắn muốn xóa lịch học nội bộ này?")) {
       try {
@@ -2659,13 +2781,44 @@ function InternalSchedulesManager() {
             );
           })()}
 
-          {/* Salary Status */}
-          <span style={{
-            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-            ...getStatusBadgeStyle(item.salaryStatus)
-          }}>
-            {item.salaryStatus}{item.salaryAmount > 0 ? ` | -${Number(item.salaryAmount).toLocaleString("vi-VN")}đ` : ""}
-          </span>
+          {/* Salary Status (CTV Payout) */}
+          {(() => {
+            const totSal = Number(item.salaryAmount || 0);
+            const isFullyPaidSal = item.salaryStatus === "Đã trả lương" || item.salaryStatus === "Đã TL" || item.payoutDone;
+            const paidSalAmt = item.salaryPaidAmount !== undefined ? Number(item.salaryPaidAmount) : (isFullyPaidSal ? totSal : 0);
+            const remSalAmt = Math.max(0, totSal - paidSalAmt);
+
+            if (isFullyPaidSal) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                  background: "#e0e7ff", color: "#3730a3", border: "1px solid #c7d2fe"
+                }}>
+                  Đã TL{totSal > 0 ? ` | -${totSal.toLocaleString("vi-VN")}đ` : ""}
+                </span>
+              );
+            }
+
+            if (paidSalAmt > 0 && remSalAmt > 0) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "800",
+                  background: "#f3e8ff", color: "#6b21a8", border: "1px solid #e9d5ff"
+                }} title={`Lương CTV: ${totSal.toLocaleString("vi-VN")}đ | Đã ứng: ${paidSalAmt.toLocaleString("vi-VN")}đ | Còn nợ: ${remSalAmt.toLocaleString("vi-VN")}đ`}>
+                  Đã ứng {formatK(paidSalAmt)} - Còn {formatK(remSalAmt)}
+                </span>
+              );
+            }
+
+            return (
+              <span style={{
+                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca"
+              }}>
+                ChưaTL{totSal > 0 ? ` | -${totSal.toLocaleString("vi-VN")}đ` : ""}
+              </span>
+            );
+          })()}
 
           {/* Tip / Extra tip from Customer if present */}
           {item.tipAmount > 0 && (
@@ -2742,6 +2895,17 @@ function InternalSchedulesManager() {
           >
             ➕ Thêm Lịch Học
           </button>
+          {isAdmin && (
+            <button 
+              onClick={handleBatchStandardizeFinancials}
+              disabled={isMigrating}
+              className="btn"
+              style={{ background: "#7c3aed", color: "white", padding: "0.6rem 1.2rem", borderRadius: "10px", fontWeight: "750" }}
+              title="Tự động chuẩn hóa & cập nhật trạng thái tất cả ca học cũ theo dữ liệu tiền"
+            >
+              {isMigrating ? "🔄 Đang chuẩn hóa..." : "⚡ Chuẩn hóa tài chính ca cũ"}
+            </button>
+          )}
           <button 
             onClick={handleExportCSV} 
             className="btn"
@@ -4166,38 +4330,111 @@ function InternalSchedulesManager() {
                     <span>💸</span> THÙ LAO & TIP CHI TRẢ CTV / NHÂN VIÊN
                   </div>
 
-                  {/* 1. Tiền trả lương CTV + Trạng thái trả lương CTV */}
+                  {/* 1. Tiền trả lương CTV + Tiền đã ứng/trả CTV */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền trả lương CTV</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Thù lao ca học CTV (đ)</label>
                       <input
                         type="text"
                         value={formData.salaryAmount}
                         onChange={e => setFormData({ ...formData, salaryAmount: e.target.value.replace(/\D/g, "") })}
-                        placeholder="Ví dụ: 75000"
+                        placeholder="Ví dụ: 100000"
                         className="form-input"
                         style={{ background: "white" }}
                       />
                       {formData.salaryAmount && (
                         <div style={{ fontSize: "0.72rem", color: "#6d28d9", marginTop: "3px", fontWeight: "700" }}>
-                          Hiển thị: {Number(formData.salaryAmount).toLocaleString("vi-VN")}đ
+                          Lương ca: {Number(formData.salaryAmount).toLocaleString("vi-VN")}đ ({formatK(formData.salaryAmount)})
                         </div>
                       )}
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái trả lương CTV</label>
-                      <select
-                        value={formData.salaryStatus}
-                        onChange={e => setFormData({ ...formData, salaryStatus: e.target.value })}
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>CTV ĐÃ TRẢ / ỨNG (đ)</label>
+                      <input
+                        type="text"
+                        value={formData.salaryPaidAmount}
+                        onChange={e => {
+                          const paidVal = e.target.value.replace(/\D/g, "");
+                          const totalVal = Number(formData.salaryAmount || 0);
+                          const pNum = Number(paidVal || 0);
+                          let newStatus = "ChưaTL";
+                          if (pNum >= totalVal && totalVal > 0) {
+                            newStatus = "Đã trả lương";
+                          } else if (pNum > 0) {
+                            newStatus = "Đã ứng 1 phần";
+                          }
+                          setFormData({ ...formData, salaryPaidAmount: paidVal, salaryStatus: newStatus });
+                        }}
+                        placeholder="Ví dụ: 50000"
                         className="form-input"
-                        style={{ background: "white" }}
-                      >
-                        <option value="ChưaTL">Chưa trả lương</option>
-                        <option value="Đã trả lương">Đã trả lương ✓</option>
-                      </select>
+                        style={{ background: "white", border: formData.salaryPaidAmount ? "1.5px solid #7c3aed" : "1px solid #cbd5e1" }}
+                      />
+                      <div style={{ display: "flex", gap: "4px", marginTop: "3px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const half = Math.round(Number(formData.salaryAmount || 0) / 2);
+                            setFormData({ ...formData, salaryPaidAmount: String(half), salaryStatus: "Đã ứng 1 phần" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #e9d5ff", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Ứng 50%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, salaryPaidAmount: formData.salaryAmount, salaryStatus: "Đã trả lương" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#e0e7ff", color: "#3730a3", border: "1px solid #c7d2fe", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Trả đủ 100%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, salaryPaidAmount: "0", salaryStatus: "ChưaTL" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          0đ
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Real-time CTV Salary Alert Badge */}
+                  {(() => {
+                    const tot = Number(formData.salaryAmount || 0);
+                    const paid = Number(formData.salaryPaidAmount || (formData.salaryStatus === "Đã trả lương" ? tot : 0));
+                    const rem = Math.max(0, tot - paid);
+
+                    if (tot > 0) {
+                      if (paid > 0 && rem > 0) {
+                        return (
+                          <div style={{ background: "#f3e8ff", border: "1px solid #e9d5ff", color: "#6b21a8", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>💸 Đã ứng: <b>{formatK(paid)}</b> ({paid.toLocaleString("vi-VN")}đ)</span>
+                            <span>⚠️ Còn nợ CTV: <b>{formatK(rem)}</b> ({rem.toLocaleString("vi-VN")}đ)</span>
+                          </div>
+                        );
+                      }
+                      if (paid >= tot) {
+                        return (
+                          <div style={{ background: "#e0e7ff", border: "1px solid #c7d2fe", color: "#3730a3", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            ✅ Đã trả đủ thù lao CTV {tot.toLocaleString("vi-VN")}đ ({formatK(tot)})
+                          </div>
+                        );
+                      }
+                      if (paid === 0) {
+                        return (
+                          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            🔴 Chưa trả thù lao CTV (Nợ CTV: {formatK(tot)} - {tot.toLocaleString("vi-VN")}đ)
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
 
                   {/* 2. Tiền tip CTV + Trạng thái gửi tiền tip CTV */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
@@ -4211,15 +4448,10 @@ function InternalSchedulesManager() {
                         className="form-input"
                         style={{ background: "white" }}
                       />
-                      {formData.staffTipAmount && (
-                        <div style={{ fontSize: "0.72rem", color: "#6d28d9", marginTop: "3px", fontWeight: "700" }}>
-                          Hiển thị: {Number(formData.staffTipAmount).toLocaleString("vi-VN")}đ
-                        </div>
-                      )}
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái gửi tip CTV</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip CTV</label>
                       <select
                         value={formData.staffTipStatus}
                         onChange={e => setFormData({ ...formData, staffTipStatus: e.target.value })}

@@ -222,17 +222,19 @@ export default function ThongKePage() {
 
   // Từ Lịch nội bộ (internalSchedules)
   internalSchedules.forEach(item => {
-    // Bỏ qua các đơn nội bộ bị HỦY / TỪ CHỐI / ZERO HỌC / TRỤC TRẮC
     if (item.studyStatus === "huy" || item.studyStatus === "zero_hoc" || item.studyStatus === "truc_trac" || item.status === "rejected" || item.status === "cancelled") {
       return;
     }
 
     const rentVal = Number(item.rentAmount || 0);
+    const isFullyPaid = item.paymentStatus === "Đã thanh toán" || item.paymentStatus === "Đã TT";
+    const custPaidVal = item.customerPaidAmount !== undefined ? Number(item.customerPaidAmount) : (isFullyPaid ? rentVal : 0);
+    const rentDebt = Math.max(0, rentVal - custPaidVal);
+
     const tipVal = Number(item.tipAmount || 0);
-    const isRentUnpaid = item.paymentStatus !== "Đã thanh toán" && rentVal > 0;
     const isTipUnpaid = item.tipStatus !== "Đã gửi" && tipVal > 0;
 
-    if (isRentUnpaid || isTipUnpaid) {
+    if (rentDebt > 0 || isTipUnpaid) {
       customerUnpaidList.push({
         id: item.id,
         className: item.className || item.subject || "N/A",
@@ -240,12 +242,12 @@ export default function ThongKePage() {
         school: item.school || "N/A",
         classDate: item.classDate,
         timeSlot: item.timeSlot || `${item.startTime || ''} - ${item.endTime || ''}`,
-        rentVal: isRentUnpaid ? rentVal : 0,
-        paymentStatus: item.paymentStatus || "ChưaTT",
+        rentVal: rentDebt,
+        paymentStatus: item.paymentStatus || (custPaidVal > 0 ? "Đã gửi 1 phần" : "ChưaTT"),
         tipVal: isTipUnpaid ? tipVal : 0,
         tipStatus: item.tipStatus || "Chưa gửi",
-        totalDebt: (isRentUnpaid ? rentVal : 0) + (isTipUnpaid ? tipVal : 0),
-        isRentUnpaid,
+        totalDebt: rentDebt + (isTipUnpaid ? tipVal : 0),
+        isRentUnpaid: rentDebt > 0,
         isTipUnpaid,
         sourceType: "internal",
         sourceLabel: "🏢 Lịch Nội Bộ",
@@ -256,7 +258,6 @@ export default function ThongKePage() {
 
   // Từ Đơn khách đặt (schedules)
   schedules.forEach(item => {
-    // Bỏ qua các đơn bị TỪ CHỐI hoặc HỦY BỎ
     if (item.status === "rejected" || item.status === "cancelled") {
       return;
     }
@@ -264,13 +265,14 @@ export default function ThongKePage() {
     const officialPriceNum = item.officialPrice ? Number(String(item.officialPrice).replace(/\./g, "")) : 0;
     const priceNum = item.price ? Number(String(item.price).replace(/\./g, "")) : 0;
     const rentVal = item.rentAmount !== undefined ? Number(item.rentAmount) : (officialPriceNum || priceNum);
-    const tipVal = Number(item.tipAmount || 0);
+    const isFullyPaid = item.paymentStatus === "Đã thanh toán" || item.status === "paid";
+    const custPaidVal = item.customerPaidAmount !== undefined ? Number(item.customerPaidAmount) : (isFullyPaid ? rentVal : 0);
+    const rentDebt = Math.max(0, rentVal - custPaidVal);
 
-    const isCustomerPaid = item.paymentStatus === "Đã thanh toán" || item.status === "paid";
-    const isRentUnpaid = !isCustomerPaid && rentVal > 0;
+    const tipVal = Number(item.tipAmount || 0);
     const isTipUnpaid = item.tipStatus !== "Đã gửi" && tipVal > 0;
 
-    if (isRentUnpaid || isTipUnpaid) {
+    if (rentDebt > 0 || isTipUnpaid) {
       customerUnpaidList.push({
         id: item.id,
         className: item.className || item.subject || "N/A",
@@ -278,12 +280,12 @@ export default function ThongKePage() {
         school: item.school || "N/A",
         classDate: item.classDate,
         timeSlot: `${item.startTime || ''} - ${item.endTime || ''}`,
-        rentVal: isRentUnpaid ? rentVal : 0,
-        paymentStatus: item.paymentStatus || "Chưa thanh toán",
+        rentVal: rentDebt,
+        paymentStatus: item.paymentStatus || (custPaidVal > 0 ? "Đã gửi 1 phần" : "Chưa thanh toán"),
         tipVal: isTipUnpaid ? tipVal : 0,
         tipStatus: item.tipStatus || "Chưa gửi",
-        totalDebt: (isRentUnpaid ? rentVal : 0) + (isTipUnpaid ? tipVal : 0),
-        isRentUnpaid,
+        totalDebt: rentDebt + (isTipUnpaid ? tipVal : 0),
+        isRentUnpaid: rentDebt > 0,
         isTipUnpaid,
         sourceType: "customer",
         sourceLabel: "👥 Đơn Khách Đặt",
@@ -297,18 +299,19 @@ export default function ThongKePage() {
 
   // Từ Lịch nội bộ (internalSchedules)
   internalSchedules.forEach(item => {
-    // Bỏ qua các đơn nội bộ bị HỦY / TỪ CHỐI / ZERO HỌC / TRỤC TRẮC
     if (item.studyStatus === "huy" || item.studyStatus === "zero_hoc" || item.studyStatus === "truc_trac" || item.status === "rejected" || item.status === "cancelled") {
       return;
     }
 
     const salVal = Number(item.salaryAmount || 0);
-    const staffTipVal = Number(item.staffTipAmount || 0);
+    const isFullyPaidSal = item.salaryStatus === "Đã trả lương" || item.salaryStatus === "Đã TL" || item.payoutDone;
+    const salPaidVal = item.salaryPaidAmount !== undefined ? Number(item.salaryPaidAmount) : (isFullyPaidSal ? salVal : 0);
+    const salDebt = Math.max(0, salVal - salPaidVal);
 
-    const isSalUnpaid = item.salaryStatus !== "Đã trả lương" && salVal > 0;
+    const staffTipVal = Number(item.staffTipAmount || 0);
     const isStaffTipUnpaid = item.staffTipStatus !== "Đã gửi" && staffTipVal > 0;
 
-    if (isSalUnpaid || isStaffTipUnpaid) {
+    if (salDebt > 0 || isStaffTipUnpaid) {
       helperUnpaidList.push({
         id: item.id,
         className: item.className || item.subject || "N/A",
@@ -316,12 +319,12 @@ export default function ThongKePage() {
         school: item.school || "N/A",
         classDate: item.classDate,
         timeSlot: item.timeSlot || `${item.startTime || ''} - ${item.endTime || ''}`,
-        salaryVal: isSalUnpaid ? salVal : 0,
-        salaryStatus: item.salaryStatus || "ChưaTL",
+        salaryVal: salDebt,
+        salaryStatus: item.salaryStatus || (salPaidVal > 0 ? "Đã ứng 1 phần" : "ChưaTL"),
         staffTipVal: isStaffTipUnpaid ? staffTipVal : 0,
         staffTipStatus: item.staffTipStatus || "Chưa gửi",
-        totalDebt: (isSalUnpaid ? salVal : 0) + (isStaffTipUnpaid ? staffTipVal : 0),
-        isSalUnpaid,
+        totalDebt: salDebt + (isStaffTipUnpaid ? staffTipVal : 0),
+        isSalUnpaid: salDebt > 0,
         isStaffTipUnpaid,
         sourceType: "internal",
         sourceLabel: "🏢 Lịch Nội Bộ",
@@ -332,7 +335,6 @@ export default function ThongKePage() {
 
   // Từ Đơn khách đặt (schedules)
   schedules.forEach(item => {
-    // Bỏ qua các đơn bị TỪ CHỐI hoặc HỦY BỎ
     if (item.status === "rejected" || item.status === "cancelled") {
       return;
     }
@@ -342,13 +344,14 @@ export default function ThongKePage() {
     const effectivePrice = officialPriceNum || priceNum;
 
     const salVal = item.salaryAmount !== undefined ? Number(item.salaryAmount) : (item.payoutAmount !== undefined ? Number(item.payoutAmount) : Math.floor(effectivePrice * 0.75));
-    const staffTipVal = Number(item.staffTipAmount || 0);
+    const isFullyPaidSal = item.payoutPaid || item.salaryStatus === "Đã trả lương";
+    const salPaidVal = item.salaryPaidAmount !== undefined ? Number(item.salaryPaidAmount) : (isFullyPaidSal ? salVal : 0);
+    const salDebt = Math.max(0, salVal - salPaidVal);
 
-    const isPaidOut = item.payoutPaid || item.salaryStatus === "Đã trả lương";
-    const isSalUnpaid = !isPaidOut && (salVal > 0 || Boolean(item.helperId));
+    const staffTipVal = Number(item.staffTipAmount || 0);
     const isStaffTipUnpaid = item.staffTipStatus !== "Đã gửi" && staffTipVal > 0;
 
-    if ((isSalUnpaid && item.assignedTo) || isStaffTipUnpaid) {
+    if ((salDebt > 0 && item.assignedTo) || isStaffTipUnpaid) {
       helperUnpaidList.push({
         id: item.id,
         className: item.className || item.subject || "N/A",
@@ -356,12 +359,12 @@ export default function ThongKePage() {
         school: item.school || "N/A",
         classDate: item.classDate,
         timeSlot: `${item.startTime || ''} - ${item.endTime || ''}`,
-        salaryVal: isSalUnpaid ? salVal : 0,
-        salaryStatus: item.salaryStatus || "Chưa trả lương",
+        salaryVal: salDebt,
+        salaryStatus: item.salaryStatus || (salPaidVal > 0 ? "Đã ứng 1 phần" : "Chưa trả lương"),
         staffTipVal: isStaffTipUnpaid ? staffTipVal : 0,
         staffTipStatus: item.staffTipStatus || "Chưa gửi",
-        totalDebt: (isSalUnpaid ? salVal : 0) + (isStaffTipUnpaid ? staffTipVal : 0),
-        isSalUnpaid,
+        totalDebt: salDebt + (isStaffTipUnpaid ? staffTipVal : 0),
+        isSalUnpaid: salDebt > 0,
         isStaffTipUnpaid,
         sourceType: "customer",
         sourceLabel: "👥 Đơn Khách Đặt",
