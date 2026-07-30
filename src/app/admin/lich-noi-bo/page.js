@@ -44,6 +44,18 @@ function InternalSchedulesManager() {
   const [filterStudyStatus, setFilterStudyStatus] = useState("all");
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("all");
 
+  const formatK = (amount) => {
+    const val = Number(amount || 0);
+    if (val <= 0) return "0đ";
+    if (val >= 1000000 && val % 100000 === 0) {
+      return `${val / 1000000}M`;
+    }
+    if (val % 1000 === 0) {
+      return `${val / 1000}K`;
+    }
+    return `${(val / 1000).toFixed(1)}K`;
+  };
+
   const getStatusBadgeStyle = (statusText) => {
     const text = (statusText || "").toLowerCase();
     if (text.includes("chưa") || text.includes("chua")) {
@@ -408,6 +420,7 @@ function InternalSchedulesManager() {
       checkinStatus: "not_checked_in",
       studyStatus: "chua_hoc",
       rentAmount: "",
+      customerPaidAmount: "",
       tipAmount: "",
       tipStatus: "Chưa gửi",
       paymentStatus: "ChưaTT",
@@ -424,6 +437,11 @@ function InternalSchedulesManager() {
   };
 
   const openEditModal = (item) => {
+    const isFullyPaid = item.paymentStatus === "Đã thanh toán" || item.paymentStatus === "Đã TT";
+    const defaultPaid = item.customerPaidAmount !== undefined 
+      ? String(item.customerPaidAmount) 
+      : (isFullyPaid ? String(item.rentAmount || "") : "");
+
     setFormData({
       studentName: item.studentName || "",
       subject: item.subject || "",
@@ -435,6 +453,7 @@ function InternalSchedulesManager() {
       checkinStatus: item.checkinStatus || "not_checked_in",
       studyStatus: item.studyStatus || "chua_hoc",
       rentAmount: item.rentAmount !== undefined ? String(item.rentAmount) : "",
+      customerPaidAmount: defaultPaid,
       tipAmount: item.tipAmount !== undefined ? String(item.tipAmount) : "",
       tipStatus: item.tipStatus || "Chưa gửi",
       paymentStatus: item.paymentStatus || "ChưaTT",
@@ -453,9 +472,16 @@ function InternalSchedulesManager() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const rentVal = formData.rentAmount ? Number(String(formData.rentAmount).replace(/\D/g, "")) : 0;
+    let paidVal = formData.customerPaidAmount ? Number(String(formData.customerPaidAmount).replace(/\D/g, "")) : 0;
+    if ((formData.paymentStatus === "Đã thanh toán" || formData.paymentStatus === "Đã TT") && paidVal === 0 && rentVal > 0) {
+      paidVal = rentVal;
+    }
+
     const formattedData = {
       ...formData,
-      rentAmount: formData.rentAmount ? Number(String(formData.rentAmount).replace(/\D/g, "")) : 0,
+      rentAmount: rentVal,
+      customerPaidAmount: paidVal,
       tipAmount: formData.tipAmount ? Number(String(formData.tipAmount).replace(/\D/g, "")) : 0,
       salaryAmount: formData.salaryAmount ? Number(String(formData.salaryAmount).replace(/\D/g, "")) : 0,
       staffTipAmount: formData.staffTipAmount ? Number(String(formData.staffTipAmount).replace(/\D/g, "")) : 0,
@@ -2595,12 +2621,43 @@ function InternalSchedulesManager() {
           </span>
 
           {/* Payment Status (Tenant) */}
-          <span style={{
-            fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-            ...getStatusBadgeStyle(item.paymentStatus)
-          }}>
-            {item.paymentStatus}{item.rentAmount > 0 ? ` | +${Number(item.rentAmount).toLocaleString("vi-VN")}đ` : ""}
-          </span>
+          {(() => {
+            const totRent = Number(item.rentAmount || 0);
+            const isFullyPaid = item.paymentStatus === "Đã thanh toán" || item.paymentStatus === "Đã TT";
+            const paidAmt = item.customerPaidAmount !== undefined ? Number(item.customerPaidAmount) : (isFullyPaid ? totRent : 0);
+            const remAmt = Math.max(0, totRent - paidAmt);
+
+            if (isFullyPaid) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                  background: "#dcfce7", color: "#166534", border: "1px solid #86efac"
+                }}>
+                  Đã TT{totRent > 0 ? ` | +${totRent.toLocaleString("vi-VN")}đ` : ""}
+                </span>
+              );
+            }
+
+            if (paidAmt > 0 && remAmt > 0) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "800",
+                  background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a"
+                }} title={`Tổng: ${totRent.toLocaleString("vi-VN")}đ | Đã gửi: ${paidAmt.toLocaleString("vi-VN")}đ | Còn: ${remAmt.toLocaleString("vi-VN")}đ`}>
+                  Đã gửi {formatK(paidAmt)} - Còn {formatK(remAmt)}
+                </span>
+              );
+            }
+
+            return (
+              <span style={{
+                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5"
+              }}>
+                ChưaTT{totRent > 0 ? ` | +${totRent.toLocaleString("vi-VN")}đ` : ""}
+              </span>
+            );
+          })()}
 
           {/* Salary Status */}
           <span style={{
@@ -3932,41 +3989,142 @@ function InternalSchedulesManager() {
                     <span>💵</span> TÀI CHÍNH THU TỪ KHÁCH HÀNG
                   </div>
 
-                  {/* 1. Tiền thuê học + Trạng thái thanh toán người thuê */}
+                  {/* 1. Tiền thuê học + Tiền khách đã gửi/cọc */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền thuê học</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền thuê học (đ)</label>
                       <input
                         type="text"
                         value={formData.rentAmount}
-                        onChange={e => setFormData({ ...formData, rentAmount: e.target.value.replace(/\D/g, "") })}
-                        placeholder="Ví dụ: 100000"
+                        onChange={e => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setFormData({ ...formData, rentAmount: val });
+                        }}
+                        placeholder="Ví dụ: 200000"
                         className="form-input"
                         style={{ background: "white" }}
                       />
                       {formData.rentAmount && (
                         <div style={{ fontSize: "0.72rem", color: "var(--success)", marginTop: "3px", fontWeight: "700" }}>
-                          Hiển thị: {Number(formData.rentAmount).toLocaleString("vi-VN")}đ
+                          Tổng đơn: {Number(formData.rentAmount).toLocaleString("vi-VN")}đ ({formatK(formData.rentAmount)})
                         </div>
                       )}
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Khách ĐÃ GỬI / CỌC (đ)</label>
+                      <input
+                        type="text"
+                        value={formData.customerPaidAmount}
+                        onChange={e => {
+                          const paidVal = e.target.value.replace(/\D/g, "");
+                          const totalVal = Number(formData.rentAmount || 0);
+                          const pNum = Number(paidVal || 0);
+                          let newStatus = formData.paymentStatus;
+                          if (pNum >= totalVal && totalVal > 0) {
+                            newStatus = "Đã thanh toán";
+                          } else if (pNum > 0) {
+                            newStatus = "Đã gửi 1 phần";
+                          } else {
+                            newStatus = "ChưaTT";
+                          }
+                          setFormData({ ...formData, customerPaidAmount: paidVal, paymentStatus: newStatus });
+                        }}
+                        placeholder="Ví dụ: 100000"
+                        className="form-input"
+                        style={{ background: "white", border: formData.customerPaidAmount ? "1.5px solid #16a34a" : "1px solid #cbd5e1" }}
+                      />
+                      <div style={{ display: "flex", gap: "4px", marginTop: "3px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const half = Math.round(Number(formData.rentAmount || 0) / 2);
+                            setFormData({ ...formData, customerPaidAmount: String(half), paymentStatus: "Đã gửi 1 phần" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Cọc 50%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, customerPaidAmount: formData.rentAmount, paymentStatus: "Đã thanh toán" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Gửi đủ 100%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, customerPaidAmount: "0", paymentStatus: "ChưaTT" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          0đ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Real-time Partial Payment Alert Badge */}
+                  {(() => {
+                    const tot = Number(formData.rentAmount || 0);
+                    const paid = Number(formData.customerPaidAmount || (formData.paymentStatus === "Đã thanh toán" ? tot : 0));
+                    const rem = Math.max(0, tot - paid);
+
+                    if (tot > 0) {
+                      if (paid > 0 && rem > 0) {
+                        return (
+                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#b45309", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>💵 Đã gửi: <b>{formatK(paid)}</b> ({paid.toLocaleString("vi-VN")}đ)</span>
+                            <span>⚠️ Còn nợ: <b>{formatK(rem)}</b> ({rem.toLocaleString("vi-VN")}đ)</span>
+                          </div>
+                        );
+                      }
+                      if (paid >= tot) {
+                        return (
+                          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            ✅ Đã gửi {formatK(paid)} (Đã thanh toán đủ {tot.toLocaleString("vi-VN")}đ)
+                          </div>
+                        );
+                      }
+                      if (paid === 0) {
+                        return (
+                          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            🔴 Chưa gửi tiền (Còn nợ: {formatK(tot)} - {tot.toLocaleString("vi-VN")}đ)
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+
+                  {/* 2. Trạng thái thanh toán khách + Tip */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái thanh toán khách</label>
                       <select
                         value={formData.paymentStatus}
-                        onChange={e => setFormData({ ...formData, paymentStatus: e.target.value })}
+                        onChange={e => {
+                          const st = e.target.value;
+                          let paidVal = formData.customerPaidAmount;
+                          if (st === "Đã thanh toán") {
+                            paidVal = formData.rentAmount;
+                          } else if (st === "ChưaTT") {
+                            paidVal = "0";
+                          }
+                          setFormData({ ...formData, paymentStatus: st, customerPaidAmount: paidVal });
+                        }}
                         className="form-input"
                         style={{ background: "white" }}
                       >
                         <option value="ChưaTT">Chưa thanh toán</option>
-                        <option value="Đã thanh toán">Đã thanh toán ✓</option>
+                        <option value="Đã gửi 1 phần">Đã gửi 1 phần / Cọc</option>
+                        <option value="Đã thanh toán">Đã thanh toán đủ ✓</option>
                       </select>
                     </div>
-                  </div>
 
-                  {/* 2. Tiền tip kiểm tra + Trạng thái gửi tiền tip khách */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip kiểm tra/thuyết trình</label>
                       <input
@@ -3977,25 +4135,21 @@ function InternalSchedulesManager() {
                         className="form-input"
                         style={{ background: "white" }}
                       />
-                      {formData.tipAmount && (
-                        <div style={{ fontSize: "0.72rem", color: "var(--success)", marginTop: "3px", fontWeight: "700" }}>
-                          Hiển thị: {Number(formData.tipAmount).toLocaleString("vi-VN")}đ
-                        </div>
-                      )}
                     </div>
+                  </div>
 
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách</label>
-                      <select
-                        value={formData.tipStatus}
-                        onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
-                        className="form-input"
-                        style={{ background: "white" }}
-                      >
-                        <option value="Chưa gửi">Chưa gửi</option>
-                        <option value="Đã gửi">Đã gửi ✓</option>
-                      </select>
-                    </div>
+                  {/* 3. Trạng thái Tip Khách */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách</label>
+                    <select
+                      value={formData.tipStatus}
+                      onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
+                      className="form-input"
+                      style={{ background: "white" }}
+                    >
+                      <option value="Chưa gửi">Chưa gửi</option>
+                      <option value="Đã gửi">Đã gửi ✓</option>
+                    </select>
                   </div>
                 </div>
 
