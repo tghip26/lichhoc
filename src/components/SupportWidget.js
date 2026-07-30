@@ -18,7 +18,7 @@ export default function SupportWidget() {
       text: "Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của **Thuê Học Pro**.\n\nNhấp trực tiếp vào một trong các ô lựa chọn bên dưới để tôi hỗ trợ bạn ngay nhé: 😊",
       options: [
         { label: "🎯 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
-        { label: "💵 Bảng giá dịch vụ (35k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
+        { label: "💵 Bảng giá dịch vụ (40k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
         { label: "💳 Hướng dẫn nạp/rút tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
         { label: "🛡️ Cam kết bảo mật 100%", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
         { label: "🎓 Đăng ký làm CTV trực lớp", prompt: "Muốn ứng tuyển làm CTV trực lớp thì làm thế nào?" }

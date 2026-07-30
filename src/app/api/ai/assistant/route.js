@@ -150,7 +150,7 @@ export async function POST(request) {
     // -----------------------------------------------------------------
     if (lowerMsg.includes("giá") || lowerMsg.includes("bảng giá") || lowerMsg.includes("chi phí")) {
       return NextResponse.json({
-        reply: "💵 **Bảng Giá Dịch Vụ Thuê Học Hộ Niêm Yết:**\n\n• **Trực lớp tiêu chuẩn**: **35.000 đ - 40.000 đ / giờ** (khoảng 150k - 200k cho ca 4-5 tiết học).\n• **Làm bài kiểm tra / Thuyết trình**: Thêm tiền Tip hỗ trợ tùy chọn khi đặt đơn.\n• **Ghi chép slide bài giảng**: CTV chụp lại toàn bộ bài giảng trên lớp cho bạn.\n\nNhấp chọn thao tác bên dưới để thực hiện:",
+        reply: "💵 **Bảng Giá Dịch Vụ Thuê Học Hộ Niêm Yết:**\n\n• **Trực lớp tiêu chuẩn**: **40.000 đ / giờ**.\n• **Thi / Làm bài kiểm tra**: **150.000 đ / ca**.\n• **Điểm danh online**: **30.000 đ / buổi**.\n\nNhấp chọn thao tác bên dưới để thực hiện:",
         options: [
           { label: "📅 Đặt lịch học hộ ngay", prompt: "Tôi muốn đặt lịch học hộ mới" },
           { label: "💳 Hướng dẫn nạp tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
@@ -198,7 +198,7 @@ export async function POST(request) {
       reply: `Xin chào! 👋 Tôi là **Trợ lý AI 24/7** của Thuê Học Pro. Bạn vui lòng nhấp chọn trực tiếp vào một trong các tùy chọn bên dưới để tôi hỗ trợ bạn ngay nhé:`,
       options: [
         { label: "🎯 Tra cứu ca học của tôi", prompt: "Tôi muốn tra cứu lịch học/ca học gần nhất của tôi" },
-        { label: "💵 Bảng giá dịch vụ (35k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
+        { label: "💵 Bảng giá dịch vụ (40k/giờ)", prompt: "Bảng giá dịch vụ thuê học hộ là bao nhiêu?" },
         { label: "💳 Hướng dẫn nạp/rút tiền ví", prompt: "Cách nạp tiền tự động vào ví như thế nào?" },
         { label: "🛡️ Chính sách bảo mật 100%", prompt: "Chính sách bảo mật thông tin học viên ra sao?" },
         { label: "🎓 Đăng ký làm CTV trực lớp", prompt: "Muốn ứng tuyển làm CTV trực lớp thì làm thế nào?" }

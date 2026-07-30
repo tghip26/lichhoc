@@ -32,9 +32,9 @@ export default function Home() {
 
   // Tính toán mức giá dự kiến
   const getUnitRate = () => {
-    if (calcType === "exam") return 60000;
-    if (calcType === "online") return 25000;
-    return 35000;
+    if (calcType === "exam") return 150000;
+    if (calcType === "online") return 30000;
+    return 40000;
   };
   const rawTotal = getUnitRate() * calcSessions;
   const discountRatio = calcSessions >= 10 ? 0.10 : (calcSessions >= 5 ? 0.05 : 0);
@@ -502,9 +502,9 @@ export default function Home() {
                     onChange={(e) => setCalcType(e.target.value)}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "0.88rem", background: "#f8fafc", color: "var(--text-primary)", fontWeight: "600" }}
                   >
-                    <option value="theory">🏫 Trực lớp offline (35.000đ/buổi)</option>
-                    <option value="online">💻 Điểm danh online (25.000đ/buổi)</option>
-                    <option value="exam">📝 Thi / Kiểm tra (60.000đ/buổi)</option>
+                    <option value="theory">🏫 Trực lớp offline (40.000đ/giờ)</option>
+                    <option value="online">💻 Điểm danh online (30.000đ/buổi)</option>
+                    <option value="exam">📝 Thi / Kiểm tra (150.000đ/ca)</option>
                   </select>
                 </div>
 
