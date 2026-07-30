@@ -425,11 +425,14 @@ function InternalSchedulesManager() {
       rentAmount: "",
       customerPaidAmount: "",
       tipAmount: "",
+      customerTipPaidAmount: "",
       tipStatus: "Chưa gửi",
       paymentStatus: "ChưaTT",
       salaryAmount: "",
+      salaryPaidAmount: "",
       salaryStatus: "ChưaTL",
       staffTipAmount: "",
+      staffTipPaidAmount: "",
       staffTipStatus: "Chưa gửi",
       period: defaultPeriod,
       timeSlot: "",
@@ -445,6 +448,21 @@ function InternalSchedulesManager() {
       ? String(item.customerPaidAmount) 
       : (isFullyPaid ? String(item.rentAmount || "") : "");
 
+    const isTipPaid = item.tipStatus === "Đã gửi";
+    const defaultCustTipPaid = item.customerTipPaidAmount !== undefined 
+      ? String(item.customerTipPaidAmount) 
+      : (isTipPaid ? String(item.tipAmount || "") : "");
+
+    const isSalaryPaid = item.salaryStatus === "Đã trả lương" || item.salaryStatus === "Đã TL" || item.payoutDone;
+    const defaultSalaryPaid = item.salaryPaidAmount !== undefined 
+      ? String(item.salaryPaidAmount) 
+      : (isSalaryPaid ? String(item.salaryAmount || "") : "");
+
+    const isStaffTipPaid = item.staffTipStatus === "Đã gửi";
+    const defaultStaffTipPaid = item.staffTipPaidAmount !== undefined 
+      ? String(item.staffTipPaidAmount) 
+      : (isStaffTipPaid ? String(item.staffTipAmount || "") : "");
+
     setFormData({
       studentName: item.studentName || "",
       subject: item.subject || "",
@@ -458,11 +476,14 @@ function InternalSchedulesManager() {
       rentAmount: item.rentAmount !== undefined ? String(item.rentAmount) : "",
       customerPaidAmount: defaultPaid,
       tipAmount: item.tipAmount !== undefined ? String(item.tipAmount) : "",
+      customerTipPaidAmount: defaultCustTipPaid,
       tipStatus: item.tipStatus || "Chưa gửi",
       paymentStatus: item.paymentStatus || "ChưaTT",
       salaryAmount: item.salaryAmount !== undefined ? String(item.salaryAmount) : "",
+      salaryPaidAmount: defaultSalaryPaid,
       salaryStatus: item.salaryStatus || "ChưaTL",
       staffTipAmount: item.staffTipAmount !== undefined ? String(item.staffTipAmount) : "",
+      staffTipPaidAmount: defaultStaffTipPaid,
       staffTipStatus: item.staffTipStatus || "Chưa gửi",
       period: item.period || "chieu",
       timeSlot: item.timeSlot || "",
@@ -476,18 +497,60 @@ function InternalSchedulesManager() {
   const handleSave = async (e) => {
     e.preventDefault();
     const rentVal = formData.rentAmount ? Number(String(formData.rentAmount).replace(/\D/g, "")) : 0;
-    let paidVal = formData.customerPaidAmount ? Number(String(formData.customerPaidAmount).replace(/\D/g, "")) : 0;
-    if ((formData.paymentStatus === "Đã thanh toán" || formData.paymentStatus === "Đã TT") && paidVal === 0 && rentVal > 0) {
-      paidVal = rentVal;
+    let paidVal = formData.customerPaidAmount !== "" ? Number(String(formData.customerPaidAmount).replace(/\D/g, "")) : 0;
+    
+    // Auto Payment Status
+    let computedPaymentStatus = "ChưaTT";
+    if (rentVal > 0 && paidVal >= rentVal) {
+      computedPaymentStatus = "Đã thanh toán";
+    } else if (paidVal > 0) {
+      computedPaymentStatus = "Đã gửi 1 phần";
+    }
+
+    // Auto Customer Tip Status
+    const tipVal = formData.tipAmount ? Number(String(formData.tipAmount).replace(/\D/g, "")) : 0;
+    let customerTipPaidVal = formData.customerTipPaidAmount !== "" ? Number(String(formData.customerTipPaidAmount).replace(/\D/g, "")) : 0;
+    let computedTipStatus = "Chưa gửi";
+    if (tipVal > 0 && customerTipPaidVal >= tipVal) {
+      computedTipStatus = "Đã gửi";
+    } else if (customerTipPaidVal > 0) {
+      computedTipStatus = "Đã gửi 1 phần";
+    }
+
+    // Auto Salary Status
+    const salaryVal = formData.salaryAmount ? Number(String(formData.salaryAmount).replace(/\D/g, "")) : 0;
+    let salaryPaidVal = formData.salaryPaidAmount !== "" ? Number(String(formData.salaryPaidAmount).replace(/\D/g, "")) : 0;
+    let computedSalaryStatus = "ChưaTL";
+    if (salaryVal > 0 && salaryPaidVal >= salaryVal) {
+      computedSalaryStatus = "Đã trả lương";
+    } else if (salaryPaidVal > 0) {
+      computedSalaryStatus = "Đã ứng 1 phần";
+    }
+
+    // Auto Staff Tip Status
+    const staffTipVal = formData.staffTipAmount ? Number(String(formData.staffTipAmount).replace(/\D/g, "")) : 0;
+    let staffTipPaidVal = formData.staffTipPaidAmount !== "" ? Number(String(formData.staffTipPaidAmount).replace(/\D/g, "")) : 0;
+    let computedStaffTipStatus = "Chưa gửi";
+    if (staffTipVal > 0 && staffTipPaidVal >= staffTipVal) {
+      computedStaffTipStatus = "Đã gửi";
+    } else if (staffTipPaidVal > 0) {
+      computedStaffTipStatus = "Đã gửi 1 phần";
     }
 
     const formattedData = {
       ...formData,
       rentAmount: rentVal,
       customerPaidAmount: paidVal,
-      tipAmount: formData.tipAmount ? Number(String(formData.tipAmount).replace(/\D/g, "")) : 0,
-      salaryAmount: formData.salaryAmount ? Number(String(formData.salaryAmount).replace(/\D/g, "")) : 0,
-      staffTipAmount: formData.staffTipAmount ? Number(String(formData.staffTipAmount).replace(/\D/g, "")) : 0,
+      paymentStatus: computedPaymentStatus,
+      tipAmount: tipVal,
+      customerTipPaidAmount: customerTipPaidVal,
+      tipStatus: computedTipStatus,
+      salaryAmount: salaryVal,
+      salaryPaidAmount: salaryPaidVal,
+      salaryStatus: computedSalaryStatus,
+      staffTipAmount: staffTipVal,
+      staffTipPaidAmount: staffTipPaidVal,
+      staffTipStatus: computedStaffTipStatus,
       updatedAt: serverTimestamp()
     };
 
@@ -795,11 +858,55 @@ function InternalSchedulesManager() {
           autoSalStatus = "Đã ứng 1 phần";
         }
 
+        // Tip Khách
+        const tipVal = Number(d.tipAmount || 0);
+        let custTipPaid = d.customerTipPaidAmount;
+        if (custTipPaid === undefined || custTipPaid === null || custTipPaid === "") {
+          if (d.tipStatus === "Đã gửi") {
+            custTipPaid = tipVal;
+          } else {
+            custTipPaid = 0;
+          }
+        } else {
+          custTipPaid = Number(custTipPaid);
+        }
+
+        let autoTipStatus = "Chưa gửi";
+        if (tipVal > 0 && custTipPaid >= tipVal) {
+          autoTipStatus = "Đã gửi";
+        } else if (custTipPaid > 0) {
+          autoTipStatus = "Đã gửi 1 phần";
+        }
+
+        // Tip CTV
+        const staffTipVal = Number(d.staffTipAmount || 0);
+        let staffTipPaid = d.staffTipPaidAmount;
+        if (staffTipPaid === undefined || staffTipPaid === null || staffTipPaid === "") {
+          if (d.staffTipStatus === "Đã gửi") {
+            staffTipPaid = staffTipVal;
+          } else {
+            staffTipPaid = 0;
+          }
+        } else {
+          staffTipPaid = Number(staffTipPaid);
+        }
+
+        let autoStaffTipStatus = "Chưa gửi";
+        if (staffTipVal > 0 && staffTipPaid >= staffTipVal) {
+          autoStaffTipStatus = "Đã gửi";
+        } else if (staffTipPaid > 0) {
+          autoStaffTipStatus = "Đã gửi 1 phần";
+        }
+
         await updateDoc(doc(db, "internal_schedules", docSnap.id), {
           customerPaidAmount: custPaid,
           salaryPaidAmount: salPaid,
+          customerTipPaidAmount: custTipPaid,
+          staffTipPaidAmount: staffTipPaid,
           paymentStatus: autoPayStatus,
-          salaryStatus: autoSalStatus
+          salaryStatus: autoSalStatus,
+          tipStatus: autoTipStatus,
+          staffTipStatus: autoStaffTipStatus
         });
         countInternal++;
       }
@@ -2822,28 +2929,84 @@ function InternalSchedulesManager() {
           })()}
 
           {/* Tip / Extra tip from Customer if present */}
-          {item.tipAmount > 0 && (
-            <span style={{
-              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-              background: item.tipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
-              color: item.tipStatus === "Đã gửi" ? "#166534" : "#b91c1c",
-              border: `1px solid ${item.tipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
-            }}>
-              +{Number(item.tipAmount).toLocaleString("vi-VN")}đ Tip KT ({item.tipStatus || "Chưa gửi"})
-            </span>
-          )}
+          {(() => {
+            const totTip = Number(item.tipAmount || 0);
+            if (totTip <= 0) return null;
+            const isFullyPaidTip = item.tipStatus === "Đã gửi";
+            const paidTipAmt = item.customerTipPaidAmount !== undefined ? Number(item.customerTipPaidAmount) : (isFullyPaidTip ? totTip : 0);
+            const remTipAmt = Math.max(0, totTip - paidTipAmt);
+
+            if (isFullyPaidTip) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                  background: "#dcfce7", color: "#166534", border: "1px solid #86efac"
+                }}>
+                  +{totTip.toLocaleString("vi-VN")}đ Tip KT (Đã gửi đủ)
+                </span>
+              );
+            }
+
+            if (paidTipAmt > 0 && remTipAmt > 0) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "800",
+                  background: "#fef3c7", color: "#b45309", border: "1px solid #fde68a"
+                }} title={`Tip khách: ${totTip.toLocaleString("vi-VN")}đ | Đã gửi: ${paidTipAmt.toLocaleString("vi-VN")}đ | Còn nợ: ${remTipAmt.toLocaleString("vi-VN")}đ`}>
+                  Tip KT: Đã gửi {formatK(paidTipAmt)} - Còn {formatK(remTipAmt)}
+                </span>
+              );
+            }
+
+            return (
+              <span style={{
+                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5"
+              }}>
+                +{totTip.toLocaleString("vi-VN")}đ Tip KT (Chưa gửi)
+              </span>
+            );
+          })()}
 
           {/* Tip / Extra tip for Staff if present */}
-          {item.staffTipAmount > 0 && (
-            <span style={{
-              fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "700",
-              background: item.staffTipStatus === "Đã gửi" ? "#dcfce7" : "#fee2e2",
-              color: item.staffTipStatus === "Đã gửi" ? "#166534" : "#b91c1c",
-              border: `1px solid ${item.staffTipStatus === "Đã gửi" ? "#bbf7d0" : "#fca5a5"}`
-            }}>
-              +{Number(item.staffTipAmount).toLocaleString("vi-VN")}đ Tip CTV ({item.staffTipStatus || "Chưa gửi"})
-            </span>
-          )}
+          {(() => {
+            const totStaffTip = Number(item.staffTipAmount || 0);
+            if (totStaffTip <= 0) return null;
+            const isFullyPaidStaffTip = item.staffTipStatus === "Đã gửi";
+            const paidStaffTipAmt = item.staffTipPaidAmount !== undefined ? Number(item.staffTipPaidAmount) : (isFullyPaidStaffTip ? totStaffTip : 0);
+            const remStaffTipAmt = Math.max(0, totStaffTip - paidStaffTipAmt);
+
+            if (isFullyPaidStaffTip) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                  background: "#e0e7ff", color: "#3730a3", border: "1px solid #c7d2fe"
+                }}>
+                  -{totStaffTip.toLocaleString("vi-VN")}đ Tip CTV (Đã gửi đủ)
+                </span>
+              );
+            }
+
+            if (paidStaffTipAmt > 0 && remStaffTipAmt > 0) {
+              return (
+                <span style={{
+                  fontSize: "0.68rem", padding: "1px 6px", borderRadius: "4px", fontWeight: "800",
+                  background: "#f3e8ff", color: "#6b21a8", border: "1px solid #e9d5ff"
+                }} title={`Tip CTV: ${totStaffTip.toLocaleString("vi-VN")}đ | Đã gửi: ${paidStaffTipAmt.toLocaleString("vi-VN")}đ | Còn nợ: ${remStaffTipAmt.toLocaleString("vi-VN")}đ`}>
+                  Tip CTV: Đã gửi {formatK(paidStaffTipAmt)} - Còn {formatK(remStaffTipAmt)}
+                </span>
+              );
+            }
+
+            return (
+              <span style={{
+                fontSize: "0.68rem", padding: "1px 5px", borderRadius: "4px", fontWeight: "750",
+                background: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca"
+              }}>
+                -{totStaffTip.toLocaleString("vi-VN")}đ Tip CTV (Chưa gửi)
+              </span>
+            );
+          })()}
         </div>
       </div>
     );
@@ -4265,8 +4428,114 @@ function InternalSchedulesManager() {
                     return null;
                   })()}
 
-                  {/* 2. Trạng thái thanh toán khách + Tip */}
+                  {/* 2. Tiền tip kiểm tra + Tiền Tip khách đã gửi */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip kiểm tra/thuyết trình (đ)</label>
+                      <input
+                        type="text"
+                        value={formData.tipAmount}
+                        onChange={e => setFormData({ ...formData, tipAmount: e.target.value.replace(/\D/g, "") })}
+                        placeholder="Ví dụ: 30000"
+                        className="form-input"
+                        style={{ background: "white" }}
+                      />
+                      {formData.tipAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--success)", marginTop: "3px", fontWeight: "700" }}>
+                          Tip khách: {Number(formData.tipAmount).toLocaleString("vi-VN")}đ ({formatK(formData.tipAmount)})
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Khách ĐÃ GỬI TIP (đ)</label>
+                      <input
+                        type="text"
+                        value={formData.customerTipPaidAmount}
+                        onChange={e => {
+                          const paidVal = e.target.value.replace(/\D/g, "");
+                          const totalVal = Number(formData.tipAmount || 0);
+                          const pNum = Number(paidVal || 0);
+                          let newStatus = "Chưa gửi";
+                          if (pNum >= totalVal && totalVal > 0) {
+                            newStatus = "Đã gửi";
+                          } else if (pNum > 0) {
+                            newStatus = "Đã gửi 1 phần";
+                          }
+                          setFormData({ ...formData, customerTipPaidAmount: paidVal, tipStatus: newStatus });
+                        }}
+                        placeholder="Ví dụ: 30000"
+                        className="form-input"
+                        style={{ background: "white", border: formData.customerTipPaidAmount ? "1.5px solid #16a34a" : "1px solid #cbd5e1" }}
+                      />
+                      <div style={{ display: "flex", gap: "4px", marginTop: "3px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const half = Math.round(Number(formData.tipAmount || 0) / 2);
+                            setFormData({ ...formData, customerTipPaidAmount: String(half), tipStatus: "Đã gửi 1 phần" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Gửi 50%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, customerTipPaidAmount: formData.tipAmount, tipStatus: "Đã gửi" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#dcfce7", color: "#166534", border: "1px solid #bbf7d0", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Gửi đủ 100%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, customerTipPaidAmount: "0", tipStatus: "Chưa gửi" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          0đ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Real-time Customer Tip Alert Badge */}
+                  {(() => {
+                    const tot = Number(formData.tipAmount || 0);
+                    const paid = Number(formData.customerTipPaidAmount || (formData.tipStatus === "Đã gửi" ? tot : 0));
+                    const rem = Math.max(0, tot - paid);
+
+                    if (tot > 0) {
+                      if (paid > 0 && rem > 0) {
+                        return (
+                          <div style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#b45309", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>💵 Đã gửi tip: <b>{formatK(paid)}</b> ({paid.toLocaleString("vi-VN")}đ)</span>
+                            <span>⚠️ Còn nợ tip: <b>{formatK(rem)}</b> ({rem.toLocaleString("vi-VN")}đ)</span>
+                          </div>
+                        );
+                      }
+                      if (paid >= tot) {
+                        return (
+                          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            ✅ Đã gửi đủ Tip khách {tot.toLocaleString("vi-VN")}đ ({formatK(tot)})
+                          </div>
+                        );
+                      }
+                      if (paid === 0) {
+                        return (
+                          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            🔴 Chưa gửi Tip khách (Nợ Tip: {formatK(tot)} - {tot.toLocaleString("vi-VN")}đ)
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+
+                  {/* 3. Trạng thái thanh toán khách & Tip */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
                       <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái thanh toán khách</label>
                       <select
@@ -4291,30 +4560,27 @@ function InternalSchedulesManager() {
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip kiểm tra/thuyết trình</label>
-                      <input
-                        type="text"
-                        value={formData.tipAmount}
-                        onChange={e => setFormData({ ...formData, tipAmount: e.target.value.replace(/\D/g, "") })}
-                        placeholder="Ví dụ: 30000"
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách</label>
+                      <select
+                        value={formData.tipStatus}
+                        onChange={e => {
+                          const st = e.target.value;
+                          let paidVal = formData.customerTipPaidAmount;
+                          if (st === "Đã gửi") {
+                            paidVal = formData.tipAmount;
+                          } else if (st === "Chưa gửi") {
+                            paidVal = "0";
+                          }
+                          setFormData({ ...formData, tipStatus: st, customerTipPaidAmount: paidVal });
+                        }}
                         className="form-input"
                         style={{ background: "white" }}
-                      />
+                      >
+                        <option value="Chưa gửi">Chưa gửi</option>
+                        <option value="Đã gửi 1 phần">Đã gửi 1 phần</option>
+                        <option value="Đã gửi">Đã gửi đủ ✓</option>
+                      </select>
                     </div>
-                  </div>
-
-                  {/* 3. Trạng thái Tip Khách */}
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip khách</label>
-                    <select
-                      value={formData.tipStatus}
-                      onChange={e => setFormData({ ...formData, tipStatus: e.target.value })}
-                      className="form-input"
-                      style={{ background: "white" }}
-                    >
-                      <option value="Chưa gửi">Chưa gửi</option>
-                      <option value="Đã gửi">Đã gửi ✓</option>
-                    </select>
                   </div>
                 </div>
 
@@ -4437,10 +4703,10 @@ function InternalSchedulesManager() {
                     return null;
                   })()}
 
-                  {/* 2. Tiền tip CTV + Trạng thái gửi tiền tip CTV */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                  {/* 2. Tiền tip CTV + Tiền đã gửi Tip CTV */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "0.8rem" }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip CTV</label>
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Tiền tip CTV (đ)</label>
                       <input
                         type="text"
                         value={formData.staffTipAmount}
@@ -4449,20 +4715,122 @@ function InternalSchedulesManager() {
                         className="form-input"
                         style={{ background: "white" }}
                       />
+                      {formData.staffTipAmount && (
+                        <div style={{ fontSize: "0.72rem", color: "#6d28d9", marginTop: "3px", fontWeight: "700" }}>
+                          Tip CTV: {Number(formData.staffTipAmount).toLocaleString("vi-VN")}đ ({formatK(formData.staffTipAmount)})
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip CTV</label>
-                      <select
-                        value={formData.staffTipStatus}
-                        onChange={e => setFormData({ ...formData, staffTipStatus: e.target.value })}
+                      <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>ĐÃ GỬI TIP CTV (đ)</label>
+                      <input
+                        type="text"
+                        value={formData.staffTipPaidAmount}
+                        onChange={e => {
+                          const paidVal = e.target.value.replace(/\D/g, "");
+                          const totalVal = Number(formData.staffTipAmount || 0);
+                          const pNum = Number(paidVal || 0);
+                          let newStatus = "Chưa gửi";
+                          if (pNum >= totalVal && totalVal > 0) {
+                            newStatus = "Đã gửi";
+                          } else if (pNum > 0) {
+                            newStatus = "Đã gửi 1 phần";
+                          }
+                          setFormData({ ...formData, staffTipPaidAmount: paidVal, staffTipStatus: newStatus });
+                        }}
+                        placeholder="Ví dụ: 15000"
                         className="form-input"
-                        style={{ background: "white" }}
-                      >
-                        <option value="Chưa gửi">Chưa gửi</option>
-                        <option value="Đã gửi">Đã gửi ✓</option>
-                      </select>
+                        style={{ background: "white", border: formData.staffTipPaidAmount ? "1.5px solid #7c3aed" : "1px solid #cbd5e1" }}
+                      />
+                      <div style={{ display: "flex", gap: "4px", marginTop: "3px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const half = Math.round(Number(formData.staffTipAmount || 0) / 2);
+                            setFormData({ ...formData, staffTipPaidAmount: String(half), staffTipStatus: "Đã gửi 1 phần" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f3e8ff", color: "#6b21a8", border: "1px solid #e9d5ff", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Gửi 50%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, staffTipPaidAmount: formData.staffTipAmount, staffTipStatus: "Đã gửi" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#e0e7ff", color: "#3730a3", border: "1px solid #c7d2fe", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          Gửi đủ 100%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, staffTipPaidAmount: "0", staffTipStatus: "Chưa gửi" });
+                          }}
+                          style={{ fontSize: "0.68rem", background: "#f1f5f9", color: "#64748b", border: "1px solid #cbd5e1", padding: "1px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+                        >
+                          0đ
+                        </button>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Real-time CTV Tip Alert Badge */}
+                  {(() => {
+                    const tot = Number(formData.staffTipAmount || 0);
+                    const paid = Number(formData.staffTipPaidAmount || (formData.staffTipStatus === "Đã gửi" ? tot : 0));
+                    const rem = Math.max(0, tot - paid);
+
+                    if (tot > 0) {
+                      if (paid > 0 && rem > 0) {
+                        return (
+                          <div style={{ background: "#f3e8ff", border: "1px solid #e9d5ff", color: "#6b21a8", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span>💸 Đã gửi tip CTV: <b>{formatK(paid)}</b> ({paid.toLocaleString("vi-VN")}đ)</span>
+                            <span>⚠️ Còn nợ tip: <b>{formatK(rem)}</b> ({rem.toLocaleString("vi-VN")}đ)</span>
+                          </div>
+                        );
+                      }
+                      if (paid >= tot) {
+                        return (
+                          <div style={{ background: "#e0e7ff", border: "1px solid #c7d2fe", color: "#3730a3", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            ✅ Đã gửi đủ Tip CTV {tot.toLocaleString("vi-VN")}đ ({formatK(tot)})
+                          </div>
+                        );
+                      }
+                      if (paid === 0) {
+                        return (
+                          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", padding: "6px 10px", borderRadius: "8px", fontSize: "0.78rem", fontWeight: "750", marginBottom: "0.8rem" }}>
+                            🔴 Chưa gửi Tip CTV (Nợ Tip: {formatK(tot)} - {tot.toLocaleString("vi-VN")}đ)
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+
+                  {/* 3. Trạng thái Tip CTV */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontWeight: "700", fontSize: "0.82rem" }}>Trạng thái tip CTV</label>
+                    <select
+                      value={formData.staffTipStatus}
+                      onChange={e => {
+                        const st = e.target.value;
+                        let paidVal = formData.staffTipPaidAmount;
+                        if (st === "Đã gửi") {
+                          paidVal = formData.staffTipAmount;
+                        } else if (st === "Chưa gửi") {
+                          paidVal = "0";
+                        }
+                        setFormData({ ...formData, staffTipStatus: st, staffTipPaidAmount: paidVal });
+                      }}
+                      className="form-input"
+                      style={{ background: "white" }}
+                    >
+                      <option value="Chưa gửi">Chưa gửi</option>
+                      <option value="Đã gửi 1 phần">Đã gửi 1 phần</option>
+                      <option value="Đã gửi">Đã gửi đủ ✓</option>
+                    </select>
                   </div>
                 </div>
               </div>
