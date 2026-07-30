@@ -3059,17 +3059,6 @@ function InternalSchedulesManager() {
           >
             ➕ Thêm Lịch Học
           </button>
-          {isAdmin && (
-            <button 
-              onClick={handleBatchStandardizeFinancials}
-              disabled={isMigrating}
-              className="btn"
-              style={{ background: "#7c3aed", color: "white", padding: "0.6rem 1.2rem", borderRadius: "10px", fontWeight: "750" }}
-              title="Tự động chuẩn hóa & cập nhật trạng thái tất cả ca học cũ theo dữ liệu tiền"
-            >
-              {isMigrating ? "🔄 Đang chuẩn hóa..." : "⚡ Chuẩn hóa tài chính ca cũ"}
-            </button>
-          )}
           <button 
             onClick={handleExportCSV} 
             className="btn"
